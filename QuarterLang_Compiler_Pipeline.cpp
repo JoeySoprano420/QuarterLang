@@ -3134,3 +3134,14 @@ public:
     std::string addDG(const std::string& a, const std::string& b);
 };
 
+int main(int argc, char** argv) {
+    if (argc > 1 && std::string(argv[1]) == "test") {
+        test_ir_lowering();
+        return 0;
+    }
+    if (argc > 1 && std::string(argv[1]) == "repl") {
+        repl();
+        return 0;
+    }
+    // ... normal compilation flow ...
+}
