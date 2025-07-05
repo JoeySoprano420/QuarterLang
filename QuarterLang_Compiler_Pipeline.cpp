@@ -1728,3 +1728,314 @@ int main(int argc, char** argv) {
     return 0;
 }
 
+/*
+ * QuarterLang Compiler/Interpreter
+ * - Functions & Calls, Stack Frame & Offsets, REPL, Debugger
+ * - Standard Library ready
+ */
+
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <map>
+#include <unordered_map>
+#include <memory>
+#include <string>
+#include <stdexcept>
+#include <cassert>
+
+//======================================================
+// AST DEFINITIONS
+//======================================================
+struct ASTExpr { virtual ~ASTExpr() = default; };
+struct ASTLiteral : ASTExpr { std::string value; ASTLiteral(const std::string& v): value(v) {} };
+struct ASTVar : ASTExpr { std::string name; ASTVar(const std::string& n): name(n) {} };
+struct ASTBinary : ASTExpr { std::string lhs, op, rhs; ASTBinary(const std::string& l, const std::string& o, const std::string& r): lhs(l), op(o), rhs(r) {} };
+struct ASTValDecl : ASTExpr { std::string name, type; std::unique_ptr<ASTExpr> init; };
+struct ASTCall : ASTExpr { std::string funcName; std::vector<std::unique_ptr<ASTExpr>> args; ASTCall(const std::string& f): funcName(f) {} };
+struct ASTFunction : ASTExpr { std::string name; std::vector<std::string> params; std::vector<std::unique_ptr<ASTExpr>> body; };
+struct ASTProgram : ASTExpr {
+    std::vector<std::unique_ptr<ASTExpr>> statements;
+    std::unordered_map<std::string, ASTFunction*> functions;
+};
+
+//======================================================
+// PARSER (handles functions, calls, expressions)
+//======================================================
+std::unique_ptr<ASTExpr> parseExpr(std::istringstream& in);
+std::unique_ptr<ASTCall> parseCall(const std::string& funcName, std::istringstream& in) {
+    auto call = std::make_unique<ASTCall>(funcName);
+    char ch; in >> ch; // '('
+    while (in.peek() != ')' && in >> std::ws) {
+        call->args.push_back(parseExpr(in));
+        if (in.peek() == ',') in.ignore(1);
+    }
+    in.ignore(1); // ')'
+    return call;
+}
+std::unique_ptr<ASTExpr> parseExpr(std::istringstream& in) {
+    std::string token; in >> token;
+    if (isdigit(token[0])) return std::make_unique<ASTLiteral>(token);
+    if (isalpha(token[0])) {
+        if (in.peek() == '(') return parseCall(token, in);
+        std::string op, rhs; std::streampos oldpos = in.tellg();
+        if (in >> op) {
+            if (op == "+" || op == "-" || op == "*" || op == "/") {
+                in >> rhs;
+                return std::make_unique<ASTBinary>(token, op, rhs);
+            } else in.seekg(oldpos);
+        }
+        return std::make_unique<ASTVar>(token);
+    }
+    return std::make_unique<ASTLiteral>(token);
+}
+std::unique_ptr<ASTFunction> parseFunction(std::istringstream& in) {
+    auto func = std::make_unique<ASTFunction>();
+    std::string name, param; in >> name; func->name = name;
+    in >> param; // '('
+    while (in.peek() != ')' && in >> std::ws) {
+        in >> param; if (param.back() == ',') param.pop_back();
+        func->params.push_back(param);
+    }
+    in.ignore(1); // ')'
+    std::string brace; in >> brace; // '{'
+    std::string token;
+    while (in >> token && token != "}") {
+        if (token == "val") {
+            auto decl = std::make_unique<ASTValDecl>();
+            in >> decl->name; in.ignore(1); in >> decl->type; in.ignore(1); decl->init = parseExpr(in);
+            func->body.push_back(std::move(decl));
+        } else if (token == "call") {
+            std::string fname; in >> fname; func->body.push_back(parseCall(fname, in));
+        }
+    }
+    return func;
+}
+std::unique_ptr<ASTProgram> parse(const std::string& src) {
+    auto program = std::make_unique<ASTProgram>();
+    std::istringstream in(src);
+    std::string token;
+    while (in >> token) {
+        if (token == "val") {
+            auto decl = std::make_unique<ASTValDecl>();
+            in >> decl->name; in.ignore(1); in >> decl->type; in.ignore(1); decl->init = parseExpr(in);
+            program->statements.push_back(std::move(decl));
+        } else if (token == "func") {
+            auto func = parseFunction(in);
+            program->functions[func->name] = func.get();
+            program->statements.push_back(std::move(func));
+        } else if (token == "call") {
+            std::string fname; in >> fname; program->statements.push_back(parseCall(fname, in));
+        }
+    }
+    return program;
+}
+
+//======================================================
+// IR + Stack Frame Layout + Function Call/Return
+//======================================================
+enum class IROp { Alloc, Store, Load, Add, Call, Ret, Print };
+struct IRInstr { IROp op; std::vector<std::string> args; };
+struct BasicBlock { std::string name; std::vector<IRInstr> instrs; };
+struct IRFunction {
+    std::string name; std::vector<std::string> params;
+    std::vector<std::unique_ptr<BasicBlock>> blocks;
+    std::map<std::string, int> varOffsets; // name → stack offset
+    int stackSize = 0;
+};
+struct IRProgram { std::unordered_map<std::string, IRFunction> functions; };
+
+int allocateVar(IRFunction& fn, const std::string& name) {
+    int ofs = fn.stackSize++;
+    fn.varOffsets[name] = ofs;
+    return ofs;
+}
+void lowerFunction(ASTFunction* astFunc, IRProgram& irprog) {
+    IRFunction irFunc; irFunc.name = astFunc->name; irFunc.params = astFunc->params;
+    int argIdx = 0;
+    for (const auto& p : irFunc.params) irFunc.varOffsets[p] = argIdx++;
+    irFunc.stackSize = argIdx;
+    auto entry = std::make_unique<BasicBlock>();
+    entry->name = irFunc.name + "_entry";
+    for (auto& stmt : astFunc->body) {
+        if (auto val = dynamic_cast<ASTValDecl*>(stmt.get())) {
+            int ofs = allocateVar(irFunc, val->name);
+            entry->instrs.push_back({IROp::Alloc, {val->name, std::to_string(ofs)}});
+            if (auto lit = dynamic_cast<ASTLiteral*>(val->init.get()))
+                entry->instrs.push_back({IROp::Store, {val->name, lit->value}});
+            else if (auto var = dynamic_cast<ASTVar*>(val->init.get()))
+                entry->instrs.push_back({IROp::Store, {val->name, var->name}});
+            else if (auto bin = dynamic_cast<ASTBinary*>(val->init.get()))
+                entry->instrs.push_back({IROp::Add, {val->name, bin->lhs, bin->rhs}});
+        } else if (auto call = dynamic_cast<ASTCall*>(stmt.get())) {
+            std::vector<std::string> args; for (auto& a : call->args) {
+                if (auto lit = dynamic_cast<ASTLiteral*>(a.get())) args.push_back(lit->value);
+                else if (auto var = dynamic_cast<ASTVar*>(a.get())) args.push_back(var->name);
+            }
+            args.insert(args.begin(), call->funcName);
+            entry->instrs.push_back({IROp::Call, args});
+        }
+    }
+    irFunc.blocks.push_back(std::move(entry));
+    irprog.functions[irFunc.name] = std::move(irFunc);
+}
+IRProgram lower(ASTProgram& program) {
+    IRProgram irprog;
+    for (auto& stmt : program.statements)
+        if (auto func = dynamic_cast<ASTFunction*>(stmt.get()))
+            lowerFunction(func, irprog);
+    IRFunction mainFn;
+    mainFn.name = "_main";
+    auto entry = std::make_unique<BasicBlock>();
+    entry->name = "entry";
+    for (auto& stmt : program.statements) {
+        if (dynamic_cast<ASTFunction*>(stmt.get())) continue;
+        if (auto val = dynamic_cast<ASTValDecl*>(stmt.get())) {
+            int ofs = allocateVar(mainFn, val->name);
+            entry->instrs.push_back({IROp::Alloc, {val->name, std::to_string(ofs)}});
+            if (auto lit = dynamic_cast<ASTLiteral*>(val->init.get()))
+                entry->instrs.push_back({IROp::Store, {val->name, lit->value}});
+        } else if (auto call = dynamic_cast<ASTCall*>(stmt.get())) {
+            std::vector<std::string> args;
+            for (auto& a : call->args)
+                if (auto lit = dynamic_cast<ASTLiteral*>(a.get())) args.push_back(lit->value);
+                else if (auto var = dynamic_cast<ASTVar*>(a.get())) args.push_back(var->name);
+            args.insert(args.begin(), call->funcName);
+            entry->instrs.push_back({IROp::Call, args});
+        }
+    }
+    mainFn.blocks.push_back(std::move(entry));
+    irprog.functions[mainFn.name] = std::move(mainFn);
+    return irprog;
+}
+
+//======================================================
+// INTERPRETER (Stack-based, with debugging & print)
+//======================================================
+struct StackFrame {
+    std::map<std::string, int> vars; // var name → value
+    int retAddr = -1;
+};
+class IRInterpreter {
+public:
+    IRInterpreter(const IRProgram& prog) : prog(prog) {}
+    int call(const std::string& name, const std::vector<int>& args) {
+        auto it = prog.functions.find(name);
+        if (it == prog.functions.end()) throw std::runtime_error("No such function: " + name);
+        StackFrame frame;
+        int idx = 0;
+        for (const auto& p : it->second.params) frame.vars[p] = args[idx++];
+        callStack.push_back(frame);
+        int result = execFunc(it->second);
+        callStack.pop_back();
+        return result;
+    }
+    void execMain() { call("_main", {}); }
+    void debugMain();
+private:
+    const IRProgram& prog;
+    std::vector<StackFrame> callStack;
+    int execFunc(const IRFunction& fn) {
+        for (const auto& block : fn.blocks)
+            for (const auto& instr : block->instrs)
+                step(instr);
+        return 0;
+    }
+    void step(const IRInstr& instr) {
+        if (instr.op == IROp::Alloc) callStack.back().vars[instr.args[0]] = 0;
+        else if (instr.op == IROp::Store) callStack.back().vars[instr.args[0]] = std::stoi(instr.args[1]);
+        else if (instr.op == IROp::Add)
+            callStack.back().vars[instr.args[0]] =
+                valueOf(instr.args[1]) + valueOf(instr.args[2]);
+        else if (instr.op == IROp::Call) {
+            std::vector<int> args;
+            for (size_t i = 1; i < instr.args.size(); ++i)
+                args.push_back(valueOf(instr.args[i]));
+            if (instr.args[0] == "say") {
+                for (int v : args) std::cout << v << std::endl;
+            } else {
+                call(instr.args[0], args);
+            }
+        }
+    }
+    int valueOf(const std::string& name) {
+        for (auto it = callStack.rbegin(); it != callStack.rend(); ++it)
+            if (it->vars.count(name)) return it->vars.at(name);
+        return std::stoi(name); // literal fallback
+    }
+};
+void IRInterpreter::debugMain() {
+    std::cout << "Debugger (Enter=step, v=vars, q=quit):\n";
+    auto it = prog.functions.find("_main");
+    if (it == prog.functions.end()) throw std::runtime_error("No _main");
+    auto& fn = it->second;
+    StackFrame frame;
+    callStack.push_back(frame);
+    for (const auto& block : fn.blocks)
+        for (const auto& instr : block->instrs) {
+            std::cout << "[step] " << (int)instr.op << ": ";
+            for (const auto& a : instr.args) std::cout << a << " ";
+            std::cout << "\n> ";
+            std::string cmd; std::getline(std::cin, cmd);
+            if (cmd == "q") return;
+            if (cmd == "v") { for (const auto& v : callStack.back().vars) std::cout << v.first << "=" << v.second << "\n"; }
+            else step(instr);
+        }
+    callStack.pop_back();
+}
+
+//======================================================
+// REPL (Interactive)
+//======================================================
+void repl() {
+    std::cout << "QuarterLang REPL. Type 'exit' to quit.\n";
+    std::string line, src;
+    while (true) {
+        std::cout << ">> ";
+        if (!std::getline(std::cin, line)) break;
+        if (line == "exit") break;
+        src = line;
+        try {
+            auto ast = parse(src);
+            IRProgram irprog = lower(*ast);
+            IRInterpreter interp(irprog);
+            interp.execMain();
+        } catch (const std::exception& ex) {
+            std::cerr << "Error: " << ex.what() << std::endl;
+        }
+    }
+}
+
+//======================================================
+// FILE LOADER & DRIVER (main)
+//======================================================
+std::string loadFile(const std::string& path) {
+    std::ifstream in(path);
+    if (!in) throw std::runtime_error("Could not open source file");
+    return std::string((std::istreambuf_iterator<char>(in)),
+                        std::istreambuf_iterator<char>());
+}
+int main(int argc, char** argv) {
+    if (argc > 1 && std::string(argv[1]) == "--repl") { repl(); return 0; }
+    if (argc > 1 && std::string(argv[1]) == "--debug") {
+        std::string source = loadFile(argc > 2 ? argv[2] : "program.qtr");
+        auto ast = parse(source);
+        IRProgram irprog = lower(*ast);
+        IRInterpreter interp(irprog);
+        interp.debugMain();
+        return 0;
+    }
+    try {
+        std::string source = loadFile(argc > 1 ? argv[1] : "program.qtr");
+        auto ast = parse(source);
+        IRProgram irprog = lower(*ast);
+        IRInterpreter interp(irprog);
+        interp.execMain();
+    } catch (const std::exception& ex) {
+        std::cerr << "Error: " << ex.what() << std::endl;
+        return 1;
+    }
+    return 0;
+}
+
