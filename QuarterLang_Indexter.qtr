@@ -1,0 +1,12 @@
+star
+module Indexter:
+  # Symbol indexing for AST
+  define index_symbols(ast as AST) as SymbolTable:
+    val table as SymbolTable = new SymbolTable()
+    loop symbol in ast.symbols:
+      table.add(symbol.name, symbol)
+    end loop
+    return table
+  end define
+end module
+end
