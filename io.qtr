@@ -1,0 +1,16 @@
+# ==== I/O Library ====
+
+star
+
+# Print an integer to output
+func print(x: int) {
+    call say(x)
+}
+
+# Read an integer from input and print it
+func input() {
+    val x: int = ask()
+    call print(x)
+}
+
+end
