@@ -1,0 +1,17 @@
+star
+module ErrorHandler:
+  # Centralized error reporting
+  define error(code as primative, message as primative):
+    __console_write("[Error " + code + "]: " + message)
+    __sys_exit(code)
+  end define
+
+  define warn(message as primative):
+    __console_write("[Warning]: " + message)
+  end define
+
+  define info(message as primative):
+    __console_write("[Info]: " + message)
+  end define
+end module
+end
