@@ -39,6 +39,12 @@
 #include "QTRScriptEngine.hpp"
 #include "QTRCreativeCanvas.hpp"
 #include "DGEngine.hpp"
+#pragma once
+#include "QuarterLang_Compiler_Pipeline.hpp"
+#pragma once
+#include "QuarterLang_Compiler_Pipeline.hpp"
+#pragma once
+#include "QuarterLang_Compiler_Pipeline.hpp"
 
 //==========================================================
 // 1. AST DEFINITIONS
@@ -3102,4 +3108,29 @@ int main() {
 
     return 0;
 }
+
+class QTRScriptEngine {
+public:
+    void loadScript(const std::string& qtrSource);
+    void execute();
+    void bindFunction(const std::string& name, std::function<void()> fn);
+private:
+    std::string compiledAssembly;
+    std::unordered_map<std::string, std::function<void()>> nativeBindings;
+};
+
+class QTRCreativeCanvas {
+public:
+    void runSketch(const std::string& qtrSketchCode);
+    void setOutputStream(std::ostream& os);
+private:
+    std::ostream* output = &std::cout;
+};
+
+class DGEngine {
+public:
+    std::string toDG(int decimal);
+    int fromDG(const std::string& dg);
+    std::string addDG(const std::string& a, const std::string& b);
+};
 
