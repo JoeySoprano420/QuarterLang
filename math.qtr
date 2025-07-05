@@ -1,0 +1,45 @@
+# ==== Arithmetic Library ====
+
+star
+
+func add(x: int, y: int) {
+    val z: int = x + y
+    call print(z)
+}
+
+func sub(x: int, y: int) {
+    val z: int = x - y
+    call print(z)
+}
+
+func mul(x: int, y: int) {
+    val z: int = x * y
+    call print(z)
+}
+
+func div(x: int, y: int) {
+    val z: int = x / y
+    call print(z)
+}
+
+func mod(x: int, y: int) {
+    val z: int = x % y
+    call print(z)
+}
+
+func pow(x: int, y: int) {
+    val result: int = 1
+    val i: int = 0
+    loop i < y {
+        result = result * x
+        i = i + 1
+    }
+    call print(result)
+}
+
+func abs(x: int) {
+    val z: int = when x < 0: 0 - x else: x
+    call print(z)
+}
+
+end
