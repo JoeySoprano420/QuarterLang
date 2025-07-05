@@ -1,24 +1,77 @@
-# Standard library: print, add, mul, identity
+# ==== QuarterLang Standard Library ====
 
-func print(x) {
+star
+
+# Print an integer to output
+func print(x: int) {
     call say(x)
 }
 
-func add(x, y) {
+# Add two integers and print the result
+func add(x: int, y: int) {
     val z: int = x + y
     call print(z)
 }
 
-func mul(x, y) {
+# Multiply two integers and print the result
+func mul(x: int, y: int) {
     val z: int = x * y
     call print(z)
 }
 
-func identity(x) {
+# Identity: print any int you give it
+func identity(x: int) {
     call print(x)
 }
 
-# Usage:
+# Compare two integers (stub: prints both)
+func compare(x: int, y: int) {
+    call print(x)
+    call print(y)
+}
+
+# --- Standard utility functions ---
+
+# Subtract y from x and print
+func sub(x: int, y: int) {
+    val z: int = x - y
+    call print(z)
+}
+
+# Divide x by y (integer division) and print
+func div(x: int, y: int) {
+    val z: int = x / y
+    call print(z)
+}
+
+# Modulo
+func mod(x: int, y: int) {
+    val z: int = x % y
+    call print(z)
+}
+
+# Minimum of two integers
+func min(x: int, y: int) {
+    val z: int = when x < y: x else: y
+    call print(z)
+}
+
+# Maximum of two integers
+func max(x: int, y: int) {
+    val z: int = when x > y: x else: y
+    call print(z)
+}
+
+# --- Example usage (delete or comment for deployment) ---
+
 call add(4, 9)
 call mul(2, 3)
+call sub(10, 4)
+call div(20, 5)
+call mod(13, 5)
+call min(7, 12)
+call max(7, 12)
 call identity(42)
+call compare(7, 12)
+
+end
