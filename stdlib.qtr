@@ -1,0 +1,27 @@
+# ==== QuarterLang Standard Library Loader ====
+
+star
+
+import "io.qtr"
+import "math.qtr"
+import "compare.qtr"
+import "util.qtr"
+
+# Example usage (remove or comment in production)
+call add(4, 9)
+call mul(2, 3)
+call sub(10, 4)
+call div(20, 5)
+call mod(13, 5)
+call pow(3, 4)
+call min(7, 12)
+call max(7, 12)
+call abs(-7)
+call clamp(15, 5, 10)
+call is_even(6)
+call identity(42)
+call compare(7, 12)
+call factorial(5)
+call input()
+
+end
