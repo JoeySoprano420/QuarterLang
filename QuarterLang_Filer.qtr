@@ -1,0 +1,10 @@
+star
+module Filer:
+  # Module manager for QuarterLang packages
+  define load_module(name as primative) as Module:
+    val path as primative = name + ".qtr"
+    val src as primative = IO.read_file(path)
+    return Parser.parse(src)
+  end define
+end module
+end
