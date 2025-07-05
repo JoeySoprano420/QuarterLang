@@ -1,0 +1,9 @@
+star
+module CodeGenerator:
+  define generate_nasm(irs as List<IR>) as primative:
+    var out as primative = "section .text\n"
+    for ir in irs: out = out + ir.to_nasm() + "\n" end for
+    return out
+  end define
+end module
+end
