@@ -1,0 +1,18 @@
+star
+module AST:
+  class AST:
+    var nodes as List<Node>
+    define constructor(n as List<Node>): nodes = n end define
+  end class
+
+  class Node:
+    var type as primative
+    var children as List<Node>
+    define constructor(t as primative, c as List<Node>): type = t; children = c end define
+
+    define to_source() as primative:
+      return type  # stub
+    end define
+  end class
+end module
+end
