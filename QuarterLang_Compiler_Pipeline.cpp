@@ -22,6 +22,19 @@
 #include <memory>
 #include <string>
 #include <stdexcept>
+#include "StandardLib.h"
+#include <iostream>
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <string>
+#include <memory>
+#include <map>
+#include <unordered_map>
+#include <stdexcept>
+#include <cassert>
+#include <cctype>
 
 //==========================================================
 // 1. AST DEFINITIONS
@@ -2301,5 +2314,752 @@ int main(int argc, char** argv) {
         return 1;
     }
     return 0;
+}
+
+else if (token == "return") {
+    func->returnExpr = parseExpr(in);
+}
+
+#pragma once
+// Memory allocation and GC management for QuarterLang.
+
+#include <cstddef>
+
+class MemoryHandler {
+public:
+    static void* allocate(std::size_t size);
+    static void free(void* ptr);
+    static void gc_collect();
+};
+
+#include "MemoryHandler.h"
+#include <cstdlib>
+
+void* MemoryHandler::allocate(std::size_t size) { return std::malloc(size); }
+void MemoryHandler::free(void* ptr) { std::free(ptr); }
+void MemoryHandler::gc_collect() { /* GC logic here */ }
+
+#pragma once
+// Numeric range and normalization utilities.
+
+class RangeAdjuster {
+public:
+    static int clamp(int value, int min, int max);
+    static double normalize(double value, double in_min, double in_max, double out_min, double out_max);
+};
+
+#include "RangeAdjuster.h"
+int RangeAdjuster::clamp(int value, int min, int max) {
+    if (value < min) return min;
+    if (value > max) return max;
+    return value;
+}
+double RangeAdjuster::normalize(double value, double in_min, double in_max, double out_min, double out_max) {
+    double ratio = (value - in_min) / (in_max - in_min);
+    return out_min + ratio * (out_max - out_min);
+}
+
+#pragma once
+// Centralized error, warning, and info reporting.
+
+#include <string>
+
+class ErrorHandler {
+public:
+    static void error(int code, const std::string& message);
+    static void warn(const std::string& message);
+    static void info(const std::string& message);
+};
+
+#include "ErrorHandler.h"
+#include <iostream>
+#include <stdexcept>
+
+void ErrorHandler::error(int code, const std::string& message) {
+    throw std::runtime_error("[Error " + std::to_string(code) + "]: " + message);
+}
+void ErrorHandler::warn(const std::string& message) {
+    std::cerr << "[Warning]: " << message << std::endl;
+}
+void ErrorHandler::info(const std::string& message) {
+    std::cout << "[Info]: " << message << std::endl;
+}
+
+#pragma once
+// Symbol indexing for ASTs.
+
+#include <unordered_map>
+#include <string>
+#include "AST.h"
+
+class Indexter {
+public:
+    static std::unordered_map<std::string, int> indexSymbols(const AST& ast);
+};
+
+#include "Indexter.h"
+// TODO: Implement symbol indexing.
+std::unordered_map<std::string, int> Indexter::indexSymbols(const AST&) {
+    return {};
+}
+
+#pragma once
+// File and console I/O utilities.
+
+#include <string>
+
+class IO {
+public:
+    static std::string readFile(const std::string& path);
+    static void writeFile(const std::string& path, const std::string& data);
+    static void print(const std::string& text);
+    static void println(const std::string& text);
+};
+
+#include "IO.h"
+#include <fstream>
+#include <iostream>
+
+std::string IO::readFile(const std::string& path) {
+    std::ifstream in(path);
+    return std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+}
+void IO::writeFile(const std::string& path, const std::string& data) {
+    std::ofstream out(path);
+    out << data;
+}
+void IO::print(const std::string& text) { std::cout << text; }
+void IO::println(const std::string& text) { std::cout << text << std::endl; }
+
+#pragma once
+// Module/package manager.
+
+#include <string>
+
+class Filer {
+public:
+    static std::string loadModule(const std::string& name);
+};
+
+#include "Filer.h"
+#include "IO.h"
+
+std::string Filer::loadModule(const std::string& name) {
+    return IO::readFile(name + ".qtr");
+}
+
+#pragma once
+// Built-in library management.
+
+#include <string>
+#include <unordered_map>
+
+class LibrarySystem {
+public:
+    static void registerLibrary(const std::string& name, void* module);
+    static void* getLibrary(const std::string& name);
+private:
+    static std::unordered_map<std::string, void*>& libs();
+};
+
+#include "LibrarySystem.h"
+std::unordered_map<std::string, void*>& LibrarySystem::libs() {
+    static std::unordered_map<std::string, void*> instance;
+    return instance;
+}
+void LibrarySystem::registerLibrary(const std::string& name, void* module) {
+    libs()[name] = module;
+}
+void* LibrarySystem::getLibrary(const std::string& name) {
+    auto it = libs().find(name);
+    if (it == libs().end()) throw std::runtime_error("Library not found: " + name);
+    return it->second;
+}
+
+#pragma once
+// Tokenizer for QuarterLang source.
+
+#include <vector>
+#include <string>
+
+struct Token {
+    std::string type;
+    std::string value;
+};
+
+class Lexer {
+public:
+    static std::vector<Token> lex(const std::string& input);
+};
+
+#include "Lexer.h"
+// TODO: Implement real lexing logic.
+std::vector<Token> Lexer::lex(const std::string&) { return {}; }
+
+#pragma once
+// Syntax coloring for token streams.
+
+#include <vector>
+#include <string>
+
+struct StyledToken {
+    Token token;
+    std::string style;
+};
+
+class SyntaxHighlighter {
+public:
+    static std::vector<StyledToken> highlight(const std::vector<Token>& tokens);
+};
+
+#include "SyntaxHighlighter.h"
+// TODO: Implement syntax highlighting.
+std::vector<StyledToken> SyntaxHighlighter::highlight(const std::vector<Token>& tokens) {
+    std::vector<StyledToken> styled;
+    for (const auto& t : tokens) styled.push_back({t, "plain"});
+    return styled;
+}
+
+#pragma once
+// Pretty-printer for AST/code.
+
+#include <string>
+#include "AST.h"
+
+class Formatter {
+public:
+    static std::string format(const AST& ast);
+};
+
+#include "Formatter.h"
+// TODO: Implement formatting logic.
+std::string Formatter::format(const AST&) { return ""; }
+
+#pragma once
+// Recursive descent parser.
+
+#include <string>
+#include <memory>
+#include "AST.h"
+
+class Parser {
+public:
+    static std::unique_ptr<AST> parse(const std::string& src);
+};
+
+#include "Parser.h"
+// TODO: Implement parsing.
+std::unique_ptr<AST> Parser::parse(const std::string&) { return nullptr; }
+
+#pragma once
+// AST node types for QuarterLang.
+
+#include <vector>
+#include <memory>
+#include <string>
+
+class ASTNode { public: virtual ~ASTNode() = default; };
+class AST : public ASTNode {
+public:
+    std::vector<std::unique_ptr<ASTNode>> nodes;
+};
+
+#include "AST.h"
+// Implement as needed.
+
+#pragma once
+// Intermediate Representation generator.
+
+#include "AST.h"
+#include <vector>
+#include <string>
+
+struct IR {
+    std::string opcode;
+    std::vector<std::string> args;
+};
+
+class IRBytecode {
+public:
+    static std::vector<IR> generate(const AST& ast);
+};
+
+#include "IRBytecode.h"
+// TODO: Implement IR generation.
+std::vector<IR> IRBytecode::generate(const AST&) { return {}; }
+
+#pragma once
+// Module encapsulation and wrapping.
+
+#include <string>
+
+class Encapsulation {
+public:
+    static std::string wrap(const std::string& moduleStr);
+};
+
+#include "Encapsulation.h"
+std::string Encapsulation::wrap(const std::string& moduleStr) {
+    return "<module>" + moduleStr + "</module>";
+}
+
+#pragma once
+// Lexical scope resolver.
+
+#include "AST.h"
+
+class Scoper {
+public:
+    static void resolveScopes(AST& ast);
+};
+
+#include "Scoper.h"
+// TODO: Implement scope resolution.
+void Scoper::resolveScopes(AST&) {}
+
+#pragma once
+// Symbol binding and environment linking.
+
+#include "AST.h"
+
+class Binder {
+public:
+    static void bind(AST& ast);
+};
+
+#include "Binder.h"
+// TODO: Implement binding logic.
+void Binder::bind(AST&) {}
+
+#pragma once
+// AST ↔ IR adapter.
+
+#include "AST.h"
+#include "IRBytecode.h"
+#include <vector>
+
+class Adapter {
+public:
+    static std::vector<IR> adaptToIR(const AST& ast);
+};
+
+#include "Adapter.h"
+std::vector<IR> Adapter::adaptToIR(const AST& ast) {
+    return IRBytecode::generate(ast);
+}
+
+#pragma once
+// IR composer for multiple modules.
+
+#include <vector>
+#include "IRBytecode.h"
+
+class Composer {
+public:
+    static std::vector<IR> compose(const std::vector<std::vector<IR>>& listOfIRs);
+};
+
+#include "Composer.h"
+std::vector<IR> Composer::compose(const std::vector<std::vector<IR>>& listOfIRs) {
+    std::vector<IR> out;
+    for (const auto& irs : listOfIRs) out.insert(out.end(), irs.begin(), irs.end());
+    return out;
+}
+
+#pragma once
+// Seeds the stdlib and core modules.
+
+#include <vector>
+#include <string>
+
+class Seeder {
+public:
+    static std::vector<std::string> seedStdlib();
+};
+
+#include "Seeder.h"
+std::vector<std::string> Seeder::seedStdlib() {
+    return { "core", "math" };
+}
+
+#pragma once
+// NASM/x64 code generator.
+
+#include "IRBytecode.h"
+#include <string>
+#include <vector>
+
+class CodeGenerator {
+public:
+    static std::string generateNASM(const std::vector<IR>& irs);
+};
+
+#include "CodeGenerator.h"
+std::string CodeGenerator::generateNASM(const std::vector<IR>& irs) {
+    std::string out = "section .text\n";
+    for (const auto& ir : irs)
+        out += ir.opcode + " ; ...\n";
+    return out;
+}
+
+#pragma once
+// Assembles NASM to binary.
+
+#include <string>
+
+class BinaryEmitter {
+public:
+    static std::string emit(const std::string& bin);
+};
+
+#include "BinaryEmitter.h"
+std::string BinaryEmitter::emit(const std::string&) {
+    // TODO: Call assembler, return binary blob or filename
+    return "out.bin";
+}
+
+#pragma once
+// QuarterLang standard library (C++ bindings).
+
+class StandardLib {
+public:
+    static void registerBuiltins();
+    static int print(int x);
+    static int add(int x, int y);
+    static int mul(int x, int y);
+    static int identity(int x);
+    static int compare(int x, int y);
+    static int sub(int x, int y);
+    static int div(int x, int y);
+    static int mod(int x, int y);
+    static int min(int x, int y);
+    static int max(int x, int y);
+    static int pow(int x, int y);
+    static int abs(int x);
+    static int clamp(int x, int min, int max);
+    static int is_even(int x);
+    static int factorial(int x);
+    // ... more as needed
+};
+
+void StandardLib::registerBuiltins() { /* Bind to runtime */ }
+int StandardLib::print(int x) { std::cout << x << std::endl; return x; }
+int StandardLib::add(int x, int y) { return x + y; }
+int StandardLib::mul(int x, int y) { return x * y; }
+int StandardLib::identity(int x) { return x; }
+int StandardLib::compare(int x, int y) { std::cout << x << " " << y << std::endl; return 0; }
+int StandardLib::sub(int x, int y) { return x - y; }
+int StandardLib::div(int x, int y) { return x / y; }
+int StandardLib::mod(int x, int y) { return x % y; }
+int StandardLib::min(int x, int y) { return (x < y) ? x : y; }
+int StandardLib::max(int x, int y) { return (x > y) ? x : y; }
+int StandardLib::pow(int x, int y) { int r = 1; for (int i = 0; i < y; ++i) r *= x; return r; }
+int StandardLib::abs(int x) { return (x < 0) ? -x : x; }
+int StandardLib::clamp(int x, int min, int max) { if (x < min) return min; if (x > max) return max; return x; }
+int StandardLib::is_even(int x) { return x % 2 == 0 ? 1 : 0; }
+int StandardLib::factorial(int x) { return (x <= 1) ? 1 : x * factorial(x - 1); }
+
+// === Token ===
+struct Token {
+    std::string type, value;
+    Token(std::string t, std::string v) : type(std::move(t)), value(std::move(v)) {}
+};
+
+// === 1. MemoryHandler ===
+class MemoryHandler {
+public:
+    static void* allocate(std::size_t size) { return std::malloc(size); }
+    static void free(void* ptr) { std::free(ptr); }
+    static void gc_collect() { /* TODO: mark-and-sweep */ }
+};
+
+// === 2. RangeAdjuster ===
+class RangeAdjuster {
+public:
+    static int clamp(int v, int mn, int mx) { return (v < mn) ? mn : (v > mx) ? mx : v; }
+    static double normalize(double v, double in_min, double in_max, double out_min, double out_max) {
+        double ratio = (v - in_min) / (in_max - in_min);
+        return out_min + ratio * (out_max - out_min);
+    }
+};
+
+// === 3. ErrorHandler ===
+class ErrorHandler {
+public:
+    static void error(int code, const std::string& msg) { throw std::runtime_error("[Error " + std::to_string(code) + "]: " + msg); }
+    static void warn(const std::string& msg) { std::cerr << "[Warning]: " << msg << std::endl; }
+    static void info(const std::string& msg) { std::cout << "[Info]: " << msg << std::endl; }
+};
+
+// === 4. Indexter ===
+struct AST;
+class Indexter {
+public:
+    static std::unordered_map<std::string, int> indexSymbols(const AST&) { return {}; }
+};
+
+// === 5. IO ===
+class IO {
+public:
+    static std::string readFile(const std::string& path) {
+        std::ifstream in(path);
+        if (!in) ErrorHandler::error(2, "File not found: " + path);
+        return std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    }
+    static void writeFile(const std::string& path, const std::string& data) {
+        std::ofstream out(path); out << data;
+    }
+    static void print(const std::string& t) { std::cout << t; }
+    static void println(const std::string& t) { std::cout << t << std::endl; }
+};
+
+// === 6. Filer ===
+class Filer {
+public:
+    static std::string loadModule(const std::string& name) {
+        return IO::readFile(name + ".qtr");
+    }
+};
+
+// === 7. LibrarySystem ===
+class LibrarySystem {
+    static std::unordered_map<std::string, void*>& libs() {
+        static std::unordered_map<std::string, void*> l;
+        return l;
+    }
+public:
+    static void registerLibrary(const std::string& name, void* module) { libs()[name] = module; }
+    static void* getLibrary(const std::string& name) {
+        auto it = libs().find(name);
+        if (it == libs().end()) ErrorHandler::error(404, "Library not found: " + name);
+        return it->second;
+    }
+};
+
+// === 8. Lexer ===
+class Lexer {
+public:
+    static std::vector<Token> lex(const std::string& input) {
+        std::vector<Token> tokens;
+        for (size_t i = 0; i < input.size(); ) {
+            while (i < input.size() && std::isspace(input[i])) ++i;
+            if (i == input.size()) break;
+            if (std::isalpha(input[i])) {
+                size_t j = i;
+                while (j < input.size() && (std::isalnum(input[j]) || input[j]=='_')) ++j;
+                tokens.emplace_back("IDENT", input.substr(i, j-i));
+                i = j;
+            } else if (std::isdigit(input[i])) {
+                size_t j = i;
+                while (j < input.size() && std::isdigit(input[j])) ++j;
+                tokens.emplace_back("NUMBER", input.substr(i, j-i));
+                i = j;
+            } else {
+                tokens.emplace_back("SYM", std::string(1, input[i++]));
+            }
+        }
+        return tokens;
+    }
+};
+
+// === 9. SyntaxHighlighter ===
+struct StyledToken { Token token; std::string style; };
+class SyntaxHighlighter {
+public:
+    static std::vector<StyledToken> highlight(const std::vector<Token>& tokens) {
+        std::vector<StyledToken> out;
+        for (const auto& t : tokens) out.push_back({t, "plain"});
+        return out;
+    }
+};
+
+// === 10. Formatter ===
+struct ASTNode;
+struct AST;
+class Formatter {
+public:
+    static std::string format(const AST&); // See below
+};
+
+// === 11. Parser (with AST) ===
+struct ASTNode { virtual ~ASTNode() = default; };
+struct ASTLiteral : ASTNode { std::string value; ASTLiteral(std::string v): value(std::move(v)) {} };
+struct ASTVar : ASTNode { std::string name; ASTVar(std::string n): name(std::move(n)) {} };
+struct ASTBinary : ASTNode { std::string lhs, op, rhs; ASTBinary(std::string l, std::string o, std::string r): lhs(std::move(l)), op(std::move(o)), rhs(std::move(r)) {} };
+struct ASTValDecl : ASTNode { std::string name, type; std::unique_ptr<ASTNode> init; };
+struct ASTCall : ASTNode { std::string funcName; std::vector<std::unique_ptr<ASTNode>> args; ASTCall(std::string f): funcName(std::move(f)) {} };
+struct ASTFunction : ASTNode { std::string name; std::vector<std::string> params; std::vector<std::unique_ptr<ASTNode>> body; };
+struct AST : ASTNode {
+    std::vector<std::unique_ptr<ASTNode>> nodes;
+    std::unordered_map<std::string, ASTFunction*> functions;
+};
+std::unique_ptr<ASTNode> parseExpr(std::istringstream&);
+std::unique_ptr<ASTCall> parseCall(const std::string& funcName, std::istringstream& in) {
+    auto call = std::make_unique<ASTCall>(funcName); char ch; in >> ch; // (
+    while (in.peek() != ')' && in >> std::ws) {
+        call->args.push_back(parseExpr(in));
+        if (in.peek() == ',') in.ignore(1);
+    }
+    in.ignore(1); // )
+    return call;
+}
+std::unique_ptr<ASTNode> parseExpr(std::istringstream& in) {
+    std::string token; in >> token;
+    if (std::isdigit(token[0])) return std::make_unique<ASTLiteral>(token);
+    if (std::isalpha(token[0])) {
+        if (in.peek() == '(') return parseCall(token, in);
+        std::string op, rhs; std::streampos oldpos = in.tellg();
+        if (in >> op) {
+            if (op == "+" || op == "-" || op == "*" || op == "/") { in >> rhs;
+                return std::make_unique<ASTBinary>(token, op, rhs);
+            } else in.seekg(oldpos);
+        }
+        return std::make_unique<ASTVar>(token);
+    }
+    return std::make_unique<ASTLiteral>(token);
+}
+std::unique_ptr<ASTFunction> parseFunction(std::istringstream& in) {
+    auto func = std::make_unique<ASTFunction>();
+    std::string name, param; in >> name; func->name = name; in >> param; // (
+    while (in.peek() != ')' && in >> std::ws) { in >> param; if (param.back()==',') param.pop_back(); func->params.push_back(param); }
+    in.ignore(1); std::string brace; in >> brace; std::string tok;
+    while (in >> tok && tok != "}") {
+        if (tok == "val") {
+            auto decl = std::make_unique<ASTValDecl>();
+            in >> decl->name; in.ignore(1); in >> decl->type; in.ignore(1); decl->init = parseExpr(in);
+            func->body.push_back(std::move(decl));
+        } else if (tok == "call") {
+            std::string fname; in >> fname; func->body.push_back(parseCall(fname, in));
+        }
+    }
+    return func;
+}
+std::unique_ptr<AST> parse(const std::string& src) {
+    auto ast = std::make_unique<AST>(); std::istringstream in(src); std::string tok;
+    while (in >> tok) {
+        if (tok == "val") {
+            auto decl = std::make_unique<ASTValDecl>();
+            in >> decl->name; in.ignore(1); in >> decl->type; in.ignore(1); decl->init = parseExpr(in);
+            ast->nodes.push_back(std::move(decl));
+        } else if (tok == "func") {
+            auto func = parseFunction(in);
+            ast->functions[func->name] = func.get();
+            ast->nodes.push_back(std::move(func));
+        } else if (tok == "call") {
+            std::string fname; in >> fname; ast->nodes.push_back(parseCall(fname, in));
+        }
+    }
+    return ast;
+}
+
+// === 12. Formatter (AST Pretty-Printer) ===
+std::string Formatter::format(const AST& ast) {
+    std::ostringstream out;
+    for (const auto& node : ast.nodes) {
+        if (auto decl = dynamic_cast<ASTValDecl*>(node.get()))
+            out << "val " << decl->name << " : " << decl->type << " = ...\n";
+        else if (auto call = dynamic_cast<ASTCall*>(node.get()))
+            out << "call " << call->funcName << "(...)\n";
+        else if (auto func = dynamic_cast<ASTFunction*>(node.get()))
+            out << "func " << func->name << "(...)\n";
+    }
+    return out.str();
+}
+
+// === 13. IRBytecode ===
+struct IR { std::string opcode; std::vector<std::string> args; };
+class IRBytecode {
+public:
+    static std::vector<IR> generate(const AST&) { return {}; }
+};
+
+// === 14. Encapsulation ===
+class Encapsulation {
+public:
+    static std::string wrap(const std::string& m) { return "<module>" + m + "</module>"; }
+};
+
+// === 15. Scoper ===
+class Scoper {
+public:
+    static void resolveScopes(AST&) {}
+};
+
+// === 16. Binder ===
+class Binder {
+public:
+    static void bind(AST&) {}
+};
+
+// === 17. Adapter ===
+class Adapter {
+public:
+    static std::vector<IR> adaptToIR(const AST& ast) { return IRBytecode::generate(ast); }
+};
+
+// === 18. Composer ===
+class Composer {
+public:
+    static std::vector<IR> compose(const std::vector<std::vector<IR>>& irs) {
+        std::vector<IR> out;
+        for (const auto& v : irs) out.insert(out.end(), v.begin(), v.end());
+        return out;
+    }
+};
+
+// === 19. Seeder ===
+class Seeder {
+public:
+    static std::vector<std::string> seedStdlib() { return {"core", "math"}; }
+};
+
+// === 20. CodeGenerator ===
+class CodeGenerator {
+public:
+    static std::string generateNASM(const std::vector<IR>& irs) {
+        std::string out = "section .text\n";
+        for (const auto& ir : irs) out += ir.opcode + " ...\n";
+        return out;
+    }
+};
+
+// === 21. BinaryEmitter ===
+class BinaryEmitter {
+public:
+    static std::string emit(const std::string&) { return "out.bin"; }
+};
+
+// === 22. StandardLib ===
+class StandardLib {
+public:
+    static void registerBuiltins() {}
+    static int print(int x) { std::cout << x << std::endl; return x; }
+    static int add(int x, int y) { return x + y; }
+    static int mul(int x, int y) { return x * y; }
+    static int identity(int x) { return x; }
+    static int compare(int x, int y) { std::cout << x << " " << y << std::endl; return 0; }
+    static int sub(int x, int y) { return x - y; }
+    static int div(int x, int y) { return x / y; }
+    static int mod(int x, int y) { return x % y; }
+    static int min(int x, int y) { return (x < y) ? x : y; }
+    static int max(int x, int y) { return (x > y) ? x : y; }
+    static int pow(int x, int y) { int r = 1; for (int i=0; i<y; ++i) r *= x; return r; }
+    static int abs(int x) { return (x < 0) ? -x : x; }
+    static int clamp(int x, int mn, int mx) { return (x < mn) ? mn : (x > mx) ? mx : x; }
+    static int is_even(int x) { return x % 2 == 0 ? 1 : 0; }
+    static int factorial(int x) { return (x <= 1) ? 1 : x * factorial(x - 1); }
+};
+
+// ==== MAIN (demo parse/run workflow) ====
+int main(int argc, char** argv) {
+    std::string src = argc > 1 ? IO::readFile(argv[1]) : "func print(x) { call say(x) } call print(123)";
+    try {
+        auto ast = parse(src);
+        std::cout << Formatter::format(*ast) << std::endl;
+        // ... Further pipeline: IR, codegen, etc.
+        StandardLib::print(42);
+    } catch (const std::exception& ex) {
+        ErrorHandler::error(900, ex.what());
+    }
 }
 
