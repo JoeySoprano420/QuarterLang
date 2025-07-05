@@ -1,0 +1,7 @@
+star
+module Seeder:
+  define seed_stdlib() as List<Module>:
+    return [LibrarySystem.get("core"), LibrarySystem.get("math")]
+  end define
+end module
+end
