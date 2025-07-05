@@ -1,0 +1,18 @@
+star
+module MemoryHandler:
+  # Basic heap management
+  define allocate(size as primative) as pointer:
+    val ptr as pointer = __sys_alloc(size)
+    return ptr
+  end define
+
+  define free(ptr as pointer):
+    __sys_free(ptr)
+  end define
+
+  define gc_collect():
+    call mark_all_roots()
+    call sweep_unmarked()
+  end define
+end module
+end
