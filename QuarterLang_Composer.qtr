@@ -1,0 +1,9 @@
+star
+module Composer:
+  define compose(list_of_irs as List<List<IR>>) as List<IR>:
+    var out as List<IR> = []
+    for irs in list_of_irs: out = out + irs end for
+    return out
+  end define
+end module
+end
