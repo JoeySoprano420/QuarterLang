@@ -1,0 +1,88 @@
+star
+module StandardLib:
+
+  # I/O Utilities
+  define input() as primative:
+    val x as primative = ask()
+    return x
+  end define
+
+  define print(x as primative):
+    call say(x)
+  end define
+
+  # Arithmetic
+  define pow(x as primative, y as primative) as primative:
+    val result as primative = 1
+    val i as primative = 0
+    loop i < y:
+      result = result * x
+      i = i + 1
+    end loop
+    return result
+  end define
+
+  define abs(x as primative) as primative:
+    return when x < 0: 0 - x else: x
+  end define
+
+  define mod(x as primative, y as primative) as primative:
+    return x - (x / y) * y
+  end define
+
+  define clamp(x as primative, min as primative, max as primative) as primative:
+    val lower as primative = when x < min: min else: x
+    return when lower > max: max else: lower
+  end define
+
+  define is_even(x as primative) as primative:
+    return when x % 2 == 0: 1 else: 0
+  end define
+
+  define is_odd(x as primative) as primative:
+    return when x % 2 != 0: 1 else: 0
+  end define
+
+  define factorial(x as primative) as primative:
+    return when x <= 1: 1 else: x * factorial(x - 1)
+  end define
+
+  # Comparison
+  define min(x as primative, y as primative) as primative:
+    return when x < y: x else: y
+  end define
+
+  define max(x as primative, y as primative) as primative:
+    return when x > y: x else: y
+  end define
+
+  define compare(x as primative, y as primative):
+    call say(x)
+    call say(y)
+  end define
+
+  # Range utilities
+  define in_range(x as primative, min as primative, max as primative) as primative:
+    return when x >= min and x <= max: 1 else: 0
+  end define
+
+  # Math extensions
+  define square(x as primative) as primative:
+    return x * x
+  end define
+
+  define cube(x as primative) as primative:
+    return x * x * x
+  end define
+
+  define average(x as primative, y as primative) as primative:
+    return (x + y) / 2
+  end define
+
+  # Identity
+  define identity(x as primative) as primative:
+    return x
+  end define
+
+end module
+end
