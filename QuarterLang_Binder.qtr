@@ -1,0 +1,7 @@
+star
+module Binder:
+  define bind(ast as AST, table as SymbolTable) as AST:
+    return ast  # stub
+  end define
+end module
+end
