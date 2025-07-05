@@ -1,0 +1,7 @@
+star
+module Scoper:
+  define resolve_scopes(ast as AST) as AST:
+    return ast  # stub
+  end define
+end module
+end
