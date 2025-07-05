@@ -1,0 +1,31 @@
+# ==== Comparison & Selection Library ====
+
+star
+
+# Minimum of two integers
+func min(x: int, y: int) {
+    val z: int = when x < y: x else: y
+    call print(z)
+}
+
+# Maximum of two integers
+func max(x: int, y: int) {
+    val z: int = when x > y: x else: y
+    call print(z)
+}
+
+# Clamp x to the range [min, max]
+func clamp(x: int, min: int, max: int) {
+    val lower: int = when x < min: min else: x
+    val clamped: int = when lower > max: max else: lower
+    call print(clamped)
+}
+
+# Return 1 if even, 0 if odd
+func is_even(x: int) {
+    val z: int = x % 2
+    val result: int = when z == 0: 1 else: 0
+    call print(result)
+}
+
+end
