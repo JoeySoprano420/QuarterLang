@@ -1,0 +1,7 @@
+star
+module Encapsulation:
+  define wrap(module as Module) as primative:
+    return "<module>" + module.to_string() + "</module>"
+  end define
+end module
+end
