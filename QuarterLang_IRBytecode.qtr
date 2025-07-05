@@ -1,0 +1,9 @@
+star
+module IRBytecode:
+  define generate(ast as AST) as List<IR>:
+    var irs as List<IR> = []
+    for node in ast.nodes: irs.push(IR.from_node(node)) end for
+    return irs
+  end define
+end module
+end
