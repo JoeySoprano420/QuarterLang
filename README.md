@@ -1,12 +1,10 @@
 # QuaterLang
 
- “Built to read like vision, execute like code, and endure like art.”
-
 # Quarter-Programming-Language
 
 # 🌟 Quarter Programming Language (v2.1)
 
-> *Readable like English. Powerful like Assembly. Beautiful like poetry.*
+> *“Built to read like vision, execute like code, and endure like art.”*
 
 ---
 
