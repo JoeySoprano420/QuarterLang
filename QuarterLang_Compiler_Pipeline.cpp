@@ -35,6 +35,10 @@
 #include <stdexcept>
 #include <cassert>
 #include <cctype>
+#include <iostream>
+#include "QTRScriptEngine.hpp"
+#include "QTRCreativeCanvas.hpp"
+#include "DGEngine.hpp"
 
 //==========================================================
 // 1. AST DEFINITIONS
@@ -3061,5 +3065,41 @@ int main(int argc, char** argv) {
     } catch (const std::exception& ex) {
         ErrorHandler::error(900, ex.what());
     }
+}
+
+int main() {
+    std::cout << "🔧 QuarterLang Unified Runtime Demo\n";
+
+    // 🕹️ 1. Embedded/Game Scripting
+    QTRScriptEngine engine;
+    engine.bindFunction("movePlayer", []() {
+        std::cout << "🚀 Player moved!\n";
+    });
+    engine.loadScript(R"(
+        star
+        say "Game script running..."
+        movePlayer()
+        end
+    )");
+    engine.execute();
+
+    // 🎨 2. Creative Coding Canvas
+    QTRCreativeCanvas canvas;
+    canvas.setOutputStream(std::cout);
+    canvas.runSketch(R"(
+        star
+        say "🎨 Drawing a circle..."
+        draw_circle 100 100 50
+        end
+    )");
+
+    // 🔟 3. DG Math Engine
+    DGEngine dg;
+    std::string dgVal = dg.toDG(1234);
+    std::cout << "🔢 Decimal 1234 → DG: " << dgVal << "\n";
+    std::cout << "🔁 DG " << dgVal << " → Decimal: " << dg.fromDG(dgVal) << "\n";
+    std::cout << "➕ DG Add (9A1 + 1B): " << dg.addDG("9A1", "1B") << "\n";
+
+    return 0;
 }
 
