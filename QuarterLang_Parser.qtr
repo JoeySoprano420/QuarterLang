@@ -1,0 +1,24 @@
+star
+module Parser:
+  # Recursive-descent parser
+  define parse(src as primative) as AST:
+    val tokens as List<Token> = Lexer.lex(src)
+    val cursor as Cursor = Cursor.new(tokens)
+    return parse_program(cursor)
+  end define
+
+  define parse_program(cur as Cursor) as AST:
+    var nodes as List<Node> = []
+    while not cur.eof():
+      nodes.push(parse_statement(cur))
+    end while
+    return AST.new(nodes)
+  end define
+
+  define parse_statement(cur as Cursor) as Node:
+    val tok as Token = cur.peek()
+    when tok.type == "IDENT": return parse_expression(cur) end when
+    ErrorHandler.error(100, "Unexpected token: " + tok.value)
+  end define
+end module
+end
