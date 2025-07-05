@@ -1,0 +1,24 @@
+# Standard library: print, add, mul, identity
+
+func print(x) {
+    call say(x)
+}
+
+func add(x, y) {
+    val z: int = x + y
+    call print(z)
+}
+
+func mul(x, y) {
+    val z: int = x * y
+    call print(z)
+}
+
+func identity(x) {
+    call print(x)
+}
+
+# Usage:
+call add(4, 9)
+call mul(2, 3)
+call identity(42)
