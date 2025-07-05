@@ -1,0 +1,12 @@
+star
+module Formatter:
+  # Pretty-print AST back to code
+  define format(ast as AST) as primative:
+    var out as primative = ""
+    for node in ast.nodes:
+      out = out + node.to_source() + "\n"
+    end for
+    return out
+  end define
+end module
+end
