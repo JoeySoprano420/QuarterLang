@@ -1,0 +1,8 @@
+star
+module BinaryEmitter:
+  define emit(bin as primative) as primative:
+    __sys_run("nasm -f bin -o out.bin -")
+    return __sys_read_file("out.bin")
+  end define
+end module
+end
