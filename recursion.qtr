@@ -1,0 +1,11 @@
+# ==== Recursion / Advanced Math Library ====
+
+star
+
+# Factorial using recursion
+func factorial(x: int) {
+    val result: int = when x <= 1: 1 else: x * factorial(x - 1)
+    call print(result)
+}
+
+end
