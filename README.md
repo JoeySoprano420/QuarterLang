@@ -239,10 +239,6 @@ This is the official AOT compiler for [QuarterLang](https://github.com/JoeySopra
 
 ---
 
-## 📁 Directory Structure
-
-QuarterLang_Compiler/ ├── QuarterLang_MemoryHandler.asm ├── QuarterLang_RangeAdjuster.asm ├── QuarterLang_ErrorHandler.asm ├── QuarterLang_Indexter.asm ├── QuarterLang_IO.asm ├── QuarterLang_Filer.asm ├── QuarterLang_LibrarySystem.asm ├── QuarterLang_Lexer.asm ├── QuarterLang_SyntaxHighlighter.asm ├── QuarterLang_Formatter.asm ├── QuarterLang_Parser.asm ├── QuarterLang_AST.asm ├── QuarterLang_IRBytecode.asm ├── QuarterLang_Encapsulation.asm ├── QuarterLang_Scoper.asm ├── QuarterLang_Binder.asm ├── QuarterLang_Adapter.asm ├── QuarterLang_Composer.asm ├── QuarterLang_Seeder.asm ├── QuarterLang_CodeGenerator.asm ├── QuarterLang_BinaryEmitter.asm ├── QuarterLang_Renderer.asm ├── QuarterLang_Optimizer.asm ├── QuarterLang_Compactor.asm ├── QuarterLang_Inliner.asm ├── QuarterLang_TLCM.asm ├── QuarterLang_Wrapper.asm ├── QuarterLang_Environment.asm ├── QuarterLang_Runtime.asm ├── QuarterLang_Runner.asm ├── QuarterLang_Debugger.asm ├── QuarterLang_PackageManager.asm ├── QuarterLang_Protocol.asm ├── QuarterLang_CodeInjector.asm ├── QuarterLang_SyntaxHighlighter_IDE.asm ├── QuarterLang_CodeCompletionAgent.asm ├── QuarterLang_Detector.asm ├── QuarterLang_Reader.asm ├── QuarterLang_Formatter_UI.asm └── QuarterLang_CICDPipeline.asm
-
 
 
 ---
