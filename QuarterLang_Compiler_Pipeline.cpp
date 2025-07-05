@@ -16,6 +16,21 @@
  */
 
 // =================== DodecaGram Engine: Optimizer & Capsule Features ===================
+// === DodecaGram Capsule Optimizer System ===
+// Covers: DG-Aware Optimizer, Capsule SSA, Auto-SIMD, Profiled Capsules, Capsule Caching
+
+#include <iostream>
+#include <vector>
+#include <map>
+#include <unordered_map>
+#include <string>
+#include <memory>
+#include <sstream>
+#include <functional>
+#include <set>
+#include <algorithm>
+#include <numeric>
+#include <cassert>
 #include <iostream>
 #include <vector>
 #include <map>
@@ -3402,6 +3417,206 @@ int main() {
     CapsuleSSA::propagateSSA(all);
 
     // Caching works:
+    assert(cache.getOrAdd(mod)->hash.hash == cap2->hash.hash);
+}
+
+// ==== DG: Core Symbolic Structure ====
+struct DG {
+    uint64_t value; // Assume 48b or base-12 encoded
+    DG(uint64_t v = 0) : value(v) {}
+    bool operator==(const DG& o) const { return value == o.value; }
+};
+struct DGVec { std::vector<DG> data; };
+
+// ==== IR Primitives ====
+struct IRInstr {
+    std::string opcode;
+    std::vector<std::string> args;
+};
+using IRBlock = std::vector<IRInstr>;
+struct IRFunc {
+    std::string name;
+    std::vector<IRBlock> blocks;
+};
+struct IRModule {
+    std::map<std::string, IRFunc> funcs;
+};
+
+// ==== Capsule Structure: SSA, Profile, Hash ====
+struct CapsuleProfile {
+    std::map<std::string, int> callCounts;
+    std::map<std::string, double> freq;
+};
+struct CapsuleHash {
+    std::string hash;
+    bool operator==(const CapsuleHash& o) const { return hash == o.hash; }
+};
+struct Capsule {
+    IRModule ir;
+    CapsuleProfile prof;
+    CapsuleHash hash;
+    std::string ssa;
+};
+
+// ==== 1. DG-Aware Optimizer ====
+class DGAwareOptimizer {
+public:
+    static void fold(IRModule& mod) {
+        // Symbolic: add(0,x)=>x, mul(1,x)=>x, etc.
+        for (auto& [fn, f] : mod.funcs)
+            for (auto& blk : f.blocks)
+                for (auto& i : blk)
+                    if (i.opcode == "dg_add" && i.args.size() == 2)
+                        if (i.args[0] == "0") i = IRInstr{"mov", {i.args[1]}};
+        // More rules...
+    }
+    static void pattern(IRModule& mod) {
+        // Collapse repeated DG ops into vector ops
+        for (auto& [fn, f] : mod.funcs)
+            for (auto& blk : f.blocks)
+                for (auto& i : blk)
+                    if (i.opcode == "dg_add" && allDGVec(i.args))
+                        i.opcode = "dg_add_vec";
+    }
+    static void rewrite(IRModule& mod) {
+        // IR rewriting, e.g., unroll or replace with DG simd ops
+        // Example only
+        for (auto& [fn, f] : mod.funcs)
+            for (auto& blk : f.blocks)
+                for (auto& i : blk)
+                    if (i.opcode == "dg_mul" && allDGVec(i.args))
+                        i.opcode = "dg_mul_vec";
+    }
+    static void runAll(IRModule& mod) { fold(mod); pattern(mod); rewrite(mod); }
+private:
+    static bool allDGVec(const std::vector<std::string>& args) {
+        // Naive: match arg names like "dgvec..."
+        for (const auto& a : args) if (a.find("dgvec") == std::string::npos) return false;
+        return true;
+    }
+};
+
+// ==== 2. Capsule-Level SSA (cross-capsule) ====
+class CapsuleSSA {
+public:
+    static std::string ssaOf(const IRModule& mod) {
+        // Very crude SSA: each assignment unique, real use would use true SSA graph
+        std::ostringstream ss;
+        int n = 0;
+        for (const auto& [fn, f] : mod.funcs)
+            for (const auto& blk : f.blocks)
+                for (const auto& i : blk)
+                    if (i.opcode == "mov" && i.args.size() >= 1)
+                        ss << "ssa_" << fn << "_" << (++n) << " = mov " << i.args[0] << "\n";
+        return ss.str();
+    }
+    static void propagate(const std::vector<Capsule*>& capsules) {
+        for (auto* c : capsules)
+            std::cout << "[Capsule " << c->hash.hash << "]\n" << c->ssa << std::endl;
+    }
+};
+
+// ==== 3. Auto-SIMD Vectorizer ====
+class DGSimdVectorizer {
+public:
+    static void vectorize(IRModule& mod) {
+        // Recognize DG math in loops or repeated ops
+        for (auto& [fn, f] : mod.funcs)
+            for (auto& blk : f.blocks)
+                for (auto& i : blk)
+                    if ((i.opcode == "dg_add" || i.opcode == "dg_mul") && i.args.size() > 1)
+                        if (allDGVec(i.args)) i.opcode += "_simd";
+    }
+    static bool allDGVec(const std::vector<std::string>& args) {
+        for (const auto& a : args) if (a.find("dgvec") == std::string::npos) return false;
+        return true;
+    }
+};
+
+// ==== 4. Profile-Embedded Capsules ====
+class CapsuleProfiler {
+public:
+    static CapsuleProfile profile(const IRModule& mod) {
+        CapsuleProfile prof;
+        for (const auto& [fn, f] : mod.funcs) {
+            int calls = 0;
+            for (const auto& blk : f.blocks)
+                for (const auto& i : blk)
+                    if (i.opcode == "call") ++calls;
+            prof.callCounts[fn] = calls;
+            prof.freq[fn] = double(calls) / std::max<int>(1, f.blocks.size());
+        }
+        return prof;
+    }
+    static DG encodeProfileDG(const CapsuleProfile& prof) {
+        uint64_t v = 0;
+        for (const auto& [fn, cnt] : prof.callCounts) v += cnt;
+        return DG(v);
+    }
+};
+
+// ==== 5. Capsule Hashing & Caching ====
+struct CapsuleHasher {
+    static std::string hash(const IRModule& mod) {
+        std::hash<std::string> h;
+        size_t acc = 0;
+        for (const auto& [fn, f] : mod.funcs) {
+            acc ^= h(fn);
+            for (const auto& blk : f.blocks)
+                for (const auto& i : blk)
+                    acc ^= h(i.opcode + concat(i.args));
+        }
+        std::ostringstream ss; ss << std::hex << acc;
+        return ss.str();
+    }
+    static std::string concat(const std::vector<std::string>& args) {
+        std::string s;
+        for (const auto& a : args) s += a;
+        return s;
+    }
+};
+class CapsuleCache {
+    std::unordered_map<std::string, std::shared_ptr<Capsule>> cache;
+public:
+    std::shared_ptr<Capsule> getOrAdd(const IRModule& mod) {
+        std::string hash = CapsuleHasher::hash(mod);
+        auto it = cache.find(hash);
+        if (it != cache.end()) return it->second;
+        auto cap = std::make_shared<Capsule>();
+        cap->ir = mod;
+        cap->prof = CapsuleProfiler::profile(mod);
+        cap->hash.hash = hash;
+        cap->ssa = CapsuleSSA::ssaOf(mod);
+        cache[hash] = cap;
+        return cap;
+    }
+};
+
+// ==== DEMO: All Together ====
+void buildAndEmitCapsule(IRModule& mod, CapsuleCache& cache) {
+    DGAwareOptimizer::runAll(mod);
+    DGSimdVectorizer::vectorize(mod);
+    auto cap = cache.getOrAdd(mod);
+    std::cout << "Capsule Hash: " << cap->hash.hash << "\n";
+    std::cout << "SSA:\n" << cap->ssa << "\n";
+    std::cout << "Profile-DG: " << CapsuleProfiler::encodeProfileDG(cap->prof).value << "\n";
+}
+
+int main() {
+    // Example IR module using DG math ops
+    IRModule mod;
+    IRFunc f;
+    f.name = "main";
+    f.blocks = { { {{"dg_add", {"dgvec1", "dgvec2"}}, {"call", {"foo"}}} } };
+    mod.funcs["main"] = f;
+    CapsuleCache cache;
+    buildAndEmitCapsule(mod, cache);
+
+    // Cross-capsule SSA propagation
+    auto cap2 = cache.getOrAdd(mod);
+    std::vector<Capsule*> all{cap2.get()};
+    CapsuleSSA::propagate(all);
+
     assert(cache.getOrAdd(mod)->hash.hash == cap2->hash.hash);
 }
 
