@@ -1,0 +1,21 @@
+star
+module IO:
+  # File and console I/O
+  define read_file(path as primative) as primative:
+    val content as primative = __sys_read_file(path)
+    return content
+  end define
+
+  define write_file(path as primative, data as primative):
+    __sys_write_file(path, data)
+  end define
+
+  define print(text as primative):
+    __console_write(text)
+  end define
+
+  define println(text as primative):
+    __console_write(text + "\n")
+  end define
+end module
+end
