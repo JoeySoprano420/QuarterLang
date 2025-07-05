@@ -3620,3 +3620,88 @@ int main() {
     assert(cache.getOrAdd(mod)->hash.hash == cap2->hash.hash);
 }
 
+struct ASTLoop : ASTExpr {
+    std::unique_ptr<ASTExpr> start, end;
+    std::vector<std::unique_ptr<ASTExpr>> body;
+};
+
+else if (token == "loop") {
+    auto loop = std::make_unique<ASTLoop>();
+    loop->start = parseExpr(in);
+    std::string to;
+    in >> to; // expect "to"
+    loop->end = parseExpr(in);
+    std::string brace;
+    in >> brace; // expect '{'
+    while (in >> token && token != "}") {
+        if (token == "val") { ... }
+    }
+    program->statements.push_back(std::move(loop));
+}
+
+entry->instrs.push_back({IROp::Alloc, {"i"}});
+entry->instrs.push_back({IROp::Store, {"i", static_cast<ASTLiteral*>(loop->start.get())->value}});
+auto loopCond = std::make_unique<BasicBlock>(); loopCond->name = "loop_cond";
+...
+
+struct ASTLoop : ASTExpr {
+    std::string varName; // e.g. "i"
+    std::unique_ptr<ASTExpr> start, end, condition;
+    std::vector<std::unique_ptr<ASTExpr>> body;
+    bool isWhile = false;
+};
+
+else if (token == "loop") {
+    std::string var;
+    in >> var; // e.g. i
+    std::string eq;
+    in >> eq; // expect '='
+    auto start = parseExpr(in);
+    std::string to;
+    in >> to; // "to" or "while"
+    ...
+}
+
+else if (token == "while") {
+    auto cond = parseExpr(in);
+    ...
+}
+
+// Pseudocode
+emit: allocate varName
+emit: store varName, start
+loop_top:
+    if (!condition) goto loop_end
+    ...body...
+    // increment or custom update
+    goto loop_top
+loop_end:
+
+struct ASTLoop : ASTExpr {
+    std::string varName;
+    std::unique_ptr<ASTExpr> start, end;
+    std::vector<std::unique_ptr<ASTExpr>> body;
+};
+
+else if (token == "loop") {
+    std::string var;
+    in >> var; // e.g. i
+    std::string eq;
+    in >> eq; // '='
+    auto start = parseExpr(in);
+    std::string to;
+    in >> to; // "to"
+    auto end = parseExpr(in);
+    std::string brace;
+    in >> brace; // '{'
+    auto loop = std::make_unique<ASTLoop>();
+    loop->varName = var;
+    loop->start = std::move(start);
+    loop->end = std::move(end);
+    ...
+}
+
+entry->instrs.push_back({IROp::Alloc, {loop->varName}});
+entry->instrs.push_back({IROp::Store, {loop->varName, ...}});
+...
+
