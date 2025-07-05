@@ -1,0 +1,15 @@
+star
+
+plugin load "libqtrcapsule.so"
+
+define build_capsule():
+  val asm as string: read_file("compiler.asm")
+  val src as string: read_file("compiler.qtr")
+  val meta as string: generate_dg_meta(src)
+
+  val capsule as bytes: compress("QTRC2.1" + asm + src + meta)
+  write_bytes("compiler.qtrcapsule", capsule)
+
+build_capsule()
+
+end
