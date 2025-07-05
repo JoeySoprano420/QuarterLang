@@ -1,0 +1,14 @@
+star
+module SyntaxHighlighter:
+  # Basic syntax coloring logic
+  define highlight(tokens as List<Token>) as List<StyledToken>:
+    var styled as List<StyledToken> = []
+    for token in tokens:
+      var style as primative = "plain"
+      when token.type == "IDENT" and LibrarySystem.libs.contains(token.value): style = "keyword" end when
+      styled.push(StyledToken.new(token, style))
+    end for
+    return styled
+  end define
+end module
+end
