@@ -2,7 +2,7 @@
 
 # Quarter-Programming-Language
 
-# 🌟 Quarter Programming Language (v2.1)
+# 🌟 Quarter Programming Language (v3.0)
 
 > *“Built to read like vision, execute like code, and endure like art.”*
 
