@@ -1,0 +1,27 @@
+star
+module Lexer:
+  # Tokenize source
+  define lex(input as primative) as List<Token>:
+    var tokens as List<Token> = []
+    var idx as primative = 0
+    while idx < input.length:
+      when is_whitespace(input[idx]): idx = idx + 1 continue end when
+      when is_alpha(input[idx]):
+        val start as primative = idx
+        while idx < input.length and is_alnum(input[idx]): idx = idx + 1 end while
+        tokens.push(Token.new("IDENT", input.substring(start, idx)))
+        continue
+      end when
+      when is_digit(input[idx]):
+        val start as primative = idx
+        while idx < input.length and is_digit(input[idx]): idx = idx + 1 end while
+        tokens.push(Token.new("NUMBER", input.substring(start, idx)))
+        continue
+      end when
+      tokens.push(Token.new(input[idx], input[idx].toString()))
+      idx = idx + 1
+    end while
+    return tokens
+  end define
+end module
+end
