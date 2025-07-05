@@ -1,0 +1,22 @@
+# ==== Utilities & Misc ====
+
+star
+
+# Identity: print any int you give it
+func identity(x: int) {
+    call print(x)
+}
+
+# Compare two integers (stub: prints both)
+func compare(x: int, y: int) {
+    call print(x)
+    call print(y)
+}
+
+# Factorial using recursion
+func factorial(x: int) {
+    val result: int = when x <= 1: 1 else: x * factorial(x - 1)
+    call print(result)
+}
+
+end
