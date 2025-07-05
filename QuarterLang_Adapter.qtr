@@ -1,0 +1,7 @@
+star
+module Adapter:
+  define adapt_to_ir(ast as AST) as List<IR>:
+    return IRBytecode.generate(ast)
+  end define
+end module
+end
