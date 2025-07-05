@@ -360,3 +360,65 @@ star
     end define
   end module
 
+define resolve_scopes(ast as AST) as AST:
+    var scope_level = 0
+    for node in ast.nodes:
+        if node.type == "VarDecl":
+            node.children[0].scope = scope_level
+        end if
+    end for
+    return ast
+end define
+
+define resolve_scopes(ast as AST) as AST:
+    var scope_level = 0
+    for node in ast.nodes:
+        if node.type == "VarDecl":
+            node.children[0].scope = scope_level
+        end if
+    end for
+    return ast
+end define
+
+define bind(ast as AST, table as SymbolTable) as AST:
+    for node in ast.nodes:
+        if node.type == "ExprStmt":
+            val ident = node.children[0]
+            if not table.contains(ident.value):
+                ErrorHandler.error(200, "Unbound identifier: " + ident.value)
+            end if
+        end if
+    end for
+    return ast
+end define
+
+class IR:
+    var opcode as primative
+    var operand as primative
+
+    define constructor(op as primative, val as primative):
+        opcode = op
+        operand = val
+    end define
+
+    static define from_node(node as Node) as IR:
+        when node.type == "VarDecl":
+            return IR.new("MOV", node.children[1].to_source())
+        end when
+        when node.type == "ExprStmt":
+            return IR.new("EVAL", node.children[0].to_source())
+        end when
+        ErrorHandler.error(300, "Unsupported node type: " + node.type)
+    end define
+end class
+
+define to_nasm(self as IR) as primative:
+    when self.opcode == "MOV":
+        return "mov eax, " + self.operand
+    end when
+    when self.opcode == "EVAL":
+        return "call " + self.operand
+    end when
+    return "; unknown opcode"
+end define
+
