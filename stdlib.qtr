@@ -4,6 +4,7 @@ star
 
 import "io.qtr"
 import "math.qtr"
+import "recursion.qtr"
 import "compare.qtr"
 import "util.qtr"
 
