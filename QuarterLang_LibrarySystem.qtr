@@ -1,0 +1,16 @@
+star
+module LibrarySystem:
+  var libs as Map = {}  # name -> Module
+
+  define register(name as primative, mod as Module):
+    libs[name] = mod
+  end define
+
+  define get(name as primative) as Module:
+    when libs.contains(name) is false:
+      ErrorHandler.error(404, "Library not found: " + name)
+    end when
+    return libs[name]
+  end define
+end module
+end
