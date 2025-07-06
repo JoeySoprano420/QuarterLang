@@ -1,3 +1,9 @@
+**DGs** (Dodecagrams/Base-12 values) are a signature feature of QuarterLang. You can write, convert, and use them directly in your code—making base-12 arithmetic and representation a first-class part of your programs.
+
+Here’s how you can **write and use DGs in QuarterLang** (based on your project’s docs):
+
+---
+
 ## **1. Declaring a DG Value**
 
 ```quarter
@@ -91,12 +97,10 @@ say "Total decimal: {from_dg(total)}"
 
 ---
 
-### **Want more?**
-
 If you want more advanced use, such as DG arrays, math functions, or DG-based conditions, just ask!
 
 
-Absolutely! Here’s a **full guide and code samples** for **writing, using, and manipulating DGs (Dodecagrams/base-12 numbers)** in QuarterLang, covering all the scenarios you asked about: declaration, conversion, arithmetic, loops, arrays, and logic.
+Here’s a **full guide and code samples** for **writing, using, and manipulating DGs (Dodecagrams/base-12 numbers)** in QuarterLang, covering all the scenarios you asked about: declaration, conversion, arithmetic, loops, arrays, and logic.
 
 ---
 
@@ -243,7 +247,7 @@ end
 If you want to see *input parsing*, DG formatting, or custom DG utilities—just say the word!
 
 
-Absolutely! **DG formatting** in QuarterLang means controlling how DG (Dodecagram/base-12) numbers are displayed as strings, zero-padded, upper/lowercase, grouped, or presented in a human-friendly way—just like how you might format hexadecimal or decimal output.
+**DG formatting** in QuarterLang means controlling how DG (Dodecagram/base-12) numbers are displayed as strings, zero-padded, upper/lowercase, grouped, or presented in a human-friendly way—just like how you might format hexadecimal or decimal output.
 
 Here’s how you might **format DGs** for output, based on your language’s readable/expressive style and potential standard functions (modeled after your docs):
 
@@ -353,7 +357,7 @@ just extend your `format_dg`/`dg_str` functions or add flags for uppercase, sepa
 *Let me know if you want code for a specific formatting style!*
 
 
-**Yes! DGs (Dodecagrams/base-12 numbers) can absolutely be used in macros in QuarterLang.** In fact, macros are one of the most powerful ways to automate, template, or meta-program with DGs—letting you generate code, constants, conversions, or patterns involving DG values at compile-time.
+**DGs (Dodecagrams/base-12 numbers) can be used in macros in QuarterLang.** In fact, macros are one of the most powerful ways to automate, template, or meta-program with DGs—letting you generate code, constants, conversions, or patterns involving DG values at compile-time.
 
 Here’s how you can use DGs in macros, based on the style and features described in your project:
 
@@ -468,10 +472,7 @@ say "Sum macro: {sum}"
 
 ---
 
-**Want to see DG macros used in a full config, codegen, or domain-specific mini-language? Just ask!**
-
-
-Great question! The **point of DGs (Dodecagrams, base-12 numbers)** in QuarterLang is both **practical and visionary**—they offer distinct mathematical, cultural, and programming benefits that set QuarterLang apart from other languages. Here’s a clear breakdown:
+The **point of DGs (Dodecagrams, base-12 numbers)** in QuarterLang is both **practical and visionary**—they offer distinct mathematical, cultural, and programming benefits that set QuarterLang apart from other languages. Here’s a clear breakdown:
 
 ---
 
@@ -546,10 +547,7 @@ If you want a one-liner pitch, try:
 
 ---
 
-Want real-world examples of DGs in action, or a “DG vs Decimal” comparison table? Just ask!
-
-
-Absolutely! Here’s a **complete list of all DG (Dodecagram) digits, their meanings, and a practical usage guide for all possible DG values** in QuarterLang—plus clear examples for each feature.
+Here’s a **complete list of all DG (Dodecagram) digits, their meanings, and a practical usage guide for all possible DG values** in QuarterLang—plus clear examples for each feature.
 
 ---
 
@@ -744,95 +742,4 @@ end
 * **All combinations** of DG digits make valid DG numbers, just as in decimal/hex.
 
 ---
-
-**Want more DG utilities, or a printable “DG lookup chart” for quick conversions? Let me know!**
-
-
-Absolutely! Here’s a detailed but clear list of **real, practical advantages that QUARTER (QuarterLang) offers over C++**, based on your language design, docs, and feature set. These points highlight not just differences, but *why* you’d choose QUARTER for new projects.
-
----
-
-## 🟣 **QUARTER Advantages Over C++**
-
-### 1. **Readability & Simplicity**
-
-* **English-like syntax** (`val a as int: 5`, `say "hi"`)—code is easier to write, read, and learn.
-* No arcane symbols, cryptic operator rules, or multi-level pointer syntax.
-
-### 2. **Built-In Base-12 (DG) Type**
-
-* **Native dodecagram (base-12) support** for divisibility and domain-specific math.
-* One line for fractions/divisions that are awkward in C++.
-
-### 3. **Safe by Default**
-
-* **Immutable variables** by default (`val`), reducing side effects and accidental bugs.
-* Safer concurrency (threading, pipes, and IO abstractions built-in).
-* No dangling pointers, no undefined behavior traps.
-
-### 4. **Cleaner Error Handling**
-
-* No unchecked nulls, pointer arithmetic errors, or cryptic compile errors.
-* Error messages are clear and actionable, not long chains of STL type instantiations.
-
-### 5. **Modern Concurrency, Async, and IO**
-
-* **Built-in threading and async**:
-  `thread mytask() pipe write: "log.txt"`
-* No more manual `std::thread`, mutexes, or convoluted async boilerplate.
-
-### 6. **Direct NASM/Low-Level Access**
-
-* **Inline NASM (assembly) supported out-of-the-box.**
-* Write performance hotspots or hardware-level code in-line, with guaranteed integration.
-
-### 7. **Expressive Metaprogramming**
-
-* **Macros and derivatives** make for DRY code and codegen without heavy templates or SFINAE.
-* Compile-time math, pattern generation, and domain-specific code.
-
-### 8. **Unified Capsules and Modules**
-
-* **Capsules bundle code, NASM, metadata, versioning, and compression.**
-* Port and distribute code easily—no fragile build systems, no `make` or `CMake` needed.
-
-### 9. **No Legacy Baggage**
-
-* No need to support 40 years of old syntax, undefined behavior, or historical quirks.
-* Everything in QUARTER is designed for modern workflows.
-
-### 10. **Batteries-Included Standard Library**
-
-* **Networking, IO, math, concurrency, and even crypto/ML available out of the box.**
-* No more hunting for third-party libraries or wrangling with linker flags.
-
-### 11. **Consistent, Enforced Paradigms**
-
-* Choose your paradigm: ITO, FD, SII, LP, LSFS—compiler enforces clean architecture.
-* No accidental OOP/FP interleaving or legacy paradigms sneaking in.
-
-### 12. **Transparent, Tracable Compilation**
-
-* From QUARTER code to NASM output, the process is visible and controllable.
-* Debug and optimize with full knowledge of the pipeline.
-
-### 13. **Better Tooling and Dev Experience**
-
-* **Integrated syntax highlighting, code completion, debugging, and package management.**
-* Zero-config LSP, formatter, and live error reporting.
-
-### 14. **Code Portability and Capsules**
-
-* Source, binary, and metadata all in one artifact.
-* Move code, share, or run on any supported platform instantly.
-
----
-
-## 🟣 **In Summary**
-
-> **QUARTER gives you safer, clearer, more productive code—faster to write, easier to debug, and with features C++ can only approach with massive ceremony and boilerplate. It combines high-level clarity, native-speed code, and domain-specific types for a new era of systems and application programming.**
-
----
-
-**Want a side-by-side code example (QUARTER vs. C++) for a specific use case? Or a chart/FAQ for why QUARTER is the right choice for a new project? Just say the word!**
 
