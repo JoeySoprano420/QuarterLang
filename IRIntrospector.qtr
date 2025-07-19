@@ -1,0 +1,46 @@
+star
+
+# IRIntrospector: Taps into IRBytecode.generate(...) and emits live feedback per node
+
+import "IRBytecode.qtr"
+import "Formatter.qtr"
+import "util.qtr"
+
+func introspect_emit(ast as AST):
+    val node_index: int = 0
+    for node in ast.nodes:
+        val src: string = node.to_source()
+        val phase: string = "emit"
+        val lineage: string = generate_lineage_hash(node)
+        val t0: int = now()
+
+        val context: IRContext = IRContext.new(
+            node_id = node_index,
+            source = src,
+            phase = phase,
+            lineage = lineage
+        )
+
+        call print("— Emitting IR for Node {node_index} —")
+        call print("> Source: {src}")
+        call print("> Lineage: {lineage}")
+        call print("> Phase: {phase}")
+
+        try:
+            val ir_unit: List<IR> = emit_ir_from_node(node, context)
+            val t1: int = now()
+            trace_execution("node-{node_index}", t0, t1)
+
+            for ir in ir_unit:
+                call print("  • IR: {ir.to_string()}")
+            end for
+        catch err:
+            log("error", "IR emission failed: {err.message}")
+            call print("❌ Emission failed for Node {node_index}")
+        end try
+
+        node_index = node_index + 1
+    end for
+end
+
+end
