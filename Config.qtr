@@ -1,0 +1,15 @@
+star
+var settings as Map = {}
+
+func load_defaults():
+    settings["theme"] = "galactic"
+    settings["prompt_symbol"] = "⭑"
+
+func get(key: string) as primative:
+    return settings[key]
+
+func get_color(theme: string) as string:
+    when theme == "galactic": return "#AA12FF"
+    elif theme == "sunburst": return "#FFD700"
+    else: return "#FFFFFF"
+end
