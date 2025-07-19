@@ -1,0 +1,53 @@
+star
+module Nodes:
+
+  class Node:
+    define to_string() as primative: return "<Node>" end define
+    define repr() as primative: return self.to_string() end define
+  end class
+
+  class NumberNode is Node:
+    var value as number
+    define init(value): self.value = value end define
+    define to_string(): return "Number(" + value.to_string() + ")" end define
+  end class
+
+  class IdentifierNode is Node:
+    var name as primative
+    define init(name): self.name = name end define
+    define to_string(): return "Identifier(" + name + ")" end define
+  end class
+
+  class BinaryNode is Node:
+    var left, right as Node
+    var op as primative
+    define init(left, op, right):
+      self.left = left
+      self.op = op
+      self.right = right
+    end define
+    define to_string():
+      return "Binary(" + left.to_string() + ", '" + op + "', " + right.to_string() + ")"
+    end define
+  end class
+
+  class CallNode is Node:
+    var callee as Node
+    var args as List<Node>
+    define init(callee, args):
+      self.callee = callee
+      self.args = args
+    end define
+    define to_string():
+      return "Call(" + callee.to_string() + ", [" + args.map(fn a => a.to_string()).join(", ") + "])"
+    end define
+  end class
+
+  class GroupNode is Node:
+    var expr as Node
+    define init(expr): self.expr = expr end define
+    define to_string(): return "Group(" + expr.to_string() + ")" end define
+  end class
+
+end module
+end
