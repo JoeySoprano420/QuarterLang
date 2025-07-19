@@ -1,3 +1,5 @@
+star
+
 import "CoreDispatcher.qtr"
 import "UIBinding.qtr"
 
@@ -7,5 +9,5 @@ func main():
     while true:
         let event = get_ui_event()
         handle_input(event)
-    end
+
 end
