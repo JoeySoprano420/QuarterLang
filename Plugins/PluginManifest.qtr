@@ -1,0 +1,7 @@
+func plugin_generate_manifest(name: string, version: string, desc: string, deps: List):
+    return {
+        "name": name,
+        "version": version,
+        "description": desc,
+        "dependencies": deps
+    }
