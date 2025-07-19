@@ -1,3 +1,5 @@
+star
+
 import "LibrarySystem.qtr"
 import "SystemDiagnostics.qtr"
 import "StringUtils.qtr"
@@ -225,3 +227,5 @@ func plugin_rollback(name: string, to_version: string):
     mod = LibrarySystem.rollback(name, to_version)
     plugin_version[name] = to_version
     plugin_state[name] = mod.init()
+
+end
