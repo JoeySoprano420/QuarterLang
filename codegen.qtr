@@ -1,0 +1,36 @@
+star
+import Nodes
+
+module Codegen:
+
+  define emit(node as Node) as List<primative>:
+    var out as List<primative> = []
+
+    when node is Nodes.NumberNode:
+      out.push("PUSH " + node.value.to_string())
+
+    when node is Nodes.BinaryNode:
+      out += emit(node.left)
+      out += emit(node.right)
+      out.push("OP " + node.op)
+
+    when node is Nodes.IdentifierNode:
+      out.push("LOAD " + node.name)
+
+    when node is Nodes.CallNode:
+      for arg in node.args: out += emit(arg)
+      out += emit(node.callee)
+      out.push("CALL " + node.args.length.to_string())
+
+    when node is Nodes.GroupNode:
+      out += emit(node.expr)
+
+    else:
+      error("Unknown node for codegen: " + node.to_string())
+
+    end when
+    return out
+  end define
+
+end module
+end
