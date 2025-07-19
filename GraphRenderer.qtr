@@ -1,3 +1,5 @@
+star
+
 import "PluginManager.qtr"
 import "Metrics.qtr"
 
@@ -20,4 +22,6 @@ end
 func draw_metrics_overlay(name: string):
     stats = Metrics.get_plugin_stats(name)
     overlay_text("{name}: {stats.memory}MB, {stats.latency}ms")
+end
+
 end
