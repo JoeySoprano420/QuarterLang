@@ -1,0 +1,13 @@
+module PluginStoreFetcher
+
+import "Net.qtr"
+
+func fetch_manifest(url: string):
+    return Net.get_json(url)
+
+func sync_plugins():
+    manifest = fetch_manifest("https://quarterlang.org/plugins/manifest.json")
+    foreach plugin in manifest:
+        load_plugin(plugin["url"])
+    end
+end
