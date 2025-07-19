@@ -223,3 +223,11 @@ module PluginManager:
 end module
 end
 
+define seed_stdlib() as List<Module>:
+  return [
+    LibrarySystem.get("core"),
+    LibrarySystem.get("math"),
+    LibrarySystem.get("RangeAdjuster")  # 🎯 Automatically loads clamp/normalize
+  ]
+end define
+
