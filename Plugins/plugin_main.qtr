@@ -1,0 +1,29 @@
+import "PluginSystem.qtr"
+import "PluginDashboard.qtr"
+import "PluginRepoSync.qtr"
+
+plugin_register("EchoPlugin", EchoModule, plugin_generate_manifest(
+    "EchoPlugin", "1.0.0", "Repeats back what you type", []
+))
+
+call plugin_load("EchoPlugin")
+
+loop:
+    print("Plugin> ")
+    line = input()
+    if line == ":dash":
+        call plugin_dashboard_render()
+    elif line == ":reload EchoPlugin":
+        call plugin_reload("EchoPlugin")
+    elif line.starts_with(":set "):
+        # format: :set PluginName Key Value
+        parts = line.split(" ")
+        call plugin_set_setting(parts[1], parts[2], parts[3])
+    elif line.starts_with(":describe "):
+        parts = line.split(" ")
+        call plugin_describe(parts[1])
+    elif line == ":exit":
+        break
+    else:
+        mod = plugin_load("EchoPlugin")
+        mod.call("on_input", line)
