@@ -1,0 +1,325 @@
+module JITCompiler:
+
+  var function_cache = Table<String, NativeFunction>()
+
+  # Hypothetical bindings for native code generation and execution
+  import "NativeCodeGen.qtr"
+  import "RuntimeExec.qtr"
+
+  define compile_function(ast as ASTNode, env as Table) as NativeFunction:
+    # Recursively walk AST generating native code
+    # For demo, pseudo-generate native code string or IR
+
+    codegen = NativeCodeGen.new()
+
+    # Generate prologue with parameters mapped to registers or stack
+    codegen.emit_prologue(ast.params.length)
+
+    # Recursively compile body
+    compile_expr(ast.body, env, codegen)
+
+    codegen.emit_epilogue()
+
+    native_fn = codegen.finalize()
+
+    # Cache compiled function by name or signature
+    function_cache[ast.name] = native_fn
+
+    return native_fn
+  end define
+
+  define compile_expr(expr as ASTNode, env as Table, codegen as NativeCodeGen):
+    match expr.kind:
+      case "number":
+        codegen.emit_load_constant(expr.value)
+      case "identifier":
+        codegen.emit_load_variable(expr.name)
+      case "binary":
+        compile_expr(expr.left, env, codegen)
+        compile_expr(expr.right, env, codegen)
+        codegen.emit_binary_op(expr.operator)
+      case "call":
+        for arg in expr.args:
+          compile_expr(arg, env, codegen)
+        codegen.emit_call(expr.callee.name, expr.args.length)
+      # Add more cases (assign, function defs, etc.)
+      else:
+        error("Unsupported expression in JIT: " + expr.kind)
+    end match
+  end define
+
+  define run_native(fn as NativeFunction, args as List):
+    return RuntimeExec.invoke(fn, args)
+  end define
+
+  define jit_execute(ast as ASTNode, env as Table, args as List):
+    if function_cache.contains(ast.name):
+      native_fn = function_cache[ast.name]
+    else:
+      native_fn = compile_function(ast, env)
+    end if
+    return run_native(native_fn, args)
+  end define
+
+end module
+
+module REPL:
+
+  var global_env = Table<String, Type>()
+  var global_value_env = Table<String, Value>()
+
+  define start():
+    while true:
+      val line = input(">> ")
+      ast = Parser.parse(line)
+      
+      # Type inference and checking
+      inferred_type = TypeInference.infer(ast, global_env)
+
+      # JIT compile and run
+      result = JITCompiler.jit_execute(ast, global_value_env, [])
+
+      print("=> " + str(result))
+    end while
+  end define
+
+end module
+
+module NativeCodeGen:
+
+  # Simulate a native code generator context wrapping LLVM or similar
+  var instructions as List<String> = []
+  var function_name as string = ""
+  var params_count as int = 0
+
+  define new() as NativeCodeGen:
+    return NativeCodeGen {
+      instructions: [],
+      function_name: "",
+      params_count: 0
+    }
+  end define
+
+  define emit_prologue(this: NativeCodeGen, param_count: int):
+    this.params_count = param_count
+    this.instructions.push("function prologue start - params: " + str(param_count))
+  end define
+
+  define emit_load_constant(this: NativeCodeGen, value: primative):
+    this.instructions.push("load_const " + str(value))
+  end define
+
+  define emit_load_variable(this: NativeCodeGen, varname: string):
+    this.instructions.push("load_var " + varname)
+  end define
+
+  define emit_binary_op(this: NativeCodeGen, op: string):
+    this.instructions.push("binary_op " + op)
+  end define
+
+  define emit_call(this: NativeCodeGen, fn_name: string, argc: int):
+    this.instructions.push("call_fn " + fn_name + " argc=" + str(argc))
+  end define
+
+  define emit_epilogue(this: NativeCodeGen):
+    this.instructions.push("function epilogue end")
+  end define
+
+  define finalize(this: NativeCodeGen) as NativeFunction:
+    # Normally, here LLVM IR is compiled to machine code, but we simulate with a struct
+    return NativeFunction {
+      name: this.function_name,
+      instructions: this.instructions
+    }
+  end define
+
+end module
+
+
+module RuntimeExec:
+
+  # Simulate running native code — here we interpret pseudo-instructions
+  define invoke(fn: NativeFunction, args: List) as primative:
+    call print("Executing native function: " + fn.name)
+    call print("Instructions:")
+    for instr in fn.instructions:
+      call print(" > " + instr)
+    end for
+
+    # Fake return for demo
+    return 42
+  end define
+
+end module
+
+module TypeInference:
+
+  # Extending Type with Generics, Unions, Type Classes
+  type Type =
+    | TInt
+    | TBool
+    | TString
+    | TFunc(params: List<Type>, ret: Type)
+    | TVar(id: int)
+    | TGeneric(name: string, params: List<Type>)  # E.g., List<T>
+    | TUnion(types: List<Type>)  # Union type (A | B)
+    | TClass(name: string, constraints: List<Type>)  # Type class constraints
+    | TUnknown
+
+  # Extend unification to support unions and generics:
+  define unify(t1: Type, t2: Type):
+    t1 = apply_subst(t1)
+    t2 = apply_subst(t2)
+    
+    match (t1, t2):
+      case (TUnion(types1), TUnion(types2)):
+        # Simplify union of unions: flatten and unify components pairwise (simplified)
+        for type1 in types1:
+          for type2 in types2:
+            unify(type1, type2)
+      case (TGeneric(name1, params1), TGeneric(name2, params2)):
+        if name1 != name2 or params1.length != params2.length:
+          error("Generic type mismatch: " + name1 + " vs " + name2)
+        for i in 0 .. params1.length - 1:
+          unify(params1[i], params2[i])
+      case (TClass(name1, constr1), TClass(name2, constr2)):
+        if name1 != name2:
+          error("Type class mismatch: " + name1 + " vs " + name2)
+        # unify constraints recursively
+        for i in 0 .. constr1.length - 1:
+          unify(constr1[i], constr2[i])
+      else:
+        # fallback to existing unify logic
+        # (TInt, TInt), (TVar,...), etc.
+        # (code from previous)
+        ...
+    end match
+  end define
+
+  # Inference will check for generic functions and instantiate type variables
+  # Type classes add constraints for polymorphic functions (not shown fully here)
+
+  # Additional helper: instantiate generics, resolve unions
+
+end module
+
+module MemoryManager:
+
+  var heap as Map<int, Object> = {}
+  var next_addr as int = 1
+
+  # Allocate object and return address
+  define alloc(obj: Object) as int:
+    val addr = next_addr
+    next_addr = next_addr + 1
+    heap[addr] = obj
+    return addr
+  end define
+
+  # Mark & Sweep GC placeholder
+  define gc(root_set: List<int>):
+    val reachable = Set()
+    var to_visit = Queue(root_set)
+
+    # Mark phase
+    while to_visit not empty:
+      val current = to_visit.dequeue()
+      if not reachable.contains(current):
+        reachable.insert(current)
+        # Enqueue references inside current object (simulate)
+        for ref in heap[current].references:
+          to_visit.enqueue(ref)
+        end for
+      end if
+    end while
+
+    # Sweep phase
+    for addr in heap.keys():
+      if not reachable.contains(addr):
+        heap.remove(addr)
+      end if
+    end for
+
+    call print("GC collected unreachable objects.")
+  end define
+
+end module
+
+module Debugger:
+
+  var breakpoints as Set<int> = {}
+  var current_line as int = 0
+  var stepping as bool = false
+
+  define set_breakpoint(line: int):
+    breakpoints.insert(line)
+    call print("Breakpoint set at line: " + str(line))
+  end define
+
+  define clear_breakpoints():
+    breakpoints.clear()
+    call print("All breakpoints cleared.")
+  end define
+
+  define step(line: int):
+    current_line = line
+    stepping = true
+    call print("Stepping at line: " + str(line))
+  end define
+
+  define check_breakpoint(line: int):
+    if breakpoints.contains(line) or stepping:
+      call print("Paused at line: " + str(line))
+      stepping = false
+      # Interactive prompt (simplified)
+      while true:
+        val cmd = ask("debug> ")
+        when cmd == "continue":
+          break
+        when cmd == "step":
+          stepping = true
+          break
+        when cmd == "print":
+          call print("Current line: " + str(current_line))
+        else:
+          call print("Unknown debug command")
+        end when
+      end while
+    end if
+  end define
+
+end module
+
+module Profiler:
+
+  var execution_counts as Map<int, int> = {}
+
+  define record_execution(line: int):
+    if execution_counts.contains(line):
+      execution_counts[line] = execution_counts[line] + 1
+    else:
+      execution_counts[line] = 1
+    end if
+  end define
+
+  define hot_paths(threshold: int) as List<int>:
+    var hotspots as List<int> = []
+    for (line, count) in execution_counts.items():
+      if count >= threshold:
+        hotspots.push(line)
+      end if
+    end for
+    return hotspots
+  end define
+
+  define optimize_hot_paths():
+    val hot_lines = hot_paths(1000)
+    for line in hot_lines:
+      call print("Optimizing hot line: " + str(line))
+      # Trigger recompilation with aggressive optimization for that code path
+      # (Integration with JIT compiler)
+    end for
+  end define
+
+end module
+
