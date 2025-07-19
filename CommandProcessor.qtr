@@ -10,3 +10,70 @@ func route(cmd: string):
     elif cmd == "highlight": Introspection.highlight_source()
     else: ErrorHandler.warn("Unknown command: {cmd}")
 end
+
+star
+import "DGDebugger.qtr"
+import "Introspection.qtr"
+import "ErrorHandler.qtr"
+import "PluginSystem.qtr"
+import "Profiler.qtr"
+import "CommandTable.qtr"
+
+let registered_commands = map{
+    "exit"        => { desc: "Exit the runtime", exec: -> stop },
+    "version"     => { desc: "Show debugger version", exec: -> DGDebugger.show_version() },
+    "ast"         => { desc: "Parse and display AST", exec: -> Introspection.parse_ast() },
+    "highlight"   => { desc: "Highlight source code", exec: -> Introspection.highlight_source() },
+    "profile"     => { desc: "Profile execution", exec: -> Profiler.run_all() },
+}
+
+func suggest_nearest(cmd: string): string
+    let keys = map_keys(registered_commands)
+    let closest = ErrorHandler.fuzzy_match(cmd, keys)
+    return closest
+end
+
+func load_command_from_plugins(cmd: string): bool
+    if PluginSystem.command_exists(cmd):
+        PluginSystem.execute_command(cmd)
+        return true
+    end
+    return false
+end
+
+func describe_commands()
+    for cmd, meta in registered_commands:
+        print "* {cmd.ljust(12)} - {meta.desc}"
+    end
+    for cmd in PluginSystem.list_plugin_commands():
+        print "* {cmd.ljust(12)} - [plugin]"
+    end
+end
+
+func route(cmd: string, args: list<string> = []):
+    Profiler.mark("route.begin")
+    if cmd == "help":
+        print "\nAvailable Commands:"
+        describe_commands()
+        return
+    end
+
+    if cmd in registered_commands:
+        let command_fn = registered_commands[cmd].exec
+        try:
+            call(command_fn, args)
+        catch e:
+            ErrorHandler.critical("Execution failed for '{cmd}': {e.message}")
+        end
+    elif load_command_from_plugins(cmd):
+        print "[PluginSystem] Command '{cmd}' executed from plugin."
+    else:
+        let suggestion = suggest_nearest(cmd)
+        ErrorHandler.warn("Unknown command: '{cmd}'")
+        if suggestion:
+            ErrorHandler.note("Did you mean: '{suggestion}'?")
+        end
+    end
+    Profiler.mark("route.end")
+end
+
