@@ -1,3 +1,5 @@
+star
+
 import "DGDebugger.qtr"
 import "Introspection.qtr"
 import "ErrorHandler.qtr"
