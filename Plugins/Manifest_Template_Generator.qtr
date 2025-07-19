@@ -1,0 +1,8 @@
+star
+func plugin_generate_manifest(name: string, deps: list<string>, version: string):
+  return map[
+    "name" => name,
+    "version" => version,
+    "dependencies" => deps,
+    "entry" => "{name}.qtr"
+  ]
