@@ -13,3 +13,63 @@ define build_capsule():
 build_capsule()
 
 end
+
+star
+import "io.qtr"
+import "util.qtr"
+import "ErrorHandler.qtr"
+import "Formatter.qtr"
+import "SyntaxHighlighter.qtr"
+import "LibrarySystem.qtr"
+import "DodecaGrams.qtr"
+
+# Runtime State
+val theme as string = "galactic"
+val prompt_symbol as string = "⭑"
+val capsule_version as dg = 1XY4
+
+func display_prompt() {
+    val color as string = when theme == "galactic": "#AA12FF" elif theme == "sunburst": "#FFD700" else: "#FFFFFF"
+    call print("{color} {prompt_symbol} QuarterLang > ")
+}
+
+func process_command(cmd: string) {
+    when cmd == "exit":
+        log("info", "Ending session. Goodbye.")
+        stop
+
+    elif cmd == "version":
+        mirror_dg(capsule_version, "Capsule Version")
+
+    elif cmd == "ast":
+        val src as string = ask()
+        val tokens as List<Token> = Lexer.lex(src)
+        val cursor as Cursor = Cursor.new(tokens)
+        val ast as AST = Parser.parse_program(cursor)
+        log_ast(ast, "UserInput")
+        return
+
+    elif cmd == "highlight":
+        val src as string = ask()
+        val tokens as List<Token> = Lexer.lex(src)
+        val styled as List<StyledToken> = SyntaxHighlighter.highlight(tokens)
+        for s in styled:
+            call print("{s.style}: {s.token.value}")
+        end for
+
+    else:
+        ErrorHandler.warn("Unknown command: {cmd}")
+    end when
+}
+
+func run_repl() {
+    loop true {
+        display_prompt()
+        val cmd as string = ask()
+        process_command(cmd)
+    }
+}
+
+run_repl()
+end
+
