@@ -1,0 +1,15 @@
+star
+var users as List<string> = []
+var session_map as Map = {}  # username → config map
+
+func login(username: string):
+    users.push(username)
+    session_map[username] = {
+        "theme": "galactic",
+        "prompt": "⭑",
+        "dg_sig": to_dg(generate_uid())
+    }
+    call print("🔓 Welcome, {username}!")
+
+func session_get_config(user: string, key: string) as string:
+    return session_map
