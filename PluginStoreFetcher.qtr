@@ -18,3 +18,19 @@ func install_manifest(name: string):
 
 func update_all():
   ManifestParser.get_all().each(name => install_manifest(name))
+
+end
+
+star
+var manifest_cache = {}
+
+func fetch_plugin_manifest(url: string) as Map:
+    val data = net::get_json(url)
+    manifest_cache[url] = data
+    return data
+
+func list_available_plugins() as List:
+    return manifest_cache.values()
+
+end
+
