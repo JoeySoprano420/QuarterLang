@@ -7,3 +7,155 @@ module IRBytecode:
   end define
 end module
 end
+
+star
+
+# Intermediate Representation Builder: Transforms AST nodes into symbolic IR with metadata, phase tags, and error recovery
+
+module IRBytecode:
+
+  # Core entry: processes full AST into annotated IR sequence
+  define generate(ast as AST) as List<IR>:
+    var irs as List<IR> = []
+    var node_index as int = 0
+
+    for node in ast.nodes:
+      val context: IRContext = IRContext.new(
+        node_id = node_index,
+        source = node.to_source(),
+        phase = "emit",
+        lineage = generate_lineage_hash(node)
+      )
+
+      try:
+        var ir_unit: List<IR> = emit_ir_from_node(node, context)
+        irs = irs + ir_unit
+      catch err:
+        ErrorHandler.warn("IR emission failed for node {node_index}: {err.message}")
+        irs.push(IR.error_stub(context))
+      end try
+
+      node_index = node_index + 1
+    end for
+
+    return irs
+  end define
+
+
+  # Emit IR from a single node with contextual tagging
+  define emit_ir_from_node(node as Node, ctx as IRContext) as List<IR>:
+    var output: List<IR> = []
+
+    when node.type == "Declaration":
+      output.push(IR.declare(ctx.lineage, node.name, node.value, ctx.phase))
+
+    elif node.type == "Function":
+      output.push(IR.func_start(ctx.lineage, node.name))
+      for stmt in node.body:
+        output = output + emit_ir_from_node(stmt, ctx.with_phase("func"))
+      end for
+      output.push(IR.func_end(ctx.lineage, node.name))
+
+    elif node.type == "Loop":
+      output.push(IR.loop_start(ctx.lineage, node.condition))
+      for stmt in node.body:
+        output = output + emit_ir_from_node(stmt, ctx.with_phase("loop"))
+      end for
+      output.push(IR.loop_end(ctx.lineage))
+
+    elif node.type == "Expression":
+      output.push(IR.expr(ctx.lineage, node.code))
+
+    else:
+      ErrorHandler.warn("Unhandled node type: {node.type}")
+      output.push(IR.unknown(ctx.lineage, node.type))
+    end when
+
+    return output
+  end define
+
+
+  # Symbolic lineage hash generator for traceable IR emissions
+  define generate_lineage_hash(node as Node) as string:
+    return hash(node.to_source() + ":" + node.type + ":" + now())
+  end define
+
+end module
+
+end
+
+star
+
+# Intermediate Representation Builder: Transforms AST nodes into symbolic IR with metadata, phase tags, and error recovery
+
+module IRBytecode:
+
+  # Core entry: processes full AST into annotated IR sequence
+  define generate(ast as AST) as List<IR>:
+    var irs as List<IR> = []
+    var node_index as int = 0
+
+    for node in ast.nodes:
+      val context: IRContext = IRContext.new(
+        node_id = node_index,
+        source = node.to_source(),
+        phase = "emit",
+        lineage = generate_lineage_hash(node)
+      )
+
+      try:
+        var ir_unit: List<IR> = emit_ir_from_node(node, context)
+        irs = irs + ir_unit
+      catch err:
+        ErrorHandler.warn("IR emission failed for node {node_index}: {err.message}")
+        irs.push(IR.error_stub(context))
+      end try
+
+      node_index = node_index + 1
+    end for
+
+    return irs
+  end define
+
+
+  # Emit IR from a single node with contextual tagging
+  define emit_ir_from_node(node as Node, ctx as IRContext) as List<IR>:
+    var output: List<IR> = []
+
+    when node.type == "Declaration":
+      output.push(IR.declare(ctx.lineage, node.name, node.value, ctx.phase))
+
+    elif node.type == "Function":
+      output.push(IR.func_start(ctx.lineage, node.name))
+      for stmt in node.body:
+        output = output + emit_ir_from_node(stmt, ctx.with_phase("func"))
+      end for
+      output.push(IR.func_end(ctx.lineage, node.name))
+
+    elif node.type == "Loop":
+      output.push(IR.loop_start(ctx.lineage, node.condition))
+      for stmt in node.body:
+        output = output + emit_ir_from_node(stmt, ctx.with_phase("loop"))
+      end for
+      output.push(IR.loop_end(ctx.lineage))
+
+    elif node.type == "Expression":
+      output.push(IR.expr(ctx.lineage, node.code))
+
+    else:
+      ErrorHandler.warn("Unhandled node type: {node.type}")
+      output.push(IR.unknown(ctx.lineage, node.type))
+    end when
+
+    return output
+  end define
+
+
+  # Symbolic lineage hash generator for traceable IR emissions
+  define generate_lineage_hash(node as Node) as string:
+    return hash(node.to_source() + ":" + node.type + ":" + now())
+  end define
+
+end module
+
+end
