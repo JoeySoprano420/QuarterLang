@@ -1,0 +1,174 @@
+import "LibrarySystem.qtr"
+import "SystemDiagnostics.qtr"
+import "StringUtils.qtr"
+import "Versioning.qtr"
+
+type PluginMetadata = struct {
+    name: string
+    version: string
+    author: string
+    description: string
+    dependencies: List<string>
+    entry: string  # optional symbol hook
+}
+
+var plugin_meta as Map = {}     # string → PluginMetadata
+var plugin_modules as Map = {}  # string → Module
+
+# Diagnostic printout
+func debug(msg: string):
+    SystemDiagnostics.log("PLUGIN", msg)
+end func
+
+# Register a plugin with metadata
+func plugin_register(name: string, mod: Module, meta: PluginMetadata):
+    debug("Registering plugin: {name}")
+    LibrarySystem.register(name, mod)
+    plugin_modules[name] = mod
+    plugin_meta[name] = meta
+end func
+
+# Load a plugin by name and optionally call its `entry` hook
+func plugin_load(name: string) -> bool:
+    when plugin_meta.contains(name):
+        let meta = plugin_meta[name]
+        let mod = LibrarySystem.get(name)
+        if meta.entry != "":
+            when mod.contains(meta.entry):
+                call mod[meta.entry]()
+                debug("Executed entry hook: {meta.entry} in {name}")
+            else:
+                debug("Entry hook `{meta.entry}` not found in {name}")
+        else:
+            debug("No entry hook defined for {name}")
+        return true
+    else:
+        debug("Plugin `{name}` not found in registry")
+        return false
+end func
+
+# Print detailed plugin description
+func plugin_describe(name: string):
+    when plugin_meta.contains(name):
+        let meta = plugin_meta[name]
+        call print(
+            "🧩 Plugin: {meta.name}\n" +
+            "📦 Version: {meta.version}\n" +
+            "👤 Author: {meta.author}\n" +
+            "📝 Description: {meta.description}\n" +
+            "🔗 Dependencies: {StringUtils.join(meta.dependencies, ', ')}"
+        )
+    else:
+        call print("[Plugin {name}]: Metadata not found")
+end func
+
+# List all registered plugins
+func plugin_list():
+    for name in plugin_meta.keys():
+        call plugin_describe(name)
+        call print("---")
+end func
+
+# Version check for plugin
+func plugin_compatible(name: string, min_version: string) -> bool:
+    when plugin_meta.contains(name):
+        return Versioning.is_at_least(plugin_meta[name].version, min_version)
+    return false
+end func
+
+import "LibrarySystem.qtr"
+import "PluginSettings.qtr"
+import "NetworkSync.qtr"
+import "ConsoleUI.qtr"
+
+# 🗃 Registry maps
+var plugin_meta as Map = {}
+var plugin_state as Map = {}      # Holds state for hot-reload
+var plugin_deps as Map = {}       # Dependency graph
+var plugin_versions as Map = {}   # Version info
+var plugin_settings as Map = {}   # Runtime modifiable settings
+
+# 🔄 Plugin hot-reload with state preservation
+func plugin_reload(name: string):
+    when plugin_state.contains(name):
+        let old_state = plugin_state[name]
+        call print("Reloading plugin: {name}")
+        let mod = LibrarySystem.reload(name)
+        LibrarySystem.register(name, mod)
+        plugin_state[name] = old_state
+        call ConsoleUI.mark_reload_success(name)
+    else:
+        call print("No state to preserve. Use plugin_load instead.")
+end func
+
+# 📡 REPL + UI integration: toggle, inspect
+func plugin_toggle(name: string):
+    if plugin_state.contains(name):
+        plugin_state.remove(name)
+        call ConsoleUI.plugin_toggled(name, "off")
+    else:
+        let mod = plugin_load(name)
+        plugin_state[name] = mod.state()
+        call ConsoleUI.plugin_toggled(name, "on")
+end func
+
+func plugin_inspect(name: string):
+    when plugin_state.contains(name):
+        let state = plugin_state[name]
+        call ConsoleUI.show_plugin_state(name, state)
+    else:
+        call ConsoleUI.show_plugin_state(name, "Not loaded")
+end func
+
+# 🧠 Plugin dependency resolution with circular check
+func plugin_register(name: string, mod: Module, metadata: string, deps: List, version: string):
+    when _has_circular_dependency(name, deps):
+        call print("Circular dependency detected for {name}: {deps}")
+        return
+
+    LibrarySystem.register(name, mod)
+    plugin_meta[name] = metadata
+    plugin_deps[name] = deps
+    plugin_versions[name] = version
+    plugin_settings[name] = PluginSettings.default_for(name)
+
+func _has_circular_dependency(name: string, deps: List):
+    for d in deps:
+        if d == name or _depends_on(d, name):
+            return true
+    return false
+
+func _depends_on(plugin: string, target: string):
+    if not plugin_deps.contains(plugin):
+        return false
+    for dep in plugin_deps[plugin]:
+        if dep == target or _depends_on(dep, target):
+            return true
+    return false
+
+# 🌐 Remote plugin repository syncing via manifest
+func plugin_sync_from_manifest(path: string):
+    let manifest = NetworkSync.read_manifest(path)
+    for entry in manifest.entries():
+        let name = entry["name"]
+        let url = entry["url"]
+        let ver = entry["version"]
+        if _should_update(name, ver):
+            call print("Syncing {name} from {url} ...")
+            let mod = NetworkSync.download_module(url)
+            LibrarySystem.register(name, mod)
+            plugin_versions[name] = ver
+end func
+
+func _should_update(name: string, new_ver: string):
+    if not plugin_versions.contains(name):
+        return true
+    return new_ver > plugin_versions[name]
+
+# ⚠️ Compatibility check
+func plugin_load(name: string):
+    let mod = LibrarySystem.get(name)
+    if mod.api_version < PluginSettings.current_api_version():
+        call ConsoleUI.warn_compat(name, mod.api_version)
+    return mod
+end func
