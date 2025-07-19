@@ -1,0 +1,11 @@
+func plugin_toggled(name: string, status: string):
+    call print("Plugin {name} toggled {status.upper()}")
+
+func show_plugin_state(name: string, state: any):
+    call print("State for {name}: {state}")
+
+func mark_reload_success(name: string):
+    call print("Plugin {name} hot-reloaded successfully.")
+
+func warn_compat(name: string, api_version: string):
+    call print("[WARNING] Plugin {name} built for outdated API v{api_version}")
