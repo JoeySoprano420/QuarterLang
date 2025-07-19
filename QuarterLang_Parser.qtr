@@ -146,3 +146,59 @@ module Parser:
 end module
 end
 
+star
+module ExpressionParser:
+  # Basic expression parsing (stub logic can be expanded later)
+  define parse_expression(cur as Cursor) as Node:
+    val tok as Token = cur.next()
+    
+    when tok.type == "NUMBER":
+      return Node.new("Literal", tok.value)
+    end when
+
+    when tok.type == "STRING":
+      return Node.new("Literal", tok.value)
+    end when
+
+    when tok.type == "IDENT":
+      return Node.new("Identifier", tok.value)
+    end when
+
+    ErrorHandler.error(101, "Unexpected token in expression: " + tok.value)
+  end define
+end module
+end
+
+star
+module Cursor:
+  define Cursor as class:
+    var tokens as List<Token>
+    var position as int
+
+    define new(toks as List<Token>) as Cursor:
+      val self as Cursor
+      self.tokens = toks
+      self.position = 0
+      return self
+    end define
+
+    define peek(self as Cursor) as Token:
+      when self.position < self.tokens.length:
+        return self.tokens[self.position]
+      end when
+      return Token.new("EOF", "")
+    end define
+
+    define next(self as Cursor) as Token:
+      val tok as Token = self.peek()
+      self.position += 1
+      return tok
+    end define
+
+    define eof(self as Cursor) as bool:
+      return self.position >= self.tokens.length
+    end define
+  end class
+end module
+end
+
