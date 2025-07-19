@@ -1,0 +1,23 @@
+import "PluginManager.qtr"
+import "Metrics.qtr"
+
+global active_plugins = PluginManager.list()
+global zoom = 1.0
+global pan = [0, 0]
+
+func render(state):
+    foreach plugin in active_plugins:
+        draw_node(plugin.name, plugin.pos, plugin.status)
+        draw_metrics_overlay(plugin.name)
+    end
+end
+
+func click_node(x: int, y: int):
+    node = locate_plugin_at(x, y)
+    if node: show_plugin_details(node)
+end
+
+func draw_metrics_overlay(name: string):
+    stats = Metrics.get_plugin_stats(name)
+    overlay_text("{name}: {stats.memory}MB, {stats.latency}ms")
+end
