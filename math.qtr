@@ -43,3 +43,370 @@ func abs(x: int) {
 }
 
 end
+
+star
+
+# ==== Ultra Arithmetic & Number Theory Library ====
+
+# Adds two numbers (int or float)
+func add(x: num, y: num) {
+    val z: num = x + y
+    call print(z)
+    return z
+}
+
+# Subtract y from x
+func sub(x: num, y: num) {
+    val z: num = x - y
+    call print(z)
+    return z
+}
+
+# Multiply two numbers
+func mul(x: num, y: num) {
+    val z: num = x * y
+    call print(z)
+    return z
+}
+
+# Divide x by y, with zero check
+func div(x: num, y: num) {
+    when y == 0 {
+        call print("Error: Division by zero")
+        stop
+    }
+    val z: num = x / y
+    call print(z)
+    return z
+}
+
+# Modulus (works for integers only)
+func mod(x: int, y: int) {
+    when y == 0 {
+        call print("Error: Modulus by zero")
+        stop
+    }
+    val z: int = x % y
+    call print(z)
+    return z
+}
+
+# Integer exponentiation with fast exponentiation (binary exponentiation)
+func pow(base: num, exp: int) {
+    when exp < 0 {
+        # For negative exponent, compute reciprocal
+        val pos_exp: int = 0 - exp
+        val pos_res: num = pow(base, pos_exp)
+        val res: num = 1.0 / pos_res
+        call print(res)
+        return res
+    }
+    var result: num = 1
+    var b: num = base
+    var e: int = exp
+    loop e > 0 {
+        when (e & 1) == 1 { result = result * b }
+        b = b * b
+        e = e >> 1
+    }
+    call print(result)
+    return result
+}
+
+# Absolute value (supports int and float)
+func abs(x: num) {
+    val z: num = when x < 0: 0 - x else: x
+    call print(z)
+    return z
+}
+
+# Factorial (recursive with memoization for optimization)
+var fact_cache = map[int, int]()
+
+func factorial(n: int) {
+    when n < 0 {
+        call print("Error: Factorial undefined for negative")
+        stop
+    }
+    if fact_cache.contains(n) {
+        return fact_cache[n]
+    }
+    val result: int = when n <= 1: 1 else: n * factorial(n - 1)
+    fact_cache[n] = result
+    call print(result)
+    return result
+}
+
+# Greatest Common Divisor (Euclidean Algorithm)
+func gcd(a: int, b: int) {
+    var x: int = abs(a)
+    var y: int = abs(b)
+    loop y != 0 {
+        val temp = y
+        y = x % y
+        x = temp
+    }
+    call print(x)
+    return x
+}
+
+# Least Common Multiple using gcd
+func lcm(a: int, b: int) {
+    when a == 0 or b == 0 {
+        call print(0)
+        return 0
+    }
+    val result: int = abs(a / gcd(a, b) * b)
+    call print(result)
+    return result
+}
+
+# Fibonacci (iterative, O(n))
+func fibonacci(n: int) {
+    when n < 0 {
+        call print("Error: Fibonacci undefined for negative")
+        stop
+    }
+    if n == 0 {
+        call print(0)
+        return 0
+    }
+    if n == 1 {
+        call print(1)
+        return 1
+    }
+    var a: int = 0
+    var b: int = 1
+    var i: int = 2
+    while i <= n {
+        val temp = b
+        b = a + b
+        a = temp
+        i = i + 1
+    }
+    call print(b)
+    return b
+}
+
+# Binomial Coefficient n choose k (using Pascal's rule, iterative)
+func binomial(n: int, k: int) {
+    when k < 0 or k > n {
+        call print(0)
+        return 0
+    }
+    var res: int = 1
+    var i: int = 1
+    while i <= k {
+        res = res * (n - i + 1) / i
+        i = i + 1
+    }
+    call print(res)
+    return res
+}
+
+# Square Root (Newton's method for float)
+func sqrt(x: float) {
+    when x < 0.0 {
+        call print("Error: sqrt of negative number")
+        stop
+    }
+    var guess: float = x / 2.0
+    var i: int = 0
+    while i < 20 { # limit iterations for convergence
+        guess = (guess + x / guess) / 2.0
+        i = i + 1
+    }
+    call print(guess)
+    return guess
+}
+
+# Natural Logarithm (using series approximation for 0 < x < 2)
+func ln(x: float) {
+    when x <= 0.0 {
+        call print("Error: ln undefined for <= 0")
+        stop
+    }
+    val y = (x - 1) / (x + 1)
+    var result: float = 0.0
+    var term: float = y
+    var n: int = 1
+    while n < 100 {
+        result = result + term / n
+        term = term * y * y
+        n = n + 2
+    }
+    val ln_val = 2 * result
+    call print(ln_val)
+    return ln_val
+}
+
+# Exponential function (series expansion)
+func exp(x: float) {
+    var sum: float = 1.0
+    var term: float = 1.0
+    var n: int = 1
+    while n < 50 {
+        term = term * x / n
+        sum = sum + term
+        n = n + 1
+    }
+    call print(sum)
+    return sum
+}
+
+# Bitwise AND (integers)
+func bit_and(x: int, y: int) {
+    val z: int = x & y
+    call print(z)
+    return z
+}
+
+# Bitwise OR (integers)
+func bit_or(x: int, y: int) {
+    val z: int = x | y
+    call print(z)
+    return z
+}
+
+# Bitwise XOR (integers)
+func bit_xor(x: int, y: int) {
+    val z: int = x ^ y
+    call print(z)
+    return z
+}
+
+# Bitwise NOT (integers)
+func bit_not(x: int) {
+    val z: int = ~x
+    call print(z)
+    return z
+}
+
+# Left Shift (integers)
+func left_shift(x: int, bits: int) {
+    val z: int = x << bits
+    call print(z)
+    return z
+}
+
+# Right Shift (integers)
+func right_shift(x: int, bits: int) {
+    val z: int = x >> bits
+    call print(z)
+    return z
+}
+
+# Modular Exponentiation (x^y mod m) - fast
+func mod_exp(base: int, exp: int, mod: int) {
+    when mod == 0 {
+        call print("Error: mod_exp modulus zero")
+        stop
+    }
+    var result: int = 1 % mod
+    var b: int = base % mod
+    var e: int = exp
+    while e > 0 {
+        when (e & 1) == 1 {
+            result = (result * b) % mod
+        }
+        b = (b * b) % mod
+        e = e >> 1
+    }
+    call print(result)
+    return result
+}
+
+# Modular inverse using Extended Euclidean Algorithm
+func mod_inv(a: int, m: int) {
+    var m0 = m
+    var x0 = 0
+    var x1 = 1
+    var aa = a
+    when m == 0 {
+        call print("Error: mod_inv modulus zero")
+        stop
+    }
+    while aa > 1 {
+        val q = aa / m
+        var t = m
+        m = aa % m
+        aa = t
+        t = x0
+        x0 = x1 - q * x0
+        x1 = t
+    }
+    when x1 < 0 {
+        x1 = x1 + m0
+    }
+    call print(x1)
+    return x1
+}
+
+# Check if integer is prime (trial division)
+func is_prime(n: int) {
+    when n <= 1 {
+        call print(false)
+        return false
+    }
+    when n <= 3 {
+        call print(true)
+        return true
+    }
+    when n % 2 == 0 or n % 3 == 0 {
+        call print(false)
+        return false
+    }
+    var i = 5
+    while i * i <= n {
+        if n % i == 0 or n % (i + 2) == 0 {
+            call print(false)
+            return false
+        }
+        i = i + 6
+    }
+    call print(true)
+    return true
+}
+
+# Get next prime greater than n
+func next_prime(n: int) {
+    var candidate = n + 1
+    loop {
+        if is_prime(candidate) {
+            call print(candidate)
+            return candidate
+        }
+        candidate = candidate + 1
+    }
+}
+
+# Batch vector addition of integer lists (equal length)
+func vector_add(vec1: list[int], vec2: list[int]) {
+    when len(vec1) != len(vec2) {
+        call print("Error: vector_add length mismatch")
+        stop
+    }
+    var result: list[int] = []
+    for i in range(len(vec1)) {
+        result.append(vec1[i] + vec2[i])
+    }
+    call print(result)
+    return result
+}
+
+# Batch vector dot product
+func vector_dot(vec1: list[int], vec2: list[int]) {
+    when len(vec1) != len(vec2) {
+        call print("Error: vector_dot length mismatch")
+        stop
+    }
+    var sum: int = 0
+    for i in range(len(vec1)) {
+        sum = sum + vec1[i] * vec2[i]
+    }
+    call print(sum)
+    return sum
+}
+
+end
+
