@@ -22,3 +22,127 @@ module Parser:
   end define
 end module
 end
+
+star
+module Parser:
+
+  # Recursive-descent parser for QuarterLang
+  # Converts a list of tokens into an abstract syntax tree (AST)
+
+  import Lexer
+  import ErrorHandler
+  import Node
+  import Token
+  import Cursor
+  import AST
+  import ExpressionParser
+  import StatementParser
+  import Utilities
+
+  # Entry point: parses source code into AST
+  define parse(src as primative) as AST:
+    val tokens as List<Token> = Lexer.lex(src)
+    val cursor as Cursor = Cursor.new(tokens)
+    return parse_program(cursor)
+  end define
+
+  # Parses an entire program (sequence of statements)
+  define parse_program(cur as Cursor) as AST:
+    var nodes as List<Node> = []
+    while not cur.eof():
+      val stmt as Node = parse_statement(cur)
+      if stmt != nil:
+        nodes.push(stmt)
+      end if
+    end while
+    return AST.new(nodes)
+  end define
+
+  # Dispatches to the appropriate statement parser
+  define parse_statement(cur as Cursor) as Node:
+    val tok as Token = cur.peek()
+
+    # Example of handling multiple kinds of statements
+    match tok.type:
+      case "IDENT":
+        return parse_expression(cur)
+      case "KEYWORD":
+        if tok.value == "if": return parse_if_statement(cur) end if
+        if tok.value == "while": return parse_while_statement(cur) end if
+        if tok.value == "return": return parse_return_statement(cur) end if
+        if tok.value == "define": return parse_function_declaration(cur) end if
+        # Add more keyword dispatches here as needed
+      end case
+
+    # Unrecognized statement
+    ErrorHandler.error(100, "Unexpected token in statement: " + tok.value)
+    cur.advance()  # Attempt recovery
+    return Node.error("Invalid statement")
+  end define
+
+  # Parses a basic expression (delegated to ExpressionParser for modularity)
+  define parse_expression(cur as Cursor) as Node:
+    return ExpressionParser.parse_expression(cur)
+  end define
+
+  # Example control flow parsing
+  define parse_if_statement(cur as Cursor) as Node:
+    cur.expect("KEYWORD", "if")
+    val condition as Node = parse_expression(cur)
+    val then_branch as Node = parse_block(cur)
+    var else_branch as Node = nil
+    if cur.match("KEYWORD", "else"):
+      else_branch = parse_block(cur)
+    end if
+    return Node.if_statement(condition, then_branch, else_branch)
+  end define
+
+  define parse_while_statement(cur as Cursor) as Node:
+    cur.expect("KEYWORD", "while")
+    val condition as Node = parse_expression(cur)
+    val body as Node = parse_block(cur)
+    return Node.while_statement(condition, body)
+  end define
+
+  define parse_return_statement(cur as Cursor) as Node:
+    cur.expect("KEYWORD", "return")
+    val value as Node = parse_expression(cur)
+    return Node.return_statement(value)
+  end define
+
+  # Parse a block of statements enclosed in braces
+  define parse_block(cur as Cursor) as Node:
+    cur.expect("SYMBOL", "{")
+    var stmts as List<Node> = []
+    while not cur.match("SYMBOL", "}"):
+      val stmt as Node = parse_statement(cur)
+      if stmt != nil:
+        stmts.push(stmt)
+      end if
+    end while
+    return Node.block(stmts)
+  end define
+
+  # Parse function definitions (basic form)
+  define parse_function_declaration(cur as Cursor) as Node:
+    cur.expect("KEYWORD", "define")
+    val name_tok as Token = cur.expect("IDENT")
+    cur.expect("SYMBOL", "(")
+
+    var params as List<primative> = []
+    if not cur.match("SYMBOL", ")"):
+      loop:
+        val param_tok as Token = cur.expect("IDENT")
+        params.push(param_tok.value)
+        if cur.match("SYMBOL", ")"): break loop end if
+        cur.expect("SYMBOL", ",")
+      end loop
+    end if
+
+    val body as Node = parse_block(cur)
+    return Node.function(name_tok.value, params, body)
+  end define
+
+end module
+end
+
