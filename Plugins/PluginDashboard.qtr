@@ -1,0 +1,18 @@
+func plugin_dashboard_render():
+    print("=== Plugin Dashboard ===")
+    for name in plugin_meta.keys():
+        meta = plugin_meta[name]
+        state = plugin_state.get(name)
+        print("{name}: v{meta.version} — {meta.description}")
+        if state:
+            print(" ↳ Loaded, state: {state}")
+        else:
+            print(" ↳ Not loaded")
+
+func plugin_toggle(name: string):
+    if plugin_state.contains(name):
+        plugin_state.remove(name)
+        print("Unloaded plugin {name}")
+    else:
+        call plugin_load(name)
+        print("Loaded plugin {name}")
