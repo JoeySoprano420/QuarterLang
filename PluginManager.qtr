@@ -1,0 +1,21 @@
+global plugins = []
+
+func reload_all():
+    unload_all()
+    load_all()
+end
+
+func load_all():
+    plugins = scan_plugin_directory()
+    foreach p in plugins:
+        PluginLoader.load(p)
+    end
+end
+
+func unload_all():
+    foreach p in plugins:
+        PluginLoader.unload(p)
+    end
+end
+
+func list(): return plugins
