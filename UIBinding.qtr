@@ -26,3 +26,136 @@ func handle_input(event):
 end
 
 end
+
+star
+
+### ==== Imports and Core Module Initialization ==== ###
+import "SDL.qtr"
+import "WebGL.qtr"
+import "GTK.qtr"
+import "CoreDispatcher.qtr"
+import "InputQueue.qtr"
+import "GraphRenderer.qtr"
+import "Profiler.qtr"
+import "ErrorHandler.qtr"
+
+### ==== Global UI Runtime Configuration ==== ###
+global ui_config = {
+    "mode": "SDL",  # Options: "SDL", "GTK", "WebGL"
+    "width": 1280,
+    "height": 720,
+    "theme": "dark",
+    "enable_profiling": true,
+    "input_buffer_limit": 256
+}
+
+global initialized = false
+global backend = null
+
+
+### ==== Unified UI Initialization Dispatcher ==== ###
+func initialize_ui():
+    try:
+        match ui_config["mode"]:
+            "SDL" => backend = SDL.init_ui(ui_config)
+            "WebGL" => backend = WebGL.init_canvas(ui_config)
+            "GTK" => backend = GTK.init_window(ui_config)
+            _ => throw("Unsupported UI backend mode: " + ui_config["mode"])
+        end
+
+        if ui_config["enable_profiling"]:
+            Profiler.begin_session("UI Initialization")
+        end
+
+        initialized = true
+        log("UI initialized successfully with backend: " + ui_config["mode"])
+    catch err:
+        ErrorHandler.fatal("UI initialization failed: " + str(err))
+    end
+end
+
+
+### ==== Event Routing System (Core Input Multiplexer) ==== ###
+func handle_input(event):
+    if not initialized:
+        ErrorHandler.warn("Input received before UI initialized.")
+        return
+    end
+
+    try:
+        match event.kind:
+            "key" =>
+                if InputQueue.size() < ui_config["input_buffer_limit"]:
+                    InputQueue.enqueue(event.key)
+                    CoreDispatcher.broadcast("key_event", event.key)
+                else:
+                    ErrorHandler.warn("Input buffer limit reached.")
+                end
+
+            "mouse" =>
+                handle_mouse_input(event)
+
+            "touch" =>
+                CoreDispatcher.broadcast("touch_event", event)
+
+            "scroll" =>
+                CoreDispatcher.broadcast("scroll_event", event)
+
+            "gesture" =>
+                CoreDispatcher.broadcast("gesture_event", event)
+
+            _ =>
+                ErrorHandler.warn("Unhandled event type: " + event.kind)
+        end
+    catch err:
+        ErrorHandler.warn("Input handling error: " + str(err))
+    end
+end
+
+
+### ==== Modular Mouse Event Processor ==== ###
+func handle_mouse_input(event):
+    match event.button:
+        "left" =>
+            GraphRenderer.click_node(event.x, event.y)
+            CoreDispatcher.broadcast("click_event", {
+                "x": event.x,
+                "y": event.y,
+                "button": "left"
+            })
+
+        "right" =>
+            CoreDispatcher.broadcast("context_click", {
+                "x": event.x,
+                "y": event.y,
+                "button": "right"
+            })
+
+        "middle" =>
+            CoreDispatcher.broadcast("middle_click", {
+                "x": event.x,
+                "y": event.y,
+                "button": "middle"
+            })
+
+        _ =>
+            ErrorHandler.warn("Unknown mouse button: " + event.button)
+    end
+end
+
+
+### ==== Logging Utility ==== ###
+global logs = []
+
+func log(msg: string):
+    append logs, "[UI_LOG] " + msg
+    print(msg)
+end
+
+func show_logs():
+    for entry in logs:
+        print(entry)
+    end
+end
+
+end
