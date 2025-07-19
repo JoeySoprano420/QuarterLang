@@ -1,0 +1,23 @@
+module SDLUI
+
+import "QuarterUI.qtr"
+import "MouseInput.qtr"
+import "KeyboardInput.qtr"
+import "RenderLib.qtr"
+
+func launch(config: Map):
+    RenderLib.start_window("QuarterLang SDL", 800, 600)
+
+    loop while RenderLib.is_open():
+        MouseInput.update()
+        KeyboardInput.update()
+
+        if MouseInput.scroll_up(): QuarterUI.zoom_in()
+        if MouseInput.scroll_down(): QuarterUI.zoom_out()
+        if MouseInput.dragging(): QuarterUI.pan(MouseInput.delta())
+
+        RenderLib.clear()
+        QuarterUI.draw(config)
+        RenderLib.refresh()
+    end
+end
