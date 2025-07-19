@@ -1,3 +1,5 @@
+star
+
 func plugin_toggled(name: string, status: string):
     call print("Plugin {name} toggled {status.upper()}")
 
@@ -9,3 +11,5 @@ func mark_reload_success(name: string):
 
 func warn_compat(name: string, api_version: string):
     call print("[WARNING] Plugin {name} built for outdated API v{api_version}")
+
+end
