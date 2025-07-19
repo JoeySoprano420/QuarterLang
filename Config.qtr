@@ -104,3 +104,28 @@ func log(msg: string):
     if settings["console_verbosity"] == "none": return
     QuarterUI.console_log("⭑ {msg}")
 
+star
+module Config:
+  static var config_map as Map<primative, primative> = {
+    "theme": "solarized",
+    "prompt_symbol": "❂",
+    "color_map": {
+      "default": "#ffffff",
+      "solarized": "#268bd2",
+      "monokai": "#f92672",
+      "dracula": "#bd93f9"
+    }
+  }
+
+  func get(key as primative) as primative:
+    return config_map.get(key)
+  end func
+
+  func get_color(theme as primative) as primative:
+    val map = config_map.get("color_map")
+    if map.has(theme): return map.get(theme)
+    return map.get("default")
+  end func
+end module
+end
+
