@@ -6,3 +6,64 @@ module BinaryEmitter:
   end define
 end module
 end
+
+star
+module BinaryEmitter:
+
+  import "System.qtr"
+  import "Diagnostics.qtr"
+  import "Platform.qtr"
+  import "FileUtil.qtr"
+  import "Config.qtr"
+
+  define emit(bin as primative) as primative:
+    # Path configuration
+    val tmp_dir     = Config.get_or("temp_dir", "./tmp/")
+    val input_file  = tmp_dir + "build_input.asm"
+    val output_file = tmp_dir + "build_output.bin"
+    val log_file    = tmp_dir + "build_log.txt"
+
+    # Ensure the temp directory exists
+    if not __sys_dir_exists(tmp_dir): __sys_mkdir(tmp_dir) end if
+
+    # Write input to file
+    val write_success = __sys_write_file(input_file, bin)
+    if not write_success:
+      call Diagnostics.error("BinaryEmitter.emit", "Failed to write NASM input to " + input_file)
+      return "<ERROR>"
+    end if
+
+    # Construct command dynamically based on platform
+    val cmd_prefix = match Platform.name():
+      case "windows": return "nasm.exe"
+      case "linux":   return "nasm"
+      case "darwin":  return "nasm"
+      else:           return "nasm"
+    end match
+
+    val cmd = cmd_prefix + " -f bin " + input_file + " -o " + output_file + " 2> " + log_file
+
+    # Execute NASM command
+    val result = __sys_run(cmd)
+
+    # Check log for any compilation errors
+    if __sys_file_exists(log_file):
+      val errors = __sys_read_file(log_file)
+      if errors != "":
+        call Diagnostics.warning("BinaryEmitter.emit", "NASM emitted warnings or errors:\n" + errors)
+      end if
+    end if
+
+    # Read binary output
+    if __sys_file_exists(output_file):
+      val binary = __sys_read_file(output_file)
+      return binary
+    else:
+      call Diagnostics.error("BinaryEmitter.emit", "Failed to generate binary file: " + output_file)
+      return "<BUILD FAILED>"
+    end if
+
+  end define
+
+end module
+end
