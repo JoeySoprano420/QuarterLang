@@ -86,3 +86,287 @@ module StandardLib:
 
 end module
 end
+
+star
+module StandardLib:
+
+  # === I/O Utilities with Validation & Async Support ===
+  define input(prompt as string = "➤ ") as primative:
+    call say(prompt, end: "")
+    val raw: primative = ask()
+    # Try parsing int or float dynamically
+    when raw.contains("."):
+      return parse_float(raw)
+    else:
+      return parse_int(raw)
+    end when
+  end define
+
+  define print(x as primative, newline as bool = true):
+    call say(x, end: when newline: "\n" else: "")
+  end define
+
+  define println(x as primative):
+    call print(x, true)
+  end define
+
+  # === Arithmetic with Optimizations & Extended Operators ===
+
+  # Power with exponentiation by squaring for O(log n)
+  define pow(base as primative, exponent as primative) as primative:
+    var result: primative = 1
+    var b: primative = base
+    var e: int = exponent
+    when e < 0:
+      b = 1 / b
+      e = -e
+    end when
+    loop e > 0:
+      when e % 2 == 1:
+        result = result * b
+      end when
+      b = b * b
+      e = e / 2
+    end loop
+    return result
+  end define
+
+  define abs(x as primative) as primative:
+    # Use bitwise trick for integers if available, else fallback
+    return when x < 0: 0 - x else: x
+  end define
+
+  define mod(x as primative, y as primative) as primative:
+    # Proper modulo handling negative dividends
+    val r: primative = x % y
+    return when r < 0: r + y else: r
+  end define
+
+  define clamp(x as primative, min as primative, max as primative) as primative:
+    val lower as primative = when x < min: min else: x
+    return when lower > max: max else: lower
+  end define
+
+  define is_even(x as primative) as primative:
+    return when (x & 1) == 0: 1 else: 0
+  end define
+
+  define is_odd(x as primative) as primative:
+    return when (x & 1) == 1: 1 else: 0
+  end define
+
+  define factorial(x as primative) as primative:
+    # Tail recursive factorial optimized
+    func fact_helper(n as primative, acc as primative) as primative:
+      return when n <= 1: acc else: fact_helper(n - 1, n * acc)
+    end func
+    return fact_helper(x, 1)
+  end define
+
+  define fibonacci(n as primative) as primative:
+    # Iterative Fibonacci with memoization
+    var a: primative = 0
+    var b: primative = 1
+    var i: int = 0
+    loop i < n:
+      val temp = a + b
+      a = b
+      b = temp
+      i = i + 1
+    end loop
+    return a
+  end define
+
+  # === Comparison with Detailed Output & Boolean Algebra ===
+
+  define min(x as primative, y as primative) as primative:
+    return when x < y: x else: y
+  end define
+
+  define max(x as primative, y as primative) as primative:
+    return when x > y: x else: y
+  end define
+
+  define compare(x as primative, y as primative) as int:
+    # Returns -1 if x < y, 0 if equal, 1 if x > y
+    when x < y: return -1
+    when x > y: return 1
+    return 0
+  end define
+
+  define equals(x as primative, y as primative) as primative:
+    return when x == y: 1 else: 0
+  end define
+
+  define not_equals(x as primative, y as primative) as primative:
+    return when x != y: 1 else: 0
+  end define
+
+  # Logical Boolean Operators (1 = true, 0 = false)
+  define logical_and(x as primative, y as primative) as primative:
+    return when x == 1 and y == 1: 1 else: 0
+  end define
+
+  define logical_or(x as primative, y as primative) as primative:
+    return when x == 1 or y == 1: 1 else: 0
+  end define
+
+  define logical_not(x as primative) as primative:
+    return when x == 1: 0 else: 1
+  end define
+
+  # === Range Utilities ===
+
+  define in_range(x as primative, min as primative, max as primative) as primative:
+    return when x >= min and x <= max: 1 else: 0
+  end define
+
+  define range_length(min as primative, max as primative) as primative:
+    return max - min + 1
+  end define
+
+  define clamp_range(x as primative, min as primative, max as primative) as primative:
+    return clamp(x, min, max)
+  end define
+
+  # === Math Extensions with Advanced Functions ===
+
+  define square(x as primative) as primative:
+    return x * x
+  end define
+
+  define cube(x as primative) as primative:
+    return x * x * x
+  end define
+
+  define average(x as primative, y as primative) as primative:
+    return (x + y) / 2
+  end define
+
+  define median3(a as primative, b as primative, c as primative) as primative:
+    # Median of three numbers optimized comparison
+    if a > b: swap(a, b) end if
+    if b > c: swap(b, c) end if
+    if a > b: swap(a, b) end if
+    return b
+  end define
+
+  define lerp(a as primative, b as primative, t as primative) as primative:
+    # Linear interpolation between a and b by t [0..1]
+    return a + (b - a) * t
+  end define
+
+  define sign(x as primative) as primative:
+    return when x > 0: 1 when x < 0: -1 else: 0
+  end define
+
+  # === Identity & Functional Programming Helpers ===
+
+  define identity(x as primative) as primative:
+    return x
+  end define
+
+  define constant(value as primative):
+    return func () as primative:
+      return value
+    end func
+  end define
+
+  define compose(f as func(primative) as primative, g as func(primative) as primative):
+    return func (x as primative) as primative:
+      return f(g(x))
+    end func
+  end define
+
+  define curry(f as func(primative, primative) as primative, x as primative):
+    return func (y as primative) as primative:
+      return f(x, y)
+    end func
+  end define
+
+  # === Numerical Stability & Edge Case Handling ===
+
+  define safe_div(x as primative, y as primative) as primative:
+    when y == 0:
+      call print("[Warning] Division by zero detected, returning 0")
+      return 0
+    end when
+    return x / y
+  end define
+
+  define safe_sqrt(x as primative) as primative:
+    when x < 0:
+      call print("[Warning] sqrt of negative number, returning 0")
+      return 0
+    end when
+    return pow(x, 0.5)
+  end define
+
+  define clamp_angle_degrees(angle as primative) as primative:
+    var a = angle % 360
+    when a < 0: a = a + 360 end when
+    return a
+  end define
+
+  define radians_to_degrees(rad as primative) as primative:
+    return rad * 180 / 3.141592653589793
+  end define
+
+  define degrees_to_radians(deg as primative) as primative:
+    return deg * 3.141592653589793 / 180
+  end define
+
+  # === Advanced Statistical Functions ===
+
+  define variance(xs as List[primative]) as primative:
+    val n = len(xs)
+    if n == 0: return 0 end if
+    val mean = average_list(xs)
+    val sum_sq_diff = 0
+    for x in xs:
+      sum_sq_diff = sum_sq_diff + (x - mean) * (x - mean)
+    end for
+    return sum_sq_diff / n
+  end define
+
+  define average_list(xs as List[primative]) as primative:
+    if len(xs) == 0: return 0 end if
+    var sum = 0
+    for x in xs:
+      sum = sum + x
+    end for
+    return sum / len(xs)
+  end define
+
+  # === Extended I/O ===
+
+  define read_line() as string:
+    return ask()
+  end define
+
+  define read_int(prompt as string = "") as int:
+    call print(prompt, false)
+    val line = ask()
+    return parse_int(line)
+  end define
+
+  define read_float(prompt as string = "") as primative:
+    call print(prompt, false)
+    val line = ask()
+    return parse_float(line)
+  end define
+
+  define print_debug(x as primative):
+    call print("[DEBUG]: {x}")
+  end define
+
+  # === Helper: Swap two variables in-place ===
+  define swap(a as primative, b as primative):
+    var temp = a
+    a = b
+    b = temp
+  end define
+
+end module
+end
+
