@@ -5,3 +5,128 @@ module Scoper:
   end define
 end module
 end
+
+star
+module Scoper:
+
+  # Represents a single scope's symbol table
+  class Scope:
+    var parent as Scope? = null
+    var symbols as Map[string, ASTNode] = {}
+
+    # Constructor to create nested scope with optional parent
+    define new(parent_scope as Scope?) as Scope:
+      var s = Scope()
+      s.parent = parent_scope
+      s.symbols = Map[string, ASTNode]()
+      return s
+    end define
+
+    # Define a symbol in this scope
+    define define_symbol(name as string, node as ASTNode) as bool:
+      when symbols.contains(name):
+        # Symbol already defined in this scope (redeclaration error)
+        return false
+      end when
+      symbols[name] = node
+      return true
+    end define
+
+    # Lookup symbol in current or parent scopes (recursive)
+    define lookup(name as string) as ASTNode?:
+      when symbols.contains(name):
+        return symbols[name]
+      elif parent != null:
+        return parent.lookup(name)
+      else:
+        return null
+      end when
+    end define
+  end class
+
+
+  # Main scope resolution function
+  define resolve_scopes(ast as AST) as AST:
+
+    # Recursively walk AST, maintain current scope
+    func walk(node as ASTNode, current_scope as Scope) as void:
+      when node.type == "Program":
+        # Global scope for entire program
+        var global_scope = Scope.new(null)
+        for child in node.children:
+          walk(child, global_scope)
+        end for
+
+      elif node.type == "BlockStatement":
+        # New nested block scope
+        var block_scope = Scope.new(current_scope)
+        for stmt in node.children:
+          walk(stmt, block_scope)
+        end for
+
+      elif node.type == "FunctionDeclaration":
+        # Define function name in current scope
+        val func_name = node.name
+        val defined = current_scope.define_symbol(func_name, node)
+        when not defined:
+          call print("[Scope Error] Function '{func_name}' redeclared in same scope.")
+        end when
+
+        # Create function scope for parameters and body
+        var func_scope = Scope.new(current_scope)
+        # Define parameters as variables inside function scope
+        for param in node.params:
+          val param_name = param.name
+          val param_defined = func_scope.define_symbol(param_name, param)
+          when not param_defined:
+            call print("[Scope Error] Parameter '{param_name}' redeclared in function '{func_name}'.")
+          end when
+        end for
+        walk(node.body, func_scope)
+
+      elif node.type == "VariableDeclaration":
+        # Declare variable(s) in current scope
+        for declarator in node.declarations:
+          val var_name = declarator.name
+          val var_defined = current_scope.define_symbol(var_name, declarator)
+          when not var_defined:
+            call print("[Scope Error] Variable '{var_name}' redeclared in the same scope.")
+          end when
+          # If initializer exists, walk it to resolve inner references
+          when declarator.init != null:
+            walk(declarator.init, current_scope)
+          end when
+        end for
+
+      elif node.type == "Identifier":
+        # Lookup reference in scopes
+        val symbol_node = current_scope.lookup(node.name)
+        when symbol_node == null:
+          call print("[Scope Error] Undefined variable '{node.name}' referenced.")
+          # Optionally attach unresolved flag
+          node.resolved = false
+        else:
+          # Attach resolved symbol reference for later stages
+          node.resolved = true
+          node.symbol_ref = symbol_node
+        end when
+
+      else:
+        # Generic: recurse into children if present
+        if hasattr(node, "children"):
+          for child in node.children:
+            walk(child, current_scope)
+          end for
+        end if
+      end when
+    end func
+
+    # Run the recursive walker starting at root AST
+    walk(ast.root, null)
+
+    # Return the annotated AST with scopes resolved
+    return ast
+  end define
+
+end module
+end
