@@ -1,4 +1,5 @@
 star
+
 func plugin_generate_manifest(name: string, deps: list<string>, version: string):
   return map[
     "name" => name,
@@ -6,3 +7,5 @@ func plugin_generate_manifest(name: string, deps: list<string>, version: string)
     "dependencies" => deps,
     "entry" => "{name}.qtr"
   ]
+
+end
