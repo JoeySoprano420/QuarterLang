@@ -1,0 +1,113 @@
+module TypeInference:
+
+  # Type representations
+  type Type =
+    | TInt
+    | TBool
+    | TString
+    | TFunc(params: List<Type>, ret: Type)
+    | TVar(id: int)  # Type variable
+    | TUnknown
+
+  var next_type_var_id = 0
+  var substitutions = Table()  # TVar.id -> Type
+
+  define fresh_type_var() as Type:
+    next_type_var_id = next_type_var_id + 1
+    return TVar(next_type_var_id)
+  end define
+
+  # Apply substitutions recursively
+  define apply_subst(t: Type) as Type:
+    match t:
+      case TVar(id):
+        if substitutions.contains(id):
+          return apply_subst(substitutions[id])
+        else:
+          return t
+      case TFunc(params, ret):
+        return TFunc(params.map(apply_subst), apply_subst(ret))
+      else:
+        return t
+    end match
+  end define
+
+  # Unification algorithm
+  define unify(t1: Type, t2: Type):
+    t1 = apply_subst(t1)
+    t2 = apply_subst(t2)
+    match (t1, t2):
+      case (TInt, TInt): return
+      case (TBool, TBool): return
+      case (TString, TString): return
+      case (TVar(id1), TVar(id2)):
+        if id1 != id2:
+          substitutions[id1] = t2
+      case (TVar(id), t):
+        occurs_check(id, t)
+        substitutions[id] = t
+      case (t, TVar(id)):
+        occurs_check(id, t)
+        substitutions[id] = t
+      case (TFunc(p1, r1), TFunc(p2, r2)):
+        if p1.length != p2.length:
+          error("Function arity mismatch")
+        for i in 0 .. p1.length-1:
+          unify(p1[i], p2[i])
+        unify(r1, r2)
+      else:
+        error("Type mismatch: cannot unify {t1} with {t2}")
+    end match
+  end define
+
+  define occurs_check(var_id: int, t: Type):
+    t = apply_subst(t)
+    if t is TVar(id) and id == var_id:
+      error("Recursive type detected")
+    elif t is TFunc(params, ret):
+      for p in params:
+        occurs_check(var_id, p)
+      occurs_check(var_id, ret)
+    end if
+  end define
+
+  # Type inference main function
+  define infer(ast: ASTNode, env: Table<String, Type>) as Type:
+    match ast.kind:
+      case "number": return TInt
+      case "string": return TString
+      case "bool": return TBool
+      case "identifier":
+        if env.contains(ast.name):
+          return env[ast.name]
+        else:
+          error("Undefined identifier: " + ast.name)
+      case "binary":
+        left_type = infer(ast.left, env)
+        right_type = infer(ast.right, env)
+        unify(left_type, TInt)
+        unify(right_type, TInt)
+        return TInt
+      case "call":
+        func_type = infer(ast.callee, env)
+        arg_types = ast.args.map(lambda a: infer(a, env))
+        ret_type = fresh_type_var()
+        unify(func_type, TFunc(arg_types, ret_type))
+        return ret_type
+      case "assign":
+        val_type = infer(ast.value, env)
+        env[ast.name] = val_type
+        return val_type
+      case "function":
+        param_types = ast.params.map(lambda _: fresh_type_var())
+        new_env = env.clone()
+        for i in 0 .. ast.params.length-1:
+          new_env[ast.params[i]] = param_types[i]
+        ret_type = infer(ast.body, new_env)
+        return TFunc(param_types, ret_type)
+      else:
+        error("Unsupported AST node kind: " + ast.kind)
+    end match
+  end define
+
+end module
