@@ -1,4 +1,5 @@
 star
+
 import "Graph.qtr"
 
 let zoom_level = 1
@@ -15,3 +16,5 @@ func pan(x: int = 0, y: int = 0):
   offset.x += x
   offset.y += y
   render_full_graph()
+
+end
