@@ -1,0 +1,32 @@
+import "DGDebugger.qtr"
+import "Introspection.qtr"
+import "ErrorHandler.qtr"
+import "PluginManager.qtr"
+import "UIBinding.qtr"
+import "GraphRenderer.qtr"
+
+global command_queue = Queue()
+global plugin_graph_state = {}
+
+func route(cmd: string):
+    match cmd:
+        "exit" => stop
+        "version" => DGDebugger.show_version()
+        "ast" => Introspection.parse_ast()
+        "highlight" => Introspection.highlight_source()
+        "reload_plugins" => PluginManager.reload_all()
+        "show_graph" => GraphRenderer.render(plugin_graph_state)
+        else => ErrorHandler.warn("Unknown command: {cmd}")
+    end
+end
+
+func enqueue(cmd: string):
+    command_queue.push(cmd)
+end
+
+func dispatch_loop():
+    loop:
+        if command_queue.is_empty(): continue
+        route(command_queue.pop())
+    end
+end
