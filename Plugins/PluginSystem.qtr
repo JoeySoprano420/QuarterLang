@@ -172,3 +172,56 @@ func plugin_load(name: string):
         call ConsoleUI.warn_compat(name, mod.api_version)
     return mod
 end func
+
+import "LibrarySystem.qtr"
+import "PluginSettings.qtr"
+import "PluginManifest.qtr"
+
+var plugin_meta as Map = {}     # name → metadata
+var plugin_state as Map = {}    # name → runtime state object
+var plugin_version as Map = {}  # name → version
+var plugin_dependencies as Map = {}  # name → [dependencies]
+
+func plugin_register(name: string, mod: Module, metadata: Map):
+    LibrarySystem.register(name, mod)
+    plugin_meta[name] = metadata
+    plugin_version[name] = metadata.get("version")
+    plugin_dependencies[name] = metadata.get("dependencies")
+
+func plugin_load(name: string) as Module:
+    if not plugin_meta.contains(name):
+        error("Plugin not registered: " + name)
+
+    deps = plugin_dependencies[name]
+    call plugin_check_dependencies(name, deps)
+
+    mod = LibrarySystem.get(name)
+    plugin_state[name] = mod.init()  # assume init returns state
+    return mod
+
+func plugin_check_dependencies(name: string, deps: List):
+    for dep in deps:
+        if not plugin_meta.contains(dep):
+            error("Missing dependency: " + dep + " for plugin " + name)
+        if dep == name:
+            error("Plugin " + name + " cannot depend on itself (circular)")
+
+func plugin_reload(name: string):
+    old_state = plugin_state.get(name)
+    mod = LibrarySystem.reload(name)
+    if mod.has("resume"):
+        plugin_state[name] = mod.resume(old_state)
+    else:
+        plugin_state[name] = mod.init()
+
+func plugin_describe(name: string):
+    if plugin_meta.contains(name):
+        meta = plugin_meta[name]
+        print("[Plugin {name}] v{meta.version} — {meta.description}")
+    else:
+        print("[Plugin {name}]: Metadata not found")
+
+func plugin_rollback(name: string, to_version: string):
+    mod = LibrarySystem.rollback(name, to_version)
+    plugin_version[name] = to_version
+    plugin_state[name] = mod.init()
