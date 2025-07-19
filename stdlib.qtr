@@ -280,3 +280,304 @@ call demo_usage()
 call run_standard_tests()
 
 end
+
+star
+
+# === QuarterLang Advanced StdLib with Async, Plugins, Symbolics, CLI ===
+
+import "io.qtr"
+import "math.qtr"
+import "filesystem.qtr"
+import "string.qtr"
+import "async.qtr"
+
+# -- Version & Environment --
+
+var stdlib_version: string = "QuarterLang StdLib v2.0.0"
+var runtime_env: string = get_env("QUARTERLANG_RUNTIME") or "local"
+var verbose: bool = true
+
+func logv(msg: string) {
+    when verbose:
+        call print("[Verbose] {msg}")
+}
+
+call print("QuarterLang Standard Library Loader")
+call print("Version: {stdlib_version}")
+call print("Environment: {runtime_env}")
+
+# --- Async Event Loop Core ---
+
+type Task = {
+    id: int,
+    delay: int,          # milliseconds until execution
+    func: fn,
+    args: list,
+    repeat: bool,
+    interval: int        # if repeat, ms interval
+}
+
+var next_task_id: int = 1
+var task_queue: list[Task] = []
+var is_running: bool = false
+
+func schedule_task(f: fn, args: list = [], delay: int = 0, repeat: bool = false, interval: int = 0) -> int {
+    val task = {
+        id: next_task_id,
+        delay: delay,
+        func: f,
+        args: args,
+        repeat: repeat,
+        interval: interval
+    }
+    next_task_id = next_task_id + 1
+    task_queue.push(task)
+    logv("Scheduled task id={task.id} delay={delay} repeat={repeat}")
+    return task.id
+}
+
+func cancel_task(task_id: int) {
+    task_queue = task_queue.filter(t => t.id != task_id)
+    logv("Cancelled task id={task_id}")
+}
+
+func async_loop() {
+    is_running = true
+    while is_running {
+        var to_run: list[Task] = []
+        # Reduce delay timers, collect ready tasks
+        for t in task_queue {
+            t.delay = max(0, t.delay - 10)
+            if t.delay == 0 {
+                to_run.push(t)
+            }
+        }
+        # Run ready tasks
+        for t in to_run {
+            try {
+                call t.func(*t.args)
+            } catch e {
+                call print("[Async Task Error] Task {t.id}: {e}")
+            }
+            # Reschedule or remove
+            if t.repeat {
+                t.delay = t.interval
+            } else {
+                cancel_task(t.id)
+            }
+        }
+        # Sleep 10 ms to simulate time slice
+        call sleep(10)
+    }
+}
+
+func stop_async_loop() {
+    is_running = false
+}
+
+# --- Persistent Plugin System ---
+
+var plugins: map[string, map] = {}
+var plugin_data_path: string = "plugins_data.qdat"
+
+func save_plugins() {
+    val serialized: string = serialize(plugins)
+    call write_file(plugin_data_path, serialized)
+    logv("Plugins saved to {plugin_data_path}")
+}
+
+func load_plugins() {
+    when file_exists(plugin_data_path) {
+        val content: string = read_file(plugin_data_path)
+        plugins = deserialize(content)
+        logv("Plugins loaded from {plugin_data_path}")
+    } else {
+        plugins = {}
+        logv("No plugin data found. Initialized empty plugin registry.")
+    }
+}
+
+func register_plugin(name: string, metadata: map) {
+    plugins[name] = metadata
+    logv("Plugin '{name}' registered.")
+    save_plugins()
+}
+
+func list_plugins() {
+    call print("Registered plugins:")
+    for key in plugins {
+        call print(" - {key}: {plugins[key]}")
+    }
+}
+
+# --- Symbolic Algebra Utilities ---
+
+# Symbolic Expression Type
+type SymExpr =
+    | Number(value: float)
+    | Variable(name: string)
+    | Add(left: SymExpr, right: SymExpr)
+    | Sub(left: SymExpr, right: SymExpr)
+    | Mul(left: SymExpr, right: SymExpr)
+    | Div(left: SymExpr, right: SymExpr)
+    | Pow(base: SymExpr, exponent: SymExpr)
+
+# Stringify symbolic expressions recursively
+func sym_to_string(expr: SymExpr) -> string {
+    match expr {
+        Number(v): return str(v)
+        Variable(n): return n
+        Add(l, r): return "({sym_to_string(l)} + {sym_to_string(r)})"
+        Sub(l, r): return "({sym_to_string(l)} - {sym_to_string(r)})"
+        Mul(l, r): return "({sym_to_string(l)} * {sym_to_string(r)})"
+        Div(l, r): return "({sym_to_string(l)} / {sym_to_string(r)})"
+        Pow(b, e): return "({sym_to_string(b)} ^ {sym_to_string(e)})"
+    }
+}
+
+# Evaluate symbolic expressions given a variable mapping
+func sym_eval(expr: SymExpr, vars: map[string, float]) -> float {
+    match expr {
+        Number(v): return v
+        Variable(n): return when vars.contains(n): vars[n] else: 0.0
+        Add(l, r): return sym_eval(l, vars) + sym_eval(r, vars)
+        Sub(l, r): return sym_eval(l, vars) - sym_eval(r, vars)
+        Mul(l, r): return sym_eval(l, vars) * sym_eval(r, vars)
+        Div(l, r): 
+            val denom = sym_eval(r, vars)
+            when denom == 0.0:
+                call print("Error: Division by zero in symbolic evaluation")
+                return 0.0
+            else:
+                return sym_eval(l, vars) / denom
+        Pow(b, e): return pow(sym_eval(b, vars), int(sym_eval(e, vars)))
+    }
+}
+
+# Simple parser for expressions (very limited, demo only)
+func parse_symbolic(expr_str: string) -> SymExpr {
+    # For demo, parse single variable or number only
+    when is_number(expr_str):
+        return Number(float(expr_str))
+    else:
+        return Variable(expr_str)
+}
+
+# --- Interactive CLI REPL ---
+
+var cli_history: list[string] = []
+
+func repl() {
+    call print("QuarterLang Interactive CLI - Type 'exit' to quit")
+    schedule_task(async_loop)  # Start async loop in background
+
+    while true {
+        call print("\n> ", end="")
+        val input_line = read_line()
+        cli_history.push(input_line)
+
+        when input_line == "exit":
+            call print("Exiting CLI...")
+            stop_async_loop()
+            break
+        elif input_line == "plugins":
+            list_plugins()
+        elif input_line == "help":
+            call print("Commands: exit, plugins, help, load <plugin>, save, run_async <ms> <message>")
+        elif input_line.starts_with("load "):
+            val plg = input_line.split(" ")[1]
+            load_plugin(plg)
+        elif input_line == "save":
+            save_plugins()
+        elif input_line.starts_with("run_async "):
+            val parts = input_line.split(" ")
+            if len(parts) >= 3 {
+                val delay = int(parts[1])
+                val msg = parts.slice(2).join(" ")
+                schedule_task(fn() { call print("[Async Task]: {msg}") }, [], delay)
+            } else {
+                call print("Usage: run_async <ms> <message>")
+            }
+        else:
+            # Evaluate input as symbolic expression and print
+            val expr = parse_symbolic(input_line)
+            call print("Parsed: {sym_to_string(expr)}")
+            val val_eval = sym_eval(expr, {})
+            call print("Evaluated: {val_eval}")
+        }
+    }
+}
+
+# Plugin load stub (demo)
+func load_plugin(name: string) {
+    call print("Loading plugin '{name}'...")
+    # Simulate loading plugin metadata
+    register_plugin(name, {"loaded": true, "description": "Demo plugin"})
+}
+
+# --- File IO Helpers (using filesystem.qtr) ---
+
+func write_file(path: string, content: string) {
+    try {
+        # Real file write implementation
+        filesystem.write_text(path, content)
+    } catch e {
+        call print("Error writing file '{path}': {e}")
+    }
+}
+
+func read_file(path: string) -> string {
+    try {
+        return filesystem.read_text(path)
+    } catch e {
+        call print("Error reading file '{path}': {e}")
+        return ""
+    }
+}
+
+func file_exists(path: string) -> bool {
+    return filesystem.exists(path)
+}
+
+# --- Utility helpers ---
+
+func is_number(s: string) -> bool {
+    # Basic numeric check for demo
+    val num = try_parse_float(s)
+    return num != null
+}
+
+func try_parse_float(s: string) -> float? {
+    try {
+        return float(s)
+    } catch {
+        return null
+    }
+}
+
+# --- Sleep Helper (simulate blocking sleep for async loop) ---
+
+func sleep(ms: int) {
+    # In a real environment, hook to OS timer or event loop
+    # For demo: busy wait or yield control
+    var start_time = now()
+    while (now() - start_time) < ms {
+        # yield control
+    }
+}
+
+# --- Demo & Startup ---
+
+func main() {
+    call print("Starting QuarterLang Ultimate StdLib Demo...")
+    load_plugins()
+    call repl()
+    call print("CLI session ended. Saving plugins...")
+    save_plugins()
+    call print("Goodbye!")
+}
+
+main()
+
+end
+
