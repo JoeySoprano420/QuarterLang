@@ -11,3 +11,130 @@ module Time:
 end module
 
 end
+
+star
+
+module Time:
+
+  const DEFAULT_FORMAT = "%Y-%m-%d %H:%M:%S"
+  const ISO8601 = "%Y-%m-%dT%H:%M:%SZ"
+  const SHORT_DATE = "%d-%b-%Y"
+  const FULL_DATE = "%A, %d %B %Y"
+  const TIME_ONLY = "%H:%M:%S"
+  const UNIX_EPOCH = 0
+
+  # === Core API === #
+
+  func now() as primative:
+    return system.time()
+  end func
+
+  func epoch() as primative:
+    return UNIX_EPOCH
+  end func
+
+  func format(t as primative, fmt as primative) as primative:
+    return system.time_format(t, fmt)
+  end func
+
+  func now_formatted(fmt as primative) as primative:
+    return format(now(), fmt)
+  end func
+
+  func iso_timestamp() as primative:
+    return format(now(), ISO8601)
+  end func
+
+  func short_date() as primative:
+    return format(now(), SHORT_DATE)
+  end func
+
+  func full_date() as primative:
+    return format(now(), FULL_DATE)
+  end func
+
+  func time_only() as primative:
+    return format(now(), TIME_ONLY)
+  end func
+
+  # === Temporal Math === #
+
+  func add_seconds(t as primative, s as primative) as primative:
+    return t + s
+  end func
+
+  func subtract_seconds(t as primative, s as primative) as primative:
+    return t - s
+  end func
+
+  func seconds_between(a as primative, b as primative) as primative:
+    return b - a
+  end func
+
+  func has_elapsed_since(start as primative, seconds as primative) as bool:
+    return now() >= (start + seconds)
+  end func
+
+  # === Duration Utilities === #
+
+  func duration_hms(seconds as primative) as string:
+    var h = floor(seconds / 3600)
+    var m = floor((seconds % 3600) / 60)
+    var s = seconds % 60
+    return string(h) + "h " + string(m) + "m " + string(s) + "s"
+  end func
+
+  func days_between(a as primative, b as primative) as primative:
+    return floor(seconds_between(a, b) / 86400)
+  end func
+
+  func minutes_between(a as primative, b as primative) as primative:
+    return floor(seconds_between(a, b) / 60)
+  end func
+
+  func is_future(t as primative) as bool:
+    return t > now()
+  end func
+
+  func is_past(t as primative) as bool:
+    return t < now()
+  end func
+
+  # === Benchmarks === #
+
+  func benchmark(label as string, block as func) as void:
+    var start = now()
+    call block()
+    var end = now()
+    var elapsed = seconds_between(start, end)
+    print("[BENCHMARK][" + label + "] " + duration_hms(elapsed))
+  end func
+
+  # === Temporal Signals === #
+
+  func wait_for(seconds as primative) as void:
+    var target = now() + seconds
+    while now() < target:
+      pass
+    end while
+  end func
+
+  func wait_until(t as primative) as void:
+    while now() < t:
+      pass
+    end while
+  end func
+
+  # === Debug & Display === #
+
+  func debug_all_formats() as void:
+    print("ISO: " + iso_timestamp())
+    print("Short Date: " + short_date())
+    print("Full Date: " + full_date())
+    print("Time Only: " + time_only())
+    print("Default: " + now_formatted(DEFAULT_FORMAT))
+  end func
+
+end module
+
+end
