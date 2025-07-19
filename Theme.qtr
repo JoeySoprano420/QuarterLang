@@ -1,0 +1,21 @@
+global current_theme = "dark"
+
+func get_color(key: string): string:
+    if current_theme == "dark":
+        return dark_palette[key]
+    else:
+        return light_palette[key]
+    end
+end
+
+const dark_palette = {
+    "background": "#1e1e1e",
+    "highlight": "#00ffcc",
+    "text": "#e0e0e0"
+}
+
+const light_palette = {
+    "background": "#ffffff",
+    "highlight": "#0066cc",
+    "text": "#111111"
+}
