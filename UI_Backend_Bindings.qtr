@@ -1,0 +1,38 @@
+star
+import "plugin_dashboard.qtr"
+import "UIEngine.qtr"
+
+UIEngine.init(title: "QuarterLang Plugin Dashboard", width: 1024, height: 768)
+
+UIEngine.bind_keyboard([
+  "q" => => route("exit"),
+  "v" => => route("version"),
+  "a" => => route("ast"),
+  "h" => => route("highlight"),
+  "l" => => route("log"),
+  "i" => => route("inspect"),
+  "c" => => route("console"),
+  "r" => => route("reload"),
+  "u" => => route("update_all")
+])
+
+UIEngine.bind_mousewheel([
+  "up"   => => route("zoom_in"),
+  "down" => => route("zoom_out")
+])
+
+UIEngine.bind_mouse_drag([
+  "left"  => => route("pan_left"),
+  "right" => => route("pan_right"),
+  "up"    => => route("pan_up"),
+  "down"  => => route("pan_down")
+])
+
+UIEngine.bind_click_node(node => {
+  if node.state == "loaded":
+    PluginManager.unload(node.name)
+  else:
+    PluginManager.load(node.name)
+})
+
+UIEngine.run_event_loop()
