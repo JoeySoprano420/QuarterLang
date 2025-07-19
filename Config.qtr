@@ -13,3 +13,94 @@ func get_color(theme: string) as string:
     elif theme == "sunburst": return "#FFD700"
     else: return "#FFFFFF"
 end
+
+star
+import "PluginStoreFetcher.qtr"
+import "QuarterUI.qtr"
+import "DGDebugger.qtr"
+import "ErrorHandler.qtr"
+import "EventEmitter.qtr"
+
+var settings as Map = {}
+var defaults as Map = {}
+var observers as Map = {}
+
+func init_settings():
+    // Galactic default blueprint
+    defaults = {
+        "theme": "galactic",
+        "prompt_symbol": "⭑",
+        "zoom_level": 1.0,
+        "pan_x": 0,
+        "pan_y": 0,
+        "enable_plugins": true,
+        "font_family": "JetBrains Mono",
+        "font_size": 14,
+        "console_verbosity": "info"
+    }
+    for key in defaults:
+        settings[key] = defaults[key]
+
+func get(key: string) as primative:
+    return settings[key]
+
+func set(key: string, value: primative):
+    if key not in settings:
+        ErrorHandler.warn("Setting key '{key}' not recognized.")
+        return
+    settings[key] = value
+    if key in observers:
+        for cb in observers[key]:
+            cb(value)
+    log("Setting updated: {key} = {value}")
+
+func observe(key: string, callback: func):
+    if key not in observers:
+        observers[key] = []
+    observers[key].append(callback)
+
+func reset(key: string):
+    if key in defaults:
+        set(key, defaults[key])
+
+func get_color(theme: string) as string:
+    when theme == "galactic": return "#AA12FF"
+    elif theme == "sunburst": return "#FFD700"
+    elif theme == "terminal": return "#00FF66"
+    else: return "#FFFFFF"
+
+func load_from_file(path: string):
+    var raw = read_file(path)
+    var parsed = json_parse(raw)
+    for key in parsed:
+        set(key, parsed[key])
+    log("Settings loaded from {path}")
+
+func save_to_file(path: string):
+    var serialized = json_stringify(settings)
+    write_file(path, serialized)
+    log("Settings saved to {path}")
+end
+
+func apply_plugin_defaults():
+    var manifest = PluginStoreFetcher.fetch_manifest()
+    for plugin in manifest:
+        if plugin["defaults"]:
+            for key in plugin["defaults"]:
+                if key not in settings:
+                    settings[key] = plugin["defaults"][key]
+
+func attach_ui_panels():
+    QuarterUI.create_panel("Settings", [
+        QuarterUI.label("Theme:"),
+        QuarterUI.dropdown("theme", ["galactic", "sunburst", "terminal"], settings["theme"], func(val): set("theme", val)),
+        QuarterUI.label("Font Size:"),
+        QuarterUI.slider("font_size", 8, 32, settings["font_size"], func(val): set("font_size", val)),
+        QuarterUI.label("Zoom:"),
+        QuarterUI.slider("zoom_level", 0.5, 3.0, settings["zoom_level"], func(val): set("zoom_level", val))
+    ])
+
+func log(msg: string):
+    if settings["console_verbosity"] == "none": return
+    QuarterUI.console_log("⭑ {msg}")
+
