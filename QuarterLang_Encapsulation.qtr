@@ -5,3 +5,199 @@ module Encapsulation:
   end define
 end module
 end
+
+star
+
+# Encapsulation: Supreme module packaging, security, compression, and metadata engine
+
+module Encapsulation:
+
+  # ── Core Wrapper ────────────────────────────────────────────────
+  define wrap(module as Module, config as Map) as primative:
+    # Serialize module and generate core metadata
+    val src        as primative = module.to_string()
+    val lineage    as string    = generate_lineage(src)
+    val timestamp  as int       = now()
+    val dg_version as dg        = config.get("dg_version", generate_dg_id(src))
+    val header     as primative = build_header(lineage, timestamp, dg_version, config)
+    val footer     as primative = build_footer()
+    var payload    as primative = header + src + footer
+
+    # Optional compression
+    when config.get("compress", 0) == 1:
+      payload = compress_module(payload)
+    end when
+
+    # Optional encryption
+    when config.get("encrypt", 0) == 1:
+      payload = encrypt_module(payload, config.get("enc_key", ""))
+    end when
+
+    # Optional signature
+    when config.get("sign", 0) == 1:
+      val sig as primative = sign_module(payload, config.get("sign_key", ""))
+      payload = payload + "\n<signature>" + sig + "</signature>"
+    end when
+
+    return payload
+  end define
+
+
+  # ── Core Unwrapper ──────────────────────────────────────────────
+  define unwrap(capsule as primative, config as Map) as Module:
+    var content as primative = capsule
+
+    # Verify signature if present
+    when config.get("verify", 0) == 1:
+      when not verify_signature(content, config.get("pub_key", "")):
+        ErrorHandler.error(701, "Signature verification failed")
+      end when
+      content = remove_signature(content)
+    end when
+
+    # Decrypt if needed
+    when config.get("decrypt", 0) == 1:
+      content = decrypt_module(content, config.get("dec_key", ""))
+    end when
+
+    # Decompress if needed
+    when config.get("decompress", 0) == 1:
+      content = decompress_module(content)
+    end when
+
+    # Parse into Module
+    val mod as Module = Parser.parse(content)
+    return mod
+  end define
+
+
+  # ── Header/Footer Builders ──────────────────────────────────────
+  define build_header(lineage as string, ts as int, dgver as dg, cfg as Map) as primative:
+    val theme      as string = cfg.get("theme", "default")
+    val meta_str   as string = serialize_map(cfg)
+    val dg_str     as string = to_dg(dgver)
+    return "<module lineage='{lineage}' timestamp='{ts}' dg='{dg_str}' theme='{theme}' meta='{meta_str}'>\n"
+  end define
+
+  define build_footer() as primative:
+    return "\n</module>"
+  end define
+
+
+  # ── Compression Utilities ────────────────────────────────────────
+  define compress_module(data as primative) as primative:
+    try:
+      return compress(data)
+    catch err:
+      ErrorHandler.warn("Compression failed: {err.message}")
+      return data
+    end try
+  end define
+
+  define decompress_module(data as primative) as primative:
+    try:
+      return decompress(data)
+    catch err:
+      ErrorHandler.warn("Decompression failed: {err.message}")
+      return data
+    end try
+  end define
+
+
+  # ── Encryption & Signature ──────────────────────────────────────
+  define encrypt_module(data as primative, key as primative) as primative:
+    return __crypto_encrypt(data, key)
+  end define
+
+  define decrypt_module(data as primative, key as primative) as primative:
+    return __crypto_decrypt(data, key)
+  end define
+
+  define sign_module(data as primative, key as primative) as primative:
+    return __crypto_sign(data, key)
+  end define
+
+  define verify_signature(data as primative, pub_key as primative) as int:
+    return __crypto_verify(data, pub_key)
+  end define
+
+  define remove_signature(data as primative) as primative:
+    val parts as List<primative> = data.split("\n<signature>")
+    return parts[0]
+  end define
+
+
+  # ── Chunking & Streaming ────────────────────────────────────────
+  define chunk_capsule(capsule as primative, chunk_size as int) as List<primative>:
+    return capsule.match_chunks(chunk_size)
+  end define
+
+  define stream_wrap(module as Module, cfg as Map):
+    val cap as primative = wrap(module, cfg)
+    for segment in chunk_capsule(cap, cfg.get("stream_chunk", 1024)):
+      IO.print_dgvec([generate_dg_id(segment)])
+      IO.println(segment)
+    end for
+  end define
+
+
+  # ── Caching & Registry ──────────────────────────────────────────
+  define cache_module(name as string, module as Module, cfg as Map):
+    val key as string = "encap:" + name + ":" + now()
+    Cache.set(key, wrap(module, cfg))
+  end define
+
+  define load_cached(name as string) as primative:
+    val patterns as List<string> = Cache.keys().filter(fn k: k.starts_with("encap:" + name))
+    return Cache.get(patterns.last())
+  end define
+
+
+  # ── Metadata & Lineage ──────────────────────────────────────────
+  define generate_lineage(src as primative) as string:
+    return hash(src + "::" + now())
+  end define
+
+  define generate_dg_id(src as primative) as dg:
+    return from_int(hash(src + "::dg") % 1728)    # base-12 cap
+  end define
+
+  define serialize_map(meta as Map) as string:
+    var out as string = ""
+    for key in meta.keys():
+      out = out + key + "=" + meta[key] + ";"
+    end for
+    return out
+  end define
+
+  define extract_metadata(capsule as primative) as Map:
+    val header as primative = capsule.match_regex("<module ([^>]+)>")[0]
+    return parse_map(header)
+  end define
+
+
+  # ── Diagnostics & Preview ────────────────────────────────────────
+  define preview_capsule(capsule as primative, lines as int = 10):
+    val rows as List<primative> = capsule.split("\n")
+    call println("📦 Capsule Preview:")
+    for row in rows[0..min(lines-1, rows.size-1)]:
+      call println(row)
+    end for
+    when rows.size > lines:
+      call println("... (" + (rows.size - lines) + " more lines)")
+    end when
+  end define
+
+  define validate(capsule as primative) as int:
+    try:
+      val mod = unwrap(capsule, {"verify":1,"decrypt":1,"decompress":1})
+      return 1
+    catch err:
+      ErrorHandler.error(702, "Capsule validation failed: {err.message}")
+      return 0
+    end try
+  end define
+
+end module
+
+end
