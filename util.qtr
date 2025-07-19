@@ -1,14 +1,127 @@
-# ==== Utilities & Misc ====
-
 star
+
+# Identity & Reflection
 
 func identity(x: int) {
     call print(x)
 }
 
-func compare(x: int, y: int) {
+func echo(x: int) {
     call print(x)
-    call print(y)
+    return x
+}
+
+func mirror(x: int) {
+    call print("Reflection: {x}")
+}
+
+func trace(x: int, label: string) {
+    call print("{label}: {x}")
+}
+
+
+# Equality & Comparison
+
+func equal(x: int, y: int) {
+    val result: int = when x == y: 1 else: 0
+    call print(result)
+}
+
+func not_equal(x: int, y: int) {
+    val result: int = when x != y: 1 else: 0
+    call print(result)
+}
+
+func greater_than(x: int, y: int) {
+    val result: int = when x > y: 1 else: 0
+    call print(result)
+}
+
+func less_than(x: int, y: int) {
+    val result: int = when x < y: 1 else: 0
+    call print(result)
+}
+
+func compare_verbose(x: int, y: int) {
+    when x > y:
+        call print("{x} is greater than {y}")
+    elif x < y:
+        call print("{x} is less than {y}")
+    else:
+        call print("{x} is equal to {y}")
+}
+
+
+# Logical Utilities
+
+func and(x: int, y: int) {
+    val result: int = when x == 1 and y == 1: 1 else: 0
+    call print(result)
+}
+
+func or(x: int, y: int) {
+    val result: int = when x == 1 or y == 1: 1 else: 0
+    call print(result)
+}
+
+func not(x: int) {
+    val result: int = when x == 1: 0 else: 1
+    call print(result)
+}
+
+
+# Swapping & Rearranging
+
+func swap(x: int, y: int) {
+    call print("Before: x={x}, y={y}")
+    val temp: int = x
+    val x2: int = y
+    val y2: int = temp
+    call print("After: x={x2}, y={y2}")
+}
+
+
+# Debugging Tools
+
+func debug(x: int, label: string) {
+    call print("[DEBUG {label}]: {x}")
+}
+
+func profile(name: string, x: int) {
+    val timestamp: int = now()
+    call print("Profile {name} @ {timestamp}: {x}")
+}
+
+
+# DG Support (Symbolic Base-12)
+
+func echo_dg(d: dg) {
+    call print("Dodeca: {d}")
+}
+
+func identity_dg(d: dg) {
+    return d
+}
+
+func trace_dg(d: dg, label: string) {
+    call print("{label}: {to_dg(from_dg(d))}")
+}
+
+
+# Meta Utilities
+
+func noop() {
+    # Intentionally does nothing
+}
+
+func assert(condition: int, message: string) {
+    when condition != 1:
+        call print("[ASSERT FAILED]: {message}")
+        stop
+}
+
+func ping() {
+    call print("pong")
 }
 
 end
