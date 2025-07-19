@@ -909,3 +909,18 @@ run_repl()
 
 end
 
+star
+module Utils:
+  func get_env(key as primative) as primative:
+    return system.getenv(key)
+  end func
+
+  func get_uptime() as primative:
+    val seconds = system.uptime()
+    val hours = seconds / 3600
+    val minutes = (seconds % 3600) / 60
+    return "{hours}h {minutes}m"
+  end func
+end module
+end
+
