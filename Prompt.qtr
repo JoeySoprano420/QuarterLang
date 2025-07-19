@@ -6,3 +6,59 @@ func display():
     val color = Config.get_color(theme)
     call print("{color} {glyph} QuarterLang > ")
 end
+
+star
+import "Config.qtr"
+import "Terminal.qtr"
+import "Profiler.qtr"
+import "Theme.qtr"
+import "Glyphs.qtr"
+
+module PromptSystem:
+
+  const DEFAULT_THEME = "noir-night"
+  const DEFAULT_SYMBOL = ">>"
+  const DEFAULT_COLOR = "#AAAAAA"
+
+  func display():
+    Profiler.start("prompt.render")
+
+    # Step 1: Load theme configuration with fallbacks
+    var theme = Config.get("theme")
+    if theme == null or not Theme.is_supported(theme):
+      theme = DEFAULT_THEME
+      Terminal.warn("Theme not found, defaulting to " + DEFAULT_THEME)
+
+    # Step 2: Fetch glyph symbol for prompt
+    var glyph = Config.get("prompt_symbol")
+    if glyph == null or not Glyphs.is_valid(glyph):
+      glyph = DEFAULT_SYMBOL
+      Terminal.warn("Invalid or missing glyph, using default: " + DEFAULT_SYMBOL)
+
+    # Step 3: Resolve terminal color scheme
+    var color = Config.get_color(theme)
+    if color == null:
+      color = DEFAULT_COLOR
+      Terminal.warn("No color found for theme " + theme + ", using fallback.")
+
+    # Step 4: Contextual prompt logic
+    var context = Config.get("environment_context")
+    var prefix = ""
+    if context == "embedded":
+      prefix = "[Embedded] "
+    elif context == "dev":
+      prefix = "[DevMode] "
+    elif context == null:
+      prefix = ""
+
+    # Step 5: Final Render
+    val prompt_string = color + " " + glyph + " " + prefix + "QuarterLang > "
+    call Terminal.set_color(color)
+    call print(prompt_string)
+
+    Profiler.end("prompt.render")
+  end func
+
+end module
+end
+
