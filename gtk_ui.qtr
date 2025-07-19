@@ -21,3 +21,13 @@ func launch(config: Map):
 
     GTKBindings.run_loop()
 end
+
+star
+func init():
+    GTK.init()
+    GTK.create_window("QuarterCapsule [GTK]", 1280, 720)
+    update_theme(settings["theme"])
+    GTK.bind_events()
+
+func update_theme(theme: string):
+    GTK.set_theme_color(get_color(theme))
