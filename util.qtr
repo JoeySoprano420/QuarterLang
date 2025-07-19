@@ -187,3 +187,10 @@ func run_repl() {
     }
 }
 
+func log_symbolic(level: string, message: string, phase: string, dg: dg):
+    val ts = now()
+    val dg_str = to_dg(dg)
+    val tag = "{level.upper()}:{phase}"
+    call print("⚙️ {tag} @ {ts} [DG:{dg_str}] ⇒ {message}")
+end
+
