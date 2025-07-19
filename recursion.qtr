@@ -9,3 +9,2377 @@ func factorial(x: int) {
 }
 
 end
+
+star
+
+# ==== Recursion & Advanced Math Library ====
+
+# --- Basic Recursion & Tail Call Optimization ---
+
+# Factorial with tail recursion optimization
+func factorial_tail(x: int, acc: int = 1) {
+    when x <= 1:
+        return acc
+    else:
+        return factorial_tail(x - 1, x * acc)
+}
+
+func factorial(x: int) {
+    val result: int = factorial_tail(x)
+    call print("Factorial({x}) = {result}")
+    return result
+}
+
+# Fibonacci with naive recursion (exponential time)
+func fib_naive(n: int) {
+    when n <= 1: return n
+    return fib_naive(n - 1) + fib_naive(n - 2)
+}
+
+# Fibonacci with memoization for speed
+var fib_cache: map[int, int] = {}
+
+func fib_memo(n: int) {
+    when fib_cache.contains(n):
+        return fib_cache[n]
+    when n <= 1:
+        fib_cache[n] = n
+        return n
+    val result: int = fib_memo(n - 1) + fib_memo(n - 2)
+    fib_cache[n] = result
+    return result
+}
+
+func fib(n: int, method: string = "memo") {
+    val result: int = when method:
+        "naive": fib_naive(n)
+        "memo": fib_memo(n)
+        else: fib_memo(n)
+    call print("Fib({n}) [{method}] = {result}")
+    return result
+}
+
+# --- Recursive Numeric Series & Sums ---
+
+# Sum of first n natural numbers (recursive)
+func sum_natural(n: int) {
+    when n <= 0: return 0
+    return n + sum_natural(n - 1)
+}
+
+# Geometric series sum (recursive)
+func geometric_sum(r: float, n: int) {
+    when n == 0: return 1.0
+    return r * geometric_sum(r, n - 1) + 1.0
+}
+
+# Harmonic series (recursive)
+func harmonic(n: int) {
+    when n <= 1: return 1.0
+    return 1.0 / float(n) + harmonic(n - 1)
+}
+
+# --- Combinatorics & Permutations ---
+
+# n choose k (binomial coefficient) with memoization
+var nck_cache: map[string, int] = {}
+
+func n_choose_k(n: int, k: int) {
+    val key = "{n},{k}"
+    when nck_cache.contains(key):
+        return nck_cache[key]
+    when k == 0 or k == n:
+        nck_cache[key] = 1
+        return 1
+    val result = n_choose_k(n - 1, k - 1) + n_choose_k(n - 1, k)
+    nck_cache[key] = result
+    return result
+}
+
+# Permutations nPk = n!/(n-k)!
+func permutations(n: int, k: int) {
+    when k > n: return 0
+    return factorial_tail(n) / factorial_tail(n - k)
+}
+
+# --- Recursive Fractals & Geometry ---
+
+# Koch snowflake length after n iterations
+func koch_length(base_length: float, n: int) {
+    when n == 0: return base_length
+    return 4.0/3.0 * koch_length(base_length, n - 1)
+}
+
+# Sierpinski triangle area after n iterations (normalized to 1)
+func sierpinski_area(n: int) {
+    when n == 0: return 1.0
+    return 3.0/4.0 * sierpinski_area(n - 1)
+}
+
+# --- Numeric Methods with Recursion ---
+
+# Recursive binary search on sorted list
+func binary_search(arr: list[int], target: int, low: int = 0, high: int = -1) {
+    when high == -1: high = len(arr) - 1
+    when low > high: return -1  # Not found
+    val mid = (low + high) / 2
+    when arr[mid] == target:
+        return mid
+    when arr[mid] > target:
+        return binary_search(arr, target, low, mid - 1)
+    else:
+        return binary_search(arr, target, mid + 1, high)
+}
+
+# Newton-Raphson root finding (recursive)
+func newton_raphson(f: fn, df: fn, guess: float, tol: float = 1e-7, max_iter: int = 100, iter: int = 0) {
+    when iter > max_iter:
+        call print("Newton-Raphson: Max iterations reached")
+        return guess
+    val next_guess = guess - f(guess) / df(guess)
+    when abs(next_guess - guess) < tol:
+        return next_guess
+    return newton_raphson(f, df, next_guess, tol, max_iter, iter + 1)
+}
+
+# --- Advanced Recursion Utilities ---
+
+# Generic memoization decorator pattern
+func memoize(f: fn) {
+    var cache: map = {}
+    return fn(x) {
+        when cache.contains(x): return cache[x]
+        val result = f(x)
+        cache[x] = result
+        return result
+    }
+}
+
+# Example: memoized factorial using decorator
+func factorial_memoized(x: int) {
+    val fact_impl = memoize(fn(n: int) {
+        when n <= 1: return 1
+        else: return n * fact_impl(n - 1)
+    })
+    return fact_impl(x)
+}
+
+# --- Symbolic Math Integration ---
+
+# Symbolic factorial expression printer (for symbolic library)
+func symbolic_factorial(n: string) {
+    return "{n}!"
+}
+
+# --- Misc Utilities ---
+
+# Greatest Common Divisor (Euclidean Algorithm) recursive
+func gcd(a: int, b: int) {
+    when b == 0: return a
+    return gcd(b, a % b)
+}
+
+# Least Common Multiple
+func lcm(a: int, b: int) {
+    return a * b / gcd(a, b)
+}
+
+# Power function (recursive)
+func pow(base: int, exponent: int) {
+    when exponent == 0: return 1
+    when exponent < 0: return 1 / pow(base, -exponent)
+    return base * pow(base, exponent - 1)
+}
+
+# --- Extensive Unit Tests ---
+
+func test_factorial() {
+    assert factorial(0) == 1
+    assert factorial(1) == 1
+    assert factorial(5) == 120
+    assert factorial(10) == 3628800
+    call print("factorial tests passed")
+}
+
+func test_fibonacci() {
+    assert fib(0) == 0
+    assert fib(1) == 1
+    assert fib(10) == 55
+    call print("fibonacci tests passed")
+}
+
+func test_n_choose_k() {
+    assert n_choose_k(5, 2) == 10
+    assert n_choose_k(10, 0) == 1
+    assert n_choose_k(10, 10) == 1
+    call print("n_choose_k tests passed")
+}
+
+func test_gcd_lcm() {
+    assert gcd(48, 18) == 6
+    assert lcm(4, 6) == 12
+    call print("gcd and lcm tests passed")
+}
+
+func run_all_tests() {
+    test_factorial()
+    test_fibonacci()
+    test_n_choose_k()
+    test_gcd_lcm()
+    call print("All recursion and math tests passed!")
+}
+
+# --- Demo Execution ---
+
+func demo() {
+    call print("=== Recursion & Advanced Math Demo ===")
+    call factorial(6)
+    call fib(15)
+    call call print("Sum of first 10 natural numbers: {sum_natural(10)}")
+    call call print("Geometric series sum (r=0.5, n=4): {geometric_sum(0.5, 4)}")
+    call call print("Harmonic sum of 5 terms: {harmonic(5)}")
+    call call print("Binomial coefficient 5 choose 3: {n_choose_k(5, 3)}")
+    call call print("Permutations 5P3: {permutations(5,3)}")
+    call call print("Koch snowflake length after 3 iterations: {koch_length(1.0, 3)}")
+    call call print("Sierpinski triangle area after 3 iterations: {sierpinski_area(3)}")
+    call call print("GCD(48, 18): {gcd(48, 18)}")
+    call call print("LCM(4, 6): {lcm(4, 6)}")
+    call call print("Newton-Raphson sqrt(2): approx {newton_raphson(fn(x) { return x*x - 2 }, fn(x) { return 2*x }, 1.0)}")
+    call run_all_tests()
+    call print("=== End Demo ===")
+}
+
+demo()
+
+end
+
+star
+
+# ==== Mega Recursion & Math Expansion ====
+
+# -------------------------
+# Recursive Matrix Operations
+# -------------------------
+
+# Matrix represented as list of lists [[int]]
+
+# Matrix addition (recursive row & element-wise)
+func matrix_add(A: list[list[int]], B: list[list[int]], row: int = 0) {
+    when row >= len(A):
+        return []
+    val new_row = matrix_row_add(A[row], B[row], 0)
+    return [new_row] + matrix_add(A, B, row + 1)
+}
+
+func matrix_row_add(rowA: list[int], rowB: list[int], col: int = 0) {
+    when col >= len(rowA):
+        return []
+    val sum = rowA[col] + rowB[col]
+    return [sum] + matrix_row_add(rowA, rowB, col + 1)
+}
+
+# Matrix multiplication (recursive)
+func matrix_multiply(A: list[list[int]], B: list[list[int]], row: int = 0) {
+    when row >= len(A):
+        return []
+    val new_row = matrix_multiply_row(A[row], B, 0)
+    return [new_row] + matrix_multiply(A, B, row + 1)
+}
+
+func matrix_multiply_row(rowA: list[int], B: list[list[int]], col: int = 0) {
+    when col >= len(B[0]):
+        return []
+    val col_vector = matrix_column(B, col, 0)
+    val cell = dot_product(rowA, col_vector, 0)
+    return [cell] + matrix_multiply_row(rowA, B, col + 1)
+}
+
+func matrix_column(M: list[list[int]], col: int, row: int) {
+    when row >= len(M):
+        return []
+    return [M[row][col]] + matrix_column(M, col, row + 1)
+}
+
+func dot_product(v1: list[int], v2: list[int], idx: int) {
+    when idx >= len(v1):
+        return 0
+    return v1[idx] * v2[idx] + dot_product(v1, v2, idx + 1)
+}
+
+# Transpose matrix (recursive)
+func matrix_transpose(M: list[list[int]], row: int = 0) {
+    when row >= len(M[0]):
+        return []
+    val col = matrix_column(M, row, 0)
+    return [col] + matrix_transpose(M, row + 1)
+}
+
+# -------------------------
+# Symbolic Differentiation Engine
+# -------------------------
+
+# Expression Types
+# type Expr = Num(value: float) | Var(name: string) | Add(left: Expr, right: Expr) | Mul(left: Expr, right: Expr) | Pow(base: Expr, exp: Expr)
+
+func differentiate(expr) {
+    # Pattern match expression type
+    when expr.type == "Num":
+        return Num(0)
+    when expr.type == "Var":
+        return Num(1)
+    when expr.type == "Add":
+        return Add(differentiate(expr.left), differentiate(expr.right))
+    when expr.type == "Mul":
+        # Product rule: f'g + fg'
+        return Add(
+            Mul(differentiate(expr.left), expr.right),
+            Mul(expr.left, differentiate(expr.right))
+        )
+    when expr.type == "Pow":
+        # Power rule assuming exponent is constant
+        when expr.exp.type == "Num":
+            val n = expr.exp.value
+            return Mul(
+                Mul(Num(n), Pow(expr.base, Num(n - 1))),
+                differentiate(expr.base)
+            )
+        else:
+            call print("Power rule with variable exponent not implemented")
+            return null
+    else:
+        call print("Unknown expression type: {expr.type}")
+        return null
+}
+
+# Expression printing (infix)
+func expr_to_string(expr) {
+    when expr.type == "Num": return "{expr.value}"
+    when expr.type == "Var": return "{expr.name}"
+    when expr.type == "Add":
+        return "({expr_to_string(expr.left)} + {expr_to_string(expr.right)})"
+    when expr.type == "Mul":
+        return "({expr_to_string(expr.left)} * {expr_to_string(expr.right)})"
+    when expr.type == "Pow":
+        return "({expr_to_string(expr.base)} ^ {expr_to_string(expr.exp)})"
+    else:
+        return "?"
+}
+
+# -------------------------
+# Recursive Parsing & Evaluation of Math Expressions
+# -------------------------
+
+# Recursive descent parser (simple arithmetic + parentheses)
+
+var pos: int = 0
+var input_str: string = ""
+
+func parse_expression() {
+    val node = parse_term()
+    while peek() == "+" or peek() == "-" {
+        val op = next_char()
+        val right = parse_term()
+        if op == "+":
+            node = Add(node, right)
+        else:
+            node = Add(node, Mul(Num(-1), right))
+    }
+    return node
+}
+
+func parse_term() {
+    val node = parse_factor()
+    while peek() == "*" or peek() == "/" {
+        val op = next_char()
+        val right = parse_factor()
+        if op == "*":
+            node = Mul(node, right)
+        else:
+            # Division as multiplication by reciprocal
+            node = Mul(node, Pow(right, Num(-1)))
+    }
+    return node
+}
+
+func parse_factor() {
+    when peek() == "(":
+        next_char()  # consume '('
+        val node = parse_expression()
+        next_char()  # consume ')'
+        return node
+    when is_digit(peek()):
+        return parse_number()
+    when is_letter(peek()):
+        val var_name = parse_variable()
+        return Var(var_name)
+    else:
+        call print("Unexpected character: {peek()}")
+        return null
+}
+
+func parse_number() {
+    var num_str = ""
+    while is_digit(peek()) or peek() == "." {
+        num_str += next_char()
+    }
+    return Num(float(num_str))
+}
+
+func parse_variable() {
+    var var_name = ""
+    while is_letter(peek()) {
+        var_name += next_char()
+    }
+    return var_name
+}
+
+func peek() {
+    when pos >= len(input_str):
+        return '\0'
+    return input_str[pos]
+}
+
+func next_char() {
+    val c = peek()
+    pos += 1
+    return c
+}
+
+func is_digit(c: char) {
+    return c >= '0' and c <= '9'
+}
+
+func is_letter(c: char) {
+    return (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z')
+}
+
+func evaluate(expr, env: map[string, float]) {
+    when expr.type == "Num":
+        return expr.value
+    when expr.type == "Var":
+        when env.contains(expr.name):
+            return env[expr.name]
+        else:
+            call print("Variable {expr.name} not found in environment")
+            return 0
+    when expr.type == "Add":
+        return evaluate(expr.left, env) + evaluate(expr.right, env)
+    when expr.type == "Mul":
+        return evaluate(expr.left, env) * evaluate(expr.right, env)
+    when expr.type == "Pow":
+        return pow(evaluate(expr.base, env), evaluate(expr.exp, env))
+    else:
+        call print("Unknown expr type: {expr.type}")
+        return 0
+}
+
+func parse_and_eval(input: string, env: map[string, float]) {
+    pos = 0
+    input_str = input
+    val ast = parse_expression()
+    val result = evaluate(ast, env)
+    call print("Expression: {input}")
+    call print("Result: {result}")
+    return result
+}
+
+# -------------------------
+# Recursive Graph Algorithms
+# -------------------------
+
+# Graph represented as adjacency list: map[node, list[node]]
+
+# Depth First Search (DFS)
+func dfs(graph: map[string, list[string]], start: string, visited: set[string]) {
+    when visited.contains(start): return []
+    visited.add(start)
+    val neighbors = graph[start]
+    val result = [start]
+    for neighbor in neighbors {
+        result += dfs(graph, neighbor, visited)
+    }
+    return result
+}
+
+# Breadth First Search (BFS) using recursion helper
+func bfs(graph: map[string, list[string]], queue: list[string], visited: set[string]) {
+    when len(queue) == 0:
+        return []
+    val current = queue[0]
+    val rest = queue[1:]
+    when visited.contains(current):
+        return bfs(graph, rest, visited)
+    visited.add(current)
+    val neighbors = graph[current]
+    val new_queue = rest + [n for n in neighbors if not visited.contains(n)]
+    return [current] + bfs(graph, new_queue, visited)
+}
+
+# Topological Sort (recursive DFS post-order)
+func topo_sort_util(graph: map[string, list[string]], node: string, visited: set[string], stack: list[string]) {
+    when visited.contains(node):
+        return
+    visited.add(node)
+    for neighbor in graph[node]:
+        topo_sort_util(graph, neighbor, visited, stack)
+    stack.append(node)
+}
+
+func topo_sort(graph: map[string, list[string]]) {
+    var visited: set[string] = set()
+    var stack: list[string] = []
+    for node in graph.keys():
+        topo_sort_util(graph, node, visited, stack)
+    return stack[::-1]  # reverse stack
+
+# -------------------------
+# Extremely Advanced Fractal Renderers & Recursive Visualizations
+# -------------------------
+
+# Mandelbrot Set Recursive Checker (simplified)
+
+func mandelbrot(c_real: float, c_imag: float, max_iter: int, iter: int = 0, z_real: float = 0.0, z_imag: float = 0.0) {
+    when iter >= max_iter:
+        return max_iter
+    val z_real_sq = z_real * z_real
+    val z_imag_sq = z_imag * z_imag
+    when z_real_sq + z_imag_sq > 4.0:
+        return iter
+    val new_real = z_real_sq - z_imag_sq + c_real
+    val new_imag = 2 * z_real * z_imag + c_imag
+    return mandelbrot(c_real, c_imag, max_iter, iter + 1, new_real, new_imag)
+}
+
+# Recursive Koch Curve Renderer (produces string representation)
+func koch_curve(level: int, start: string = "F") {
+    when level == 0:
+        return start
+    val prev = koch_curve(level - 1, start)
+    # Simplified production rule replacements:
+    # F -> F+F--F+F
+    val result = ""
+    for c in prev:
+        when c == "F":
+            result += "F+F--F+F"
+        else:
+            result += c
+    return result
+}
+
+# -------------------------
+# Demo & Test Run
+# -------------------------
+
+func mega_demo() {
+    call print("=== Mega Recursive Math & Graph Demo ===")
+    call print("Matrix Add:")
+    val A = [[1, 2], [3, 4]]
+    val B = [[5, 6], [7, 8]]
+    val C = matrix_add(A, B)
+    call print("{C}")
+
+    call print("Matrix Multiply:")
+    val D = matrix_multiply(A, B)
+    call print("{D}")
+
+    call print("Symbolic Differentiation:")
+    val expr = Mul(Var("x"), Pow(Var("x"), Num(2)))  # x * x^2
+    val deriv = differentiate(expr)
+    call print("Expr: {expr_to_string(expr)}")
+    call print("Derivative: {expr_to_string(deriv)}")
+
+    call print("Parse & Evaluate Expression:")
+    parse_and_eval("3 + 4 * (2 - 1)", {})
+
+    call print("Graph DFS & BFS:")
+    val graph = {
+        "A": ["B", "C"],
+        "B": ["D"],
+        "C": ["D"],
+        "D": []
+    }
+    val visited = set()
+    val dfs_result = dfs(graph, "A", visited)
+    call print("DFS: {dfs_result}")
+
+    val bfs_result = bfs(graph, ["A"], set())
+    call print("BFS: {bfs_result}")
+
+    call print("Topological Sort:")
+    val ts = topo_sort(graph)
+    call print("Topological order: {ts}")
+
+    call print("Mandelbrot iteration count at (0.3, 0.5): {mandelbrot(0.3, 0.5, 100)}")
+    call print("Koch Curve Level 2:")
+    val koch = koch_curve(2)
+    call print("{koch}")
+
+    call print("=== End Mega Demo ===")
+}
+
+mega_demo()
+
+end
+
+star
+
+# ===========================
+# Symbolic Expression System
+# ===========================
+
+# Expression Types
+
+type Expr =
+    Num(value: float) |
+    Var(name: string) |
+    Add(left: Expr, right: Expr) |
+    Mul(left: Expr, right: Expr) |
+    Pow(base: Expr, exp: Expr) |
+    Sub(left: Expr, right: Expr) |
+    Div(left: Expr, right: Expr) |
+    Neg(expr: Expr)
+
+# ---------------------------------
+# Symbolic Simplification Engine
+# ---------------------------------
+
+func simplify(expr: Expr) {
+    when expr.type == "Num":
+        return expr
+
+    when expr.type == "Var":
+        return expr
+
+    when expr.type == "Add":
+        val left = simplify(expr.left)
+        val right = simplify(expr.right)
+
+        # 0 + x = x
+        when is_zero(left): return right
+        when is_zero(right): return left
+
+        # Both numbers -> add
+        when is_num(left) and is_num(right):
+            return Num(left.value + right.value)
+
+        # Flatten nested adds: (a + (b + c)) => (a + b + c)
+        return Add(left, right)
+
+    when expr.type == "Mul":
+        val left = simplify(expr.left)
+        val right = simplify(expr.right)
+
+        # 0 * x = 0, 1 * x = x
+        when is_zero(left) or is_zero(right): return Num(0)
+        when is_one(left): return right
+        when is_one(right): return left
+
+        # Both numbers -> multiply
+        when is_num(left) and is_num(right):
+            return Num(left.value * right.value)
+
+        return Mul(left, right)
+
+    when expr.type == "Pow":
+        val base = simplify(expr.base)
+        val exp = simplify(expr.exp)
+
+        # x^0 = 1, x^1 = x
+        when is_zero(exp): return Num(1)
+        when is_one(exp): return base
+
+        # both numbers -> pow
+        when is_num(base) and is_num(exp):
+            return Num(pow(base.value, exp.value))
+
+        return Pow(base, exp)
+
+    when expr.type == "Sub":
+        val left = simplify(expr.left)
+        val right = simplify(expr.right)
+
+        # x - 0 = x
+        when is_zero(right): return left
+
+        # both numbers -> subtract
+        when is_num(left) and is_num(right):
+            return Num(left.value - right.value)
+
+        return Sub(left, right)
+
+    when expr.type == "Div":
+        val left = simplify(expr.left)
+        val right = simplify(expr.right)
+
+        # 0 / x = 0, x / 1 = x
+        when is_zero(left): return Num(0)
+        when is_one(right): return left
+
+        # both numbers -> divide
+        when is_num(left) and is_num(right):
+            return Num(left.value / right.value)
+
+        return Div(left, right)
+
+    when expr.type == "Neg":
+        val inner = simplify(expr.expr)
+
+        when is_num(inner):
+            return Num(-inner.value)
+
+        when inner.type == "Neg":
+            # Double negative
+            return inner.expr
+
+        return Neg(inner)
+
+    else:
+        call print("Unknown expr type for simplification: {expr.type}")
+        return expr
+}
+
+func is_zero(expr: Expr) {
+    return expr.type == "Num" and expr.value == 0
+}
+
+func is_one(expr: Expr) {
+    return expr.type == "Num" and expr.value == 1
+}
+
+func is_num(expr: Expr) {
+    return expr.type == "Num"
+}
+
+# --------------------------------
+# Expression Stringifier (Infix)
+# --------------------------------
+
+func expr_to_string(expr: Expr) {
+    when expr.type == "Num": return "{expr.value}"
+    when expr.type == "Var": return "{expr.name}"
+
+    when expr.type == "Add":
+        return "({expr_to_string(expr.left)} + {expr_to_string(expr.right)})"
+
+    when expr.type == "Sub":
+        return "({expr_to_string(expr.left)} - {expr_to_string(expr.right)})"
+
+    when expr.type == "Mul":
+        return "({expr_to_string(expr.left)} * {expr_to_string(expr.right)})"
+
+    when expr.type == "Div":
+        return "({expr_to_string(expr.left)} / {expr_to_string(expr.right)})"
+
+    when expr.type == "Pow":
+        return "({expr_to_string(expr.base)} ^ {expr_to_string(expr.exp)})"
+
+    when expr.type == "Neg":
+        return "-{expr_to_string(expr.expr)}"
+
+    else:
+        return "?"
+}
+
+# --------------------------------
+# Interactive CLI for Symbolic Calculus
+# --------------------------------
+
+func symbolic_cli() {
+    call print("Welcome to QuarterLang Symbolic Calculus CLI!")
+    call print("Commands: diff <expr>, simp <expr>, eval <expr> <var=value>, quit")
+
+    var env: map[string, float] = {}
+
+    loop true {
+        call print("\n> ", false)
+        val line = ask()
+
+        when line == "quit" or line == "exit":
+            call print("Goodbye!")
+            stop
+
+        val parts = line.split(" ")
+
+        when parts[0] {
+            "diff": 
+                val expr_str = join(parts[1:], " ")
+                val expr = parse_expr(expr_str)
+                val deriv = differentiate(expr)
+                val simp_deriv = simplify(deriv)
+                call print("d/dx {expr_to_string(expr)} = {expr_to_string(simp_deriv)}")
+
+            "simp":
+                val expr_str = join(parts[1:], " ")
+                val expr = parse_expr(expr_str)
+                val simp = simplify(expr)
+                call print("Simplified: {expr_to_string(simp)}")
+
+            "eval":
+                val expr_str = parts[1]
+                val assignments = parts[2:]
+                env = {}
+                for assign in assignments {
+                    val kv = assign.split("=")
+                    if len(kv) == 2 {
+                        env[kv[0]] = float(kv[1])
+                    }
+                }
+                val expr = parse_expr(expr_str)
+                val val_result = evaluate(expr, env)
+                call print("Evaluation result: {val_result}")
+
+            else:
+                call print("Unknown command")
+        }
+    }
+}
+
+# --------------------------------
+# Recursive Neural Nets Framework (Simplified)
+# --------------------------------
+
+type Neuron =
+    Neuron(weights: list[float], bias: float)
+
+type Layer =
+    Layer(neurons: list[Neuron])
+
+type NeuralNet =
+    NeuralNet(layers: list[Layer])
+
+func activate(x: float) {
+    # Sigmoid
+    return 1 / (1 + exp(-x))
+}
+
+func neuron_forward(neuron: Neuron, inputs: list[float], idx: int = 0) {
+    when idx >= len(inputs):
+        return neuron.bias
+    return inputs[idx] * neuron.weights[idx] + neuron_forward(neuron, inputs, idx + 1)
+}
+
+func layer_forward(layer: Layer, inputs: list[float], idx: int = 0, outputs: list[float] = []) {
+    when idx >= len(layer.neurons):
+        return outputs
+    val neuron = layer.neurons[idx]
+    val val_raw = neuron_forward(neuron, inputs)
+    val val_activated = activate(val_raw)
+    outputs.append(val_activated)
+    return layer_forward(layer, inputs, idx + 1, outputs)
+}
+
+func net_forward(net: NeuralNet, inputs: list[float], layer_idx: int = 0) {
+    when layer_idx >= len(net.layers):
+        return inputs
+    val out = layer_forward(net.layers[layer_idx], inputs)
+    return net_forward(net, out, layer_idx + 1)
+}
+
+# --------------------------------
+# Visual Fractal Generator - Recursive Pixel Plotting (Text Output)
+# --------------------------------
+
+func fractal_draw(x: int, y: int, size: int, level: int) {
+    when level == 0:
+        call print("Plotting pixel at ({x},{y}) with size {size}")
+        return
+
+    val new_size = size / 3
+
+    # Recursive plotting of 8 surrounding squares (skip center)
+    for dx in [0, new_size, 2 * new_size] {
+        for dy in [0, new_size, 2 * new_size] {
+            when dx == new_size and dy == new_size:
+                continue
+            fractal_draw(x + dx, y + dy, new_size, level - 1)
+        }
+    }
+}
+
+func visual_fractal_demo() {
+    call print("Starting fractal draw at level 2...")
+    fractal_draw(0, 0, 81, 2)
+    call print("Fractal drawing complete.")
+}
+
+# --------------------------------
+# Parsing Expression Stub for CLI (Basic arithmetic and variables)
+# --------------------------------
+
+func parse_expr(input: string) {
+    # For brevity: re-use recursive descent parser logic
+    # In practice, this would be a full parser returning Expr trees
+    # Here just return Var("x") to keep example concise
+    return Var("x")
+}
+
+# --------------------------------
+# Differentiation Function (re-using previous)
+# --------------------------------
+
+func differentiate(expr: Expr) {
+    when expr.type == "Num":
+        return Num(0)
+    when expr.type == "Var":
+        return Num(1)
+    when expr.type == "Add":
+        return Add(differentiate(expr.left), differentiate(expr.right))
+    when expr.type == "Sub":
+        return Sub(differentiate(expr.left), differentiate(expr.right))
+    when expr.type == "Mul":
+        return Add(
+            Mul(differentiate(expr.left), expr.right),
+            Mul(expr.left, differentiate(expr.right))
+        )
+    when expr.type == "Div":
+        # Quotient rule: (f'g - fg')/g^2
+        return Div(
+            Sub(
+                Mul(differentiate(expr.left), expr.right),
+                Mul(expr.left, differentiate(expr.right))
+            ),
+            Pow(expr.right, Num(2))
+        )
+    when expr.type == "Pow":
+        when expr.exp.type == "Num":
+            val n = expr.exp.value
+            return Mul(
+                Mul(Num(n), Pow(expr.base, Num(n - 1))),
+                differentiate(expr.base)
+            )
+        else:
+            call print("Power rule with variable exponent not implemented")
+            return null
+    when expr.type == "Neg":
+        return Neg(differentiate(expr.expr))
+    else:
+        call print("Unknown expr type: {expr.type}")
+        return null
+}
+
+# --------------------------------
+# Evaluate Expression (re-use from before)
+# --------------------------------
+
+func evaluate(expr: Expr, env: map[string, float]) {
+    when expr.type == "Num":
+        return expr.value
+    when expr.type == "Var":
+        when env.contains(expr.name):
+            return env[expr.name]
+        else:
+            call print("Variable {expr.name} not found in environment")
+            return 0
+    when expr.type == "Add":
+        return evaluate(expr.left, env) + evaluate(expr.right, env)
+    when expr.type == "Sub":
+        return evaluate(expr.left, env) - evaluate(expr.right, env)
+    when expr.type == "Mul":
+        return evaluate(expr.left, env) * evaluate(expr.right, env)
+    when expr.type == "Div":
+        return evaluate(expr.left, env) / evaluate(expr.right, env)
+    when expr.type == "Pow":
+        return pow(evaluate(expr.base, env), evaluate(expr.exp, env))
+    when expr.type == "Neg":
+        return -evaluate(expr.expr, env)
+    else:
+        call print("Unknown expr type: {expr.type}")
+        return 0
+}
+
+# --------------------------------
+# Main entry: Run symbolic CLI demo + fractal + neural net forward demo
+# --------------------------------
+
+func main() {
+    call print("=== QuarterLang Ultimate Symbolic & Recursive Systems Demo ===")
+    call symbolic_cli()
+
+    call print("\n--- Fractal Visual Demo ---")
+    visual_fractal_demo()
+
+    call print("\n--- Neural Net Forward Demo ---")
+    # Create tiny example net: 2 inputs -> 2 neurons -> 1 output
+    val n1 = Neuron([0.5, -0.4], 0.1)
+    val n2 = Neuron([0.3, 0.8], -0.2)
+    val l1 = Layer([n1, n2])
+    val n3 = Neuron([1.0, -1.5], 0.0)
+    val l2 = Layer([n3])
+    val net = NeuralNet([l1, l2])
+    val inputs = [1.0, 0.5]
+    val outputs = net_forward(net, inputs)
+    call print("Neural Net output: {outputs}")
+
+    call print("\n=== Demo Complete ===")
+}
+
+main()
+
+end
+
+star
+
+# =============== Types ===============
+
+type Expr =
+    Num(value: float) |
+    Var(name: string) |
+    Add(left: Expr, right: Expr) |
+    Sub(left: Expr, right: Expr) |
+    Mul(left: Expr, right: Expr) |
+    Div(left: Expr, right: Expr) |
+    Pow(base: Expr, exp: Expr) |
+    Neg(expr: Expr)
+
+type Token =
+    NumToken(value: float) |
+    VarToken(name: string) |
+    PlusToken |
+    MinusToken |
+    MulToken |
+    DivToken |
+    PowToken |
+    LParenToken |
+    RParenToken |
+    EOFToken
+
+type Neuron =
+    Neuron(weights: list[float], bias: float, output: float, delta: float)
+
+type Layer =
+    Layer(neurons: list[Neuron])
+
+type NeuralNet =
+    NeuralNet(layers: list[Layer])
+
+# =============== Lexer ===============
+
+func lexer(input: string, pos: int = 0, tokens: list[Token] = []) {
+    if pos >= len(input):
+        tokens.append(EOFToken())
+        return tokens
+
+    val ch = input[pos]
+
+    when ch {
+        ' ', '\t', '\n': return lexer(input, pos + 1, tokens)
+        '+': tokens.append(PlusToken()); return lexer(input, pos + 1, tokens)
+        '-': tokens.append(MinusToken()); return lexer(input, pos + 1, tokens)
+        '*': tokens.append(MulToken()); return lexer(input, pos + 1, tokens)
+        '/': tokens.append(DivToken()); return lexer(input, pos + 1, tokens)
+        '^': tokens.append(PowToken()); return lexer(input, pos + 1, tokens)
+        '(': tokens.append(LParenToken()); return lexer(input, pos + 1, tokens)
+        ')': tokens.append(RParenToken()); return lexer(input, pos + 1, tokens)
+        else:
+            # Number or variable parsing
+            if is_digit(ch) or ch == '.' {
+                val (num_str, new_pos) = lex_number(input, pos, "")
+                tokens.append(NumToken(float(num_str)))
+                return lexer(input, new_pos, tokens)
+            } elif is_alpha(ch) {
+                val (var_str, new_pos) = lex_identifier(input, pos, "")
+                tokens.append(VarToken(var_str))
+                return lexer(input, new_pos, tokens)
+            } else {
+                call print("Unknown character '{ch}' at pos {pos}")
+                stop
+            }
+    }
+}
+
+func lex_number(input: string, pos: int, acc: string) {
+    if pos >= len(input) or not (is_digit(input[pos]) or input[pos] == '.'):
+        return (acc, pos)
+    return lex_number(input, pos + 1, acc + input[pos])
+}
+
+func lex_identifier(input: string, pos: int, acc: string) {
+    if pos >= len(input) or not is_alpha(input[pos]):
+        return (acc, pos)
+    return lex_identifier(input, pos + 1, acc + input[pos])
+}
+
+func is_digit(ch: string) {
+    return ch >= '0' and ch <= '9'
+}
+
+func is_alpha(ch: string) {
+    return (ch >= 'a' and ch <= 'z') or (ch >= 'A' and ch <= 'Z')
+}
+
+# =============== Parser ===============
+
+var current_token: Token
+var tokens_list: list[Token]
+var token_pos: int
+
+func advance() {
+    token_pos = token_pos + 1
+    if token_pos < len(tokens_list) {
+        current_token = tokens_list[token_pos]
+    } else {
+        current_token = EOFToken()
+    }
+}
+
+func eat(token_type: string) {
+    when current_token.type {
+        token_type: advance()
+        else:
+            call print("Syntax error: Expected {token_type} but got {current_token.type}")
+            stop
+    }
+}
+
+# Grammar:
+# expr -> term ((+ | -) term)*
+# term -> factor ((* | /) factor)*
+# factor -> base (^ factor)*
+# base -> NUMBER | VARIABLE | (expr) | -factor
+
+func parse(input: string) {
+    global tokens_list, token_pos, current_token
+    tokens_list = lexer(input)
+    token_pos = 0
+    current_token = tokens_list[token_pos]
+    return expr()
+}
+
+func expr() {
+    var node = term()
+    loop current_token.type == "PlusToken" or current_token.type == "MinusToken" {
+        val token = current_token
+        if token.type == "PlusToken" {
+            eat("PlusToken")
+            node = Add(node, term())
+        } else {
+            eat("MinusToken")
+            node = Sub(node, term())
+        }
+    }
+    return node
+}
+
+func term() {
+    var node = factor()
+    loop current_token.type == "MulToken" or current_token.type == "DivToken" {
+        val token = current_token
+        if token.type == "MulToken" {
+            eat("MulToken")
+            node = Mul(node, factor())
+        } else {
+            eat("DivToken")
+            node = Div(node, factor())
+        }
+    }
+    return node
+}
+
+func factor() {
+    var node = base()
+    loop current_token.type == "PowToken" {
+        eat("PowToken")
+        node = Pow(node, factor())
+    }
+    return node
+}
+
+func base() {
+    val token = current_token
+    when token.type {
+        "NumToken":
+            eat("NumToken")
+            return Num(token.value)
+        "VarToken":
+            eat("VarToken")
+            return Var(token.name)
+        "LParenToken":
+            eat("LParenToken")
+            val node = expr()
+            eat("RParenToken")
+            return node
+        "MinusToken":
+            eat("MinusToken")
+            return Neg(factor())
+        else:
+            call print("Syntax error: Unexpected token {token.type}")
+            stop
+    }
+}
+
+# =============== Symbolic Simplifier (from before, slightly refined) ===============
+
+func simplify(expr: Expr) {
+    when expr.type {
+        "Num":
+            return expr
+        "Var":
+            return expr
+        "Add":
+            val left = simplify(expr.left)
+            val right = simplify(expr.right)
+            when is_zero(left): return right
+            when is_zero(right): return left
+            when is_num(left) and is_num(right): return Num(left.value + right.value)
+            return Add(left, right)
+        "Sub":
+            val left = simplify(expr.left)
+            val right = simplify(expr.right)
+            when is_zero(right): return left
+            when is_num(left) and is_num(right): return Num(left.value - right.value)
+            return Sub(left, right)
+        "Mul":
+            val left = simplify(expr.left)
+            val right = simplify(expr.right)
+            when is_zero(left) or is_zero(right): return Num(0)
+            when is_one(left): return right
+            when is_one(right): return left
+            when is_num(left) and is_num(right): return Num(left.value * right.value)
+            return Mul(left, right)
+        "Div":
+            val left = simplify(expr.left)
+            val right = simplify(expr.right)
+            when is_zero(left): return Num(0)
+            when is_one(right): return left
+            when is_num(left) and is_num(right): return Num(left.value / right.value)
+            return Div(left, right)
+        "Pow":
+            val base = simplify(expr.base)
+            val exp = simplify(expr.exp)
+            when is_zero(exp): return Num(1)
+            when is_one(exp): return base
+            when is_num(base) and is_num(exp): return Num(pow(base.value, exp.value))
+            return Pow(base, exp)
+        "Neg":
+            val inner = simplify(expr.expr)
+            when is_num(inner): return Num(-inner.value)
+            when inner.type == "Neg": return inner.expr
+            return Neg(inner)
+        else:
+            call print("Unknown expression type in simplify: {expr.type}")
+            return expr
+    }
+}
+
+func is_zero(expr: Expr) {
+    return expr.type == "Num" and expr.value == 0
+}
+
+func is_one(expr: Expr) {
+    return expr.type == "Num" and expr.value == 1
+}
+
+func is_num(expr: Expr) {
+    return expr.type == "Num"
+}
+
+# =============== Differentiation ===============
+
+func differentiate(expr: Expr, var_name: string = "x") {
+    when expr.type {
+        "Num": return Num(0)
+        "Var":
+            if expr.name == var_name: return Num(1)
+            else: return Num(0)
+        "Add": return Add(differentiate(expr.left, var_name), differentiate(expr.right, var_name))
+        "Sub": return Sub(differentiate(expr.left, var_name), differentiate(expr.right, var_name))
+        "Mul": return Add(
+            Mul(differentiate(expr.left, var_name), expr.right),
+            Mul(expr.left, differentiate(expr.right, var_name))
+        )
+        "Div": return Div(
+            Sub(
+                Mul(differentiate(expr.left, var_name), expr.right),
+                Mul(expr.left, differentiate(expr.right, var_name))
+            ),
+            Pow(expr.right, Num(2))
+        )
+        "Pow":
+            when expr.exp.type == "Num":
+                val n = expr.exp.value
+                return Mul(
+                    Mul(Num(n), Pow(expr.base, Num(n - 1))),
+                    differentiate(expr.base, var_name)
+                )
+            else:
+                # Logarithmic differentiation or not implemented
+                call print("Power rule with variable exponent not supported yet")
+                return Num(0)
+        "Neg": return Neg(differentiate(expr.expr, var_name))
+        else:
+            call print("Unknown expression type for differentiation: {expr.type}")
+            return Num(0)
+    }
+}
+
+# =============== Evaluator ===============
+
+func evaluate(expr: Expr, env: map[string, float]) {
+    when expr.type {
+        "Num": return expr.value
+        "Var":
+            when env.contains(expr.name):
+                return env[expr.name]
+            else:
+                call print("Variable {expr.name} not found in environment, assuming 0")
+                return 0.0
+        "Add": return evaluate(expr.left, env) + evaluate(expr.right, env)
+        "Sub": return evaluate(expr.left, env) - evaluate(expr.right, env)
+        "Mul": return evaluate(expr.left, env) * evaluate(expr.right, env)
+        "Div": return evaluate(expr.left, env) / evaluate(expr.right, env)
+        "Pow": return pow(evaluate(expr.base, env), evaluate(expr.exp, env))
+        "Neg": return -evaluate(expr.expr, env)
+        else:
+            call print("Unknown expression type in evaluation: {expr.type}")
+            return 0.0
+    }
+}
+
+# =============== Expression to String ===============
+
+func expr_to_string(expr: Expr) {
+    when expr.type {
+        "Num": return "{expr.value}"
+        "Var": return expr.name
+        "Add": return "({expr_to_string(expr.left)} + {expr_to_string(expr.right)})"
+        "Sub": return "({expr_to_string(expr.left)} - {expr_to_string(expr.right)})"
+        "Mul": return "({expr_to_string(expr.left)} * {expr_to_string(expr.right)})"
+        "Div": return "({expr_to_string(expr.left)} / {expr_to_string(expr.right)})"
+        "Pow": return "({expr_to_string(expr.base)} ^ {expr_to_string(expr.exp)})"
+        "Neg": return "-{expr_to_string(expr.expr)}"
+        else: return "?"
+    }
+}
+
+# =============== Neural Network ===============
+
+func activate(x: float) {
+    return 1 / (1 + exp(-x))
+}
+
+func neuron_forward(neuron: Neuron, inputs: list[float]) {
+    var sum = neuron.bias
+    for i in range(0, len(inputs)) {
+        sum += inputs[i] * neuron.weights[i]
+    }
+    return activate(sum)
+}
+
+func layer_forward(layer: Layer, inputs: list[float]) {
+    var outputs = []
+    for neuron in layer.neurons {
+        outputs.append(neuron_forward(neuron, inputs))
+    }
+    return outputs
+}
+
+func net_forward(net: NeuralNet, inputs: list[float]) {
+    var current_inputs = inputs
+    for layer in net.layers {
+        current_inputs = layer_forward(layer, current_inputs)
+    }
+    return current_inputs
+}
+
+# Backpropagation and training simplified (demo purpose)
+func neuron_delta(neuron: Neuron, error: float) {
+    # delta = error * output * (1 - output)
+    return error * neuron.output * (1 - neuron.output)
+}
+
+func train_network(net: NeuralNet, inputs: list[float], targets: list[float], lr: float = 0.1, epochs: int = 1000) {
+    for epoch in range(epochs) {
+        val outputs = []
+        var current_inputs = inputs
+        # Forward pass store neuron outputs
+        for layer in net.layers {
+            var layer_outputs = []
+            for neuron in layer.neurons {
+                val sum = neuron.bias
+                for i in range(0, len(current_inputs)) {
+                    sum += current_inputs[i] * neuron.weights[i]
+                }
+                val out = activate(sum)
+                neuron.output = out
+                layer_outputs.append(out)
+            }
+            current_inputs = layer_outputs
+            outputs = layer_outputs
+        }
+        # Calculate error at output
+        var errors = []
+        for i in range(len(targets)) {
+            errors.append(targets[i] - outputs[i])
+        }
+        # Backpropagation (simple)
+        for layer_idx in reversed(range(len(net.layers))) {
+            var layer = net.layers[layer_idx]
+            var new_errors = []
+            for n_idx in range(len(layer.neurons)) {
+                var neuron = layer.neurons[n_idx]
+                var delta_val = neuron_delta(neuron, errors[n_idx])
+                # Update weights
+                for w_idx in range(len(neuron.weights)) {
+                    neuron.weights[w_idx] += lr * delta_val * (layer_idx == 0 ? inputs[w_idx] : net.layers[layer_idx - 1].neurons[w_idx].output)
+                }
+                neuron.bias += lr * delta_val
+                new_errors.append(delta_val)  # Propagate error backwards simplified
+            }
+            errors = new_errors
+        }
+    }
+}
+
+# =============== Visual Fractal ASCII Art Renderer ===============
+
+func fractal_draw(x: int, y: int, size: int, level: int, canvas: map[(int, int), char]) {
+    when level == 0 {
+        canvas[(x, y)] = '*'
+        return
+    }
+    val new_size = size / 3
+    for dx in [0, new_size, 2*new_size] {
+        for dy in [0, new_size, 2*new_size] {
+            if dx == new_size and dy == new_size {
+                # skip center square
+                continue
+            }
+            fractal_draw(x + dx, y + dy, new_size, level - 1, canvas)
+        }
+    }
+}
+
+func print_canvas(canvas: map[(int, int), char], width: int, height: int) {
+    for y in range(height) {
+        var row = ""
+        for x in range(width) {
+            when canvas.contains((x,y)):
+                row += canvas[(x,y)]
+                else: row += " "
+        }
+        call print(row)
+    }
+}
+
+# =============== Interactive REPL ===============
+
+func repl() {
+    call print("Welcome to QuarterLang Recursive Symbolic & AI REPL!")
+    call print("Commands: diff <expr>, simp <expr>, eval <expr> var=value..., trainnet, fractal <level>, quit")
+
+    var env: map[string, float] = {}
+
+    loop true {
+        call print("\n> ", false)
+        val line = ask()
+        val parts = line.split(" ")
+
+        when parts[0] {
+            "quit", "exit":
+                call print("Exiting REPL.")
+                stop
+
+            "diff":
+                val expr_str = join(parts[1:], " ")
+                val expr = parse(expr_str)
+                val deriv = differentiate(expr)
+                val simp_deriv = simplify(deriv)
+                call print("d/dx {expr_to_string(expr)} = {expr_to_string(simp_deriv)}")
+
+            "simp":
+                val expr_str = join(parts[1:], " ")
+                val expr = parse(expr_str)
+                val simp = simplify(expr)
+                call print("Simplified: {expr_to_string(simp)}")
+
+            "eval":
+                if len(parts) < 2 {
+                    call print("Usage: eval <expr> var=value ...")
+                    continue
+                }
+                val expr_str = parts[1]
+                env = {}
+                for i in range(2, len(parts)) {
+                    val kv = parts[i].split("=")
+                    if len(kv) == 2 {
+                        env[kv[0]] = float(kv[1])
+                    }
+                }
+                val expr = parse(expr_str)
+                val val_result = evaluate(expr, env)
+                call print("Result: {val_result}")
+
+            "trainnet":
+                call print("Training tiny demo neural net...")
+                val n1 = Neuron([0.5, -0.4], 0.1, 0.0, 0.0)
+                val n2 = Neuron([0.3, 0.8], -0.2, 0.0, 0.0)
+                val l1 = Layer([n1, n2])
+                val n3 = Neuron([1.0, -1.5], 0.0, 0.0, 0.0)
+                val l2 = Layer([n3])
+                val net = NeuralNet([l1, l2])
+
+                val inputs = [1.0, 0.5]
+                val targets = [1.0]
+
+                train_network(net, inputs, targets, 0.1, 500)
+
+                val outputs = net_forward(net, inputs)
+                call print("Neural Net output after training: {outputs}")
+
+            "fractal":
+                if len(parts) < 2 {
+                    call print("Usage: fractal <level>")
+                    continue
+                }
+                val level = int(parts[1])
+                val size = pow(3, level)
+                var canvas = map()
+                fractal_draw(0, 0, size, level, canvas)
+                print_canvas(canvas, size, size)
+
+            else:
+                call print("Unknown command")
+        }
+    }
+}
+
+# =============== Run REPL ===============
+
+func main() {
+    repl()
+}
+
+main()
+
+end
+
+star
+
+# === Extended Types ===
+
+type Expr =
+    Num(value: float) |
+    Var(name: string) |
+    Add(left: Expr, right: Expr) |
+    Sub(left: Expr, right: Expr) |
+    Mul(left: Expr, right: Expr) |
+    Div(left: Expr, right: Expr) |
+    Pow(base: Expr, exp: Expr) |
+    Neg(expr: Expr) |
+    FuncCall(name: string, arg: Expr)
+
+type Token =
+    # previous tokens plus
+    FuncToken(name: string) |
+    CommaToken
+
+# === Lexer Enhancements ===
+
+func lexer(input: string, pos: int = 0, tokens: list[Token] = []) {
+    # ... same as before
+    # add:
+    if is_alpha(ch) {
+        val (id_str, new_pos) = lex_identifier(input, pos, "")
+        # Check if followed by '(' => function call
+        if new_pos < len(input) and input[new_pos] == '(' {
+            tokens.append(FuncToken(id_str))
+            return lexer(input, new_pos, tokens)
+        } else {
+            tokens.append(VarToken(id_str))
+            return lexer(input, new_pos, tokens)
+        }
+    }
+    # ...
+}
+
+# === Parser Enhancements ===
+
+func base() {
+    val token = current_token
+    when token.type {
+        "NumToken": eat("NumToken"); return Num(token.value)
+        "VarToken": eat("VarToken"); return Var(token.name)
+        "FuncToken": {
+            eat("FuncToken")
+            eat("LParenToken")
+            val arg = expr()
+            eat("RParenToken")
+            return FuncCall(token.name, arg)
+        }
+        # ... as before
+    }
+}
+
+# === Evaluation with functions & multi-var ===
+
+func evaluate(expr: Expr, env: map[string, float]) {
+    when expr.type {
+        "Num": return expr.value
+        "Var": return env.get(expr.name, 0.0)
+        "Add": return evaluate(expr.left, env) + evaluate(expr.right, env)
+        "Sub": return evaluate(expr.left, env) - evaluate(expr.right, env)
+        "Mul": return evaluate(expr.left, env) * evaluate(expr.right, env)
+        "Div": return evaluate(expr.left, env) / evaluate(expr.right, env)
+        "Pow": return pow(evaluate(expr.base, env), evaluate(expr.exp, env))
+        "Neg": return -evaluate(expr.expr, env)
+        "FuncCall": {
+            val arg_val = evaluate(expr.arg, env)
+            when expr.name.lower() {
+                "sin": return sin(arg_val)
+                "cos": return cos(arg_val)
+                "tan": return tan(arg_val)
+                "log": return log(arg_val)
+                "exp": return exp(arg_val)
+                else: call print("Unknown function {expr.name}"); return 0.0
+            }
+        }
+        else: call print("Unknown expr type {expr.type}"); return 0.0
+    }
+}
+
+# === Differentiation enhanced with functions and log-diff ===
+
+func differentiate(expr: Expr, var_name: string = "x") {
+    when expr.type {
+        "Num": return Num(0)
+        "Var": return Num(expr.name == var_name ? 1 : 0)
+        "Add": return Add(differentiate(expr.left, var_name), differentiate(expr.right, var_name))
+        "Sub": return Sub(differentiate(expr.left, var_name), differentiate(expr.right, var_name))
+        "Mul": return Add(
+            Mul(differentiate(expr.left, var_name), expr.right),
+            Mul(expr.left, differentiate(expr.right, var_name))
+        )
+        "Div": return Div(
+            Sub(
+                Mul(differentiate(expr.left, var_name), expr.right),
+                Mul(expr.left, differentiate(expr.right, var_name))
+            ),
+            Pow(expr.right, Num(2))
+        )
+        "Pow": {
+            if expr.exp.type == "Num" {
+                val n = expr.exp.value
+                return Mul(Mul(Num(n), Pow(expr.base, Num(n - 1))), differentiate(expr.base, var_name))
+            } else {
+                # General log differentiation for f(x)^g(x):
+                # d/dx f^g = f^g * (g' * ln(f) + g * f'/f)
+                val f = expr.base
+                val g = expr.exp
+                return Mul(expr, Add(
+                    Mul(differentiate(g, var_name), FuncCall("log", f)),
+                    Mul(g, Div(differentiate(f, var_name), f))
+                ))
+            }
+        }
+        "Neg": return Neg(differentiate(expr.expr, var_name))
+        "FuncCall": {
+            val u = expr.arg
+            val du = differentiate(u, var_name)
+            when expr.name.lower() {
+                "sin": return Mul(du, FuncCall("cos", u))
+                "cos": return Neg(Mul(du, FuncCall("sin", u)))
+                "tan": return Mul(du, Pow(FuncCall("sec", u), Num(2)))  # Needs sec function or use 1/cos^2
+                "log": return Div(du, u)
+                "exp": return Mul(du, expr)
+                else: call print("Diff func {expr.name} not implemented"); return Num(0)
+            }
+        }
+        else: call print("Unknown expr type for diff: {expr.type}"); return Num(0)
+    }
+}
+
+# === Neural Net enhancements ===
+
+type ActivationFn = fn(x: float) -> float
+type ActivationDerivativeFn = fn(y: float) -> float
+
+func sigmoid(x: float) { return 1 / (1 + exp(-x)) }
+func dsigmoid(y: float) { return y * (1 - y) }
+
+func relu(x: float) { return max(0, x) }
+func drelu(y: float) { return when y > 0: 1 else: 0 }
+
+func tanh_fn(x: float) { return tanh(x) }
+func dtanh(y: float) { return 1 - y * y }
+
+# Neuron now has activation and derivative function pointers
+
+type Neuron =
+    Neuron(weights: list[float], bias: float, output: float, delta: float,
+           activation: ActivationFn, activation_derivative: ActivationDerivativeFn)
+
+func neuron_forward(neuron: Neuron, inputs: list[float]) {
+    var z = neuron.bias
+    for i in range(len(inputs)) {
+        z += inputs[i] * neuron.weights[i]
+    }
+    neuron.output = neuron.activation(z)
+    return neuron.output
+}
+
+# Layers forward remains same, calling neuron_forward
+
+# Train with batch, momentum, multiple layers, different activations
+
+func train_network(net: NeuralNet, inputs_list: list[list[float]], targets_list: list[list[float]], lr: float = 0.1, epochs: int = 1000, momentum: float = 0.9) {
+    # Initialize previous weight updates for momentum
+    var prev_weight_updates = []  # mirrors net.layers structure with zeros
+    for layer in net.layers {
+        var layer_updates = []
+        for neuron in layer.neurons {
+            layer_updates.append([0.0 for _ in neuron.weights])
+        }
+        prev_weight_updates.append(layer_updates)
+    }
+
+    for epoch in range(epochs) {
+        for idx in range(len(inputs_list)) {
+            val inputs = inputs_list[idx]
+            val targets = targets_list[idx]
+
+            # Forward pass: compute outputs and save neuron outputs
+            var layer_inputs = inputs
+            for layer in net.layers {
+                var outputs = []
+                for neuron in layer.neurons {
+                    val out = neuron_forward(neuron, layer_inputs)
+                    outputs.append(out)
+                }
+                layer_inputs = outputs
+            }
+            val outputs = layer_inputs
+
+            # Calculate output errors and deltas
+            var errors = []
+            for i in range(len(targets)) {
+                errors.append(targets[i] - outputs[i])
+            }
+
+            # Backpropagate errors
+            for l_idx in reversed(range(len(net.layers))) {
+                val layer = net.layers[l_idx]
+                var new_errors = [0.0 for _ in range(len(layer.neurons[0].weights))]
+                for n_idx in range(len(layer.neurons)) {
+                    val neuron = layer.neurons[n_idx]
+                    val delta = errors[n_idx] * neuron.activation_derivative(neuron.output)
+                    neuron.delta = delta
+                    for w_idx in range(len(neuron.weights)) {
+                        val input_val = l_idx == 0 ? inputs[w_idx] : net.layers[l_idx - 1].neurons[w_idx].output
+                        val update = lr * delta * input_val + momentum * prev_weight_updates[l_idx][n_idx][w_idx]
+                        neuron.weights[w_idx] += update
+                        prev_weight_updates[l_idx][n_idx][w_idx] = update
+                    }
+                    neuron.bias += lr * delta
+                    # accumulate new errors for previous layer
+                    for w_idx in range(len(neuron.weights)) {
+                        new_errors[w_idx] += neuron.weights[w_idx] * delta
+                    }
+                }
+                errors = new_errors
+            }
+        }
+    }
+}
+
+# === Fractal rendering with graphical hooks ===
+
+var graphics_available = false
+
+func draw_pixel(x: int, y: int, color: string = "#FFFFFF") {
+    when graphics_available {
+        true: Graphics.draw_pixel(x, y, color)  # Placeholder for graphics lib call
+        else: # Fallback to canvas map (ASCII)
+            canvas[(x, y)] = '*'
+    }
+}
+
+func fractal_draw(x: int, y: int, size: int, level: int, canvas: map[(int, int), char]) {
+    when level == 0 {
+        draw_pixel(x, y)
+        return
+    }
+    val new_size = size / 3
+    for dx in [0, new_size, 2*new_size] {
+        for dy in [0, new_size, 2*new_size] {
+            if dx == new_size and dy == new_size {
+                continue
+            }
+            fractal_draw(x + dx, y + dy, new_size, level - 1, canvas)
+        }
+    }
+}
+
+# === Event-Driven Async CLI (conceptual QL) ===
+
+var cmd_queue = []
+var running = true
+
+func enqueue_command(cmd: string) {
+    cmd_queue.append(cmd)
+}
+
+func async_repl_loop() {
+    while running {
+        if len(cmd_queue) == 0 {
+            call print("> ", false)
+            val line = ask()
+            enqueue_command(line)
+        } else {
+            val cmd = cmd_queue.pop(0)
+            process_command(cmd)
+        }
+    }
+}
+
+func process_command(line: string) {
+    val parts = line.split(" ")
+    # process commands same as before but asynchronously
+    # simulate delays for long tasks with yield or timer if supported
+    # For now just call synchronously
+    when parts[0] {
+        # same commands as before...
+        "quit", "exit": running = false
+        # ...rest omitted for brevity
+    }
+}
+
+func main() {
+    async_repl_loop()
+}
+
+main()
+
+end
+
+star
+
+# === QuarterLang Advanced Math & AI Mega-Lib ===
+
+import "math.qtr"
+
+# --- Types ---
+
+type Expr =
+    Num(value: float) |
+    Var(name: string) |
+    Add(left: Expr, right: Expr) |
+    Sub(left: Expr, right: Expr) |
+    Mul(left: Expr, right: Expr) |
+    Div(left: Expr, right: Expr) |
+    Pow(base: Expr, exp: Expr) |
+    Neg(expr: Expr) |
+    FuncCall(name: string, arg: Expr)
+
+type Token =
+    NumToken(value: float) |
+    VarToken(name: string) |
+    PlusToken |
+    MinusToken |
+    MulToken |
+    DivToken |
+    PowToken |
+    LParenToken |
+    RParenToken |
+    FuncToken(name: string) |
+    EOFToken
+
+# --- Lexer ---
+
+func is_digit(c: char) { return c >= '0' and c <= '9' }
+func is_alpha(c: char) { return (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z') }
+
+func lexer(input: string, pos: int = 0, tokens: list[Token] = []) {
+    if pos >= len(input) { tokens.append(EOFToken); return tokens }
+
+    val ch = input[pos]
+
+    if ch == ' ' or ch == '\t' or ch == '\n' {
+        return lexer(input, pos + 1, tokens)
+    }
+
+    if is_digit(ch) or (ch == '.' and pos + 1 < len(input) and is_digit(input[pos + 1])) {
+        var num_str = ""
+        var dot_count = 0
+        var i = pos
+        while i < len(input) and (is_digit(input[i]) or input[i] == '.') {
+            if input[i] == '.' { dot_count += 1 }
+            num_str += input[i]
+            i += 1
+        }
+        if dot_count > 1 {
+            call print("Error: Invalid number format.")
+            stop
+        }
+        tokens.append(NumToken(float(num_str)))
+        return lexer(input, i, tokens)
+    }
+
+    if is_alpha(ch) {
+        var id_str = ""
+        var i = pos
+        while i < len(input) and (is_alpha(input[i]) or is_digit(input[i])) {
+            id_str += input[i]
+            i += 1
+        }
+        # If next char is '(' it's function call
+        if i < len(input) and input[i] == '(' {
+            tokens.append(FuncToken(id_str))
+            return lexer(input, i, tokens)
+        } else {
+            tokens.append(VarToken(id_str))
+            return lexer(input, i, tokens)
+        }
+    }
+
+    when ch {
+        '+': tokens.append(PlusToken)
+        '-': tokens.append(MinusToken)
+        '*': tokens.append(MulToken)
+        '/': tokens.append(DivToken)
+        '^': tokens.append(PowToken)
+        '(': tokens.append(LParenToken)
+        ')': tokens.append(RParenToken)
+        else: {
+            call print("Unknown character: {ch}")
+            stop
+        }
+    }
+    return lexer(input, pos + 1, tokens)
+}
+
+# --- Parser ---
+
+var tokens_global: list[Token] = []
+var current_pos: int = 0
+
+func current_token() { return tokens_global[current_pos] }
+func eat(expected_type) {
+    if current_token().type == expected_type {
+        current_pos += 1
+    } else {
+        call print("Parse error: Expected {expected_type} but got {current_token().type}")
+        stop
+    }
+}
+
+func factor() {
+    val token = current_token()
+    when token.type {
+        "NumToken": eat("NumToken"); return Num(token.value)
+        "VarToken": eat("VarToken"); return Var(token.name)
+        "FuncToken": {
+            eat("FuncToken")
+            eat("LParenToken")
+            val arg_expr = expr()
+            eat("RParenToken")
+            return FuncCall(token.name, arg_expr)
+        }
+        "MinusToken": {
+            eat("MinusToken")
+            return Neg(factor())
+        }
+        "LParenToken": {
+            eat("LParenToken")
+            val result = expr()
+            eat("RParenToken")
+            return result
+        }
+        else: {
+            call print("Unexpected token in factor: {token.type}")
+            stop
+        }
+    }
+}
+
+func power() {
+    var left = factor()
+    while current_token().type == "PowToken" {
+        eat("PowToken")
+        val right = factor()
+        left = Pow(left, right)
+    }
+    return left
+}
+
+func term() {
+    var left = power()
+    while current_token().type in ["MulToken", "DivToken"] {
+        val op = current_token()
+        if op.type == "MulToken" {
+            eat("MulToken")
+            left = Mul(left, power())
+        } else {
+            eat("DivToken")
+            left = Div(left, power())
+        }
+    }
+    return left
+}
+
+func expr() {
+    var left = term()
+    while current_token().type in ["PlusToken", "MinusToken"] {
+        val op = current_token()
+        if op.type == "PlusToken" {
+            eat("PlusToken")
+            left = Add(left, term())
+        } else {
+            eat("MinusToken")
+            left = Sub(left, term())
+        }
+    }
+    return left
+}
+
+func parse(input: string) {
+    tokens_global = lexer(input)
+    current_pos = 0
+    val result = expr()
+    if current_token().type != "EOFToken" {
+        call print("Unexpected token after parsing expression")
+        stop
+    }
+    return result
+}
+
+# --- Evaluation ---
+
+func evaluate(expr: Expr, env: map[string, float]) {
+    when expr.type {
+        "Num": return expr.value
+        "Var": return env.get(expr.name, 0.0)
+        "Add": return evaluate(expr.left, env) + evaluate(expr.right, env)
+        "Sub": return evaluate(expr.left, env) - evaluate(expr.right, env)
+        "Mul": return evaluate(expr.left, env) * evaluate(expr.right, env)
+        "Div": return evaluate(expr.left, env) / evaluate(expr.right, env)
+        "Pow": return pow(evaluate(expr.base, env), evaluate(expr.exp, env))
+        "Neg": return -evaluate(expr.expr, env)
+        "FuncCall": {
+            val arg_val = evaluate(expr.arg, env)
+            when expr.name.lower() {
+                "sin": return sin(arg_val)
+                "cos": return cos(arg_val)
+                "tan": return tan(arg_val)
+                "log": return log(arg_val)
+                "exp": return exp(arg_val)
+                else: {
+                    call print("Unknown function '{expr.name}'")
+                    return 0.0
+                }
+            }
+        }
+        else: {
+            call print("Unknown expression type {expr.type}")
+            return 0.0
+        }
+    }
+}
+
+# --- Symbolic Differentiation ---
+
+func differentiate(expr: Expr, var_name: string = "x") {
+    when expr.type {
+        "Num": return Num(0)
+        "Var": return Num(expr.name == var_name ? 1 : 0)
+        "Add": return Add(differentiate(expr.left, var_name), differentiate(expr.right, var_name))
+        "Sub": return Sub(differentiate(expr.left, var_name), differentiate(expr.right, var_name))
+        "Mul": return Add(
+            Mul(differentiate(expr.left, var_name), expr.right),
+            Mul(expr.left, differentiate(expr.right, var_name))
+        )
+        "Div": return Div(
+            Sub(
+                Mul(differentiate(expr.left, var_name), expr.right),
+                Mul(expr.left, differentiate(expr.right, var_name))
+            ),
+            Pow(expr.right, Num(2))
+        )
+        "Pow": {
+            if expr.exp.type == "Num" {
+                val n = expr.exp.value
+                return Mul(Mul(Num(n), Pow(expr.base, Num(n - 1))), differentiate(expr.base, var_name))
+            } else {
+                val f = expr.base
+                val g = expr.exp
+                return Mul(expr, Add(
+                    Mul(differentiate(g, var_name), FuncCall("log", f)),
+                    Mul(g, Div(differentiate(f, var_name), f))
+                ))
+            }
+        }
+        "Neg": return Neg(differentiate(expr.expr, var_name))
+        "FuncCall": {
+            val u = expr.arg
+            val du = differentiate(u, var_name)
+            when expr.name.lower() {
+                "sin": return Mul(du, FuncCall("cos", u))
+                "cos": return Neg(Mul(du, FuncCall("sin", u)))
+                "tan": return Mul(du, Pow(FuncCall("sec", u), Num(2)))  # sec not implemented, could be 1/cos^2
+                "log": return Div(du, u)
+                "exp": return Mul(du, expr)
+                else: {
+                    call print("Differentiation of function '{expr.name}' not implemented")
+                    return Num(0)
+                }
+            }
+        }
+        else: {
+            call print("Unknown expr type in differentiation: {expr.type}")
+            return Num(0)
+        }
+    }
+}
+
+# --- Expression to String (pretty print) ---
+
+func expr_to_string(expr: Expr) {
+    when expr.type {
+        "Num": return str(expr.value)
+        "Var": return expr.name
+        "Add": return "(" + expr_to_string(expr.left) + " + " + expr_to_string(expr.right) + ")"
+        "Sub": return "(" + expr_to_string(expr.left) + " - " + expr_to_string(expr.right) + ")"
+        "Mul": return "(" + expr_to_string(expr.left) + " * " + expr_to_string(expr.right) + ")"
+        "Div": return "(" + expr_to_string(expr.left) + " / " + expr_to_string(expr.right) + ")"
+        "Pow": return "(" + expr_to_string(expr.base) + " ^ " + expr_to_string(expr.exp) + ")"
+        "Neg": return "(-" + expr_to_string(expr.expr) + ")"
+        "FuncCall": return expr.name + "(" + expr_to_string(expr.arg) + ")"
+    }
+}
+
+# --- Neural Network ---
+
+type ActivationFn = fn(x: float) -> float
+type ActivationDerivativeFn = fn(y: float) -> float
+
+func sigmoid(x: float) { return 1 / (1 + exp(-x)) }
+func dsigmoid(y: float) { return y * (1 - y) }
+
+func relu(x: float) { return when x > 0: x else: 0 }
+func drelu(y: float) { return when y > 0: 1 else: 0 }
+
+func tanh_fn(x: float) { return tanh(x) }
+func dtanh(y: float) { return 1 - y * y }
+
+type Neuron =
+    Neuron(weights: list[float], bias: float, output: float, delta: float,
+           activation: ActivationFn, activation_derivative: ActivationDerivativeFn)
+
+func neuron_forward(neuron: Neuron, inputs: list[float]) {
+    var z = neuron.bias
+    for i in range(len(inputs)) {
+        z += inputs[i] * neuron.weights[i]
+    }
+    neuron.output = neuron.activation(z)
+    return neuron.output
+}
+
+type Layer =
+    Layer(neurons: list[Neuron])
+
+type NeuralNet =
+    NeuralNet(layers: list[Layer])
+
+func create_neuron(num_inputs: int, activation: ActivationFn, activation_derivative: ActivationDerivativeFn) {
+    var weights = []
+    for i in range(num_inputs) { weights.append(rand_float(-1, 1)) }
+    return Neuron(weights, rand_float(-1, 1), 0.0, 0.0, activation, activation_derivative)
+}
+
+func create_layer(num_neurons: int, num_inputs: int, activation: ActivationFn, activation_derivative: ActivationDerivativeFn) {
+    var neurons = []
+    for i in range(num_neurons) {
+        neurons.append(create_neuron(num_inputs, activation, activation_derivative))
+    }
+    return Layer(neurons)
+}
+
+func create_network(layer_sizes: list[int], activations: list[(ActivationFn, ActivationDerivativeFn)]) {
+    var layers = []
+    for i in range(1, len(layer_sizes)) {
+        layers.append(create_layer(layer_sizes[i], layer_sizes[i - 1], activations[i - 1][0], activations[i - 1][1]))
+    }
+    return NeuralNet(layers)
+}
+
+func forward_pass(net: NeuralNet, inputs: list[float]) {
+    var layer_inputs = inputs
+    for layer in net.layers {
+        var outputs = []
+        for neuron in layer.neurons {
+            outputs.append(neuron_forward(neuron, layer_inputs))
+        }
+        layer_inputs = outputs
+    }
+    return layer_inputs
+}
+
+func train_network(net: NeuralNet, inputs_list: list[list[float]], targets_list: list[list[float]],
+                   lr: float = 0.1, epochs: int = 1000, momentum: float = 0.9) {
+    var prev_weight_updates = []
+    for layer in net.layers {
+        var layer_updates = []
+        for neuron in layer.neurons {
+            layer_updates.append([0.0 for _ in neuron.weights])
+        }
+        prev_weight_updates.append(layer_updates)
+    }
+
+    for epoch in range(epochs) {
+        for idx in range(len(inputs_list)) {
+            val inputs = inputs_list[idx]
+            val targets = targets_list[idx]
+
+            var layer_inputs = inputs
+            # Forward pass
+            for layer in net.layers {
+                var outputs = []
+                for neuron in layer.neurons {
+                    outputs.append(neuron_forward(neuron, layer_inputs))
+                }
+                layer_inputs = outputs
+            }
+            val outputs = layer_inputs
+
+            var errors = []
+            for i in range(len(targets)) {
+                errors.append(targets[i] - outputs[i])
+            }
+
+            # Backpropagation
+            for l_idx in reversed(range(len(net.layers))) {
+                val layer = net.layers[l_idx]
+                var new_errors = [0.0 for _ in range(len(layer.neurons[0].weights))]
+                for n_idx in range(len(layer.neurons)) {
+                    val neuron = layer.neurons[n_idx]
+                    val delta = errors[n_idx] * neuron.activation_derivative(neuron.output)
+                    neuron.delta = delta
+                    for w_idx in range(len(neuron.weights)) {
+                        val input_val = l_idx == 0 ? inputs[w_idx] : net.layers[l_idx - 1].neurons[w_idx].output
+                        val update = lr * delta * input_val + momentum * prev_weight_updates[l_idx][n_idx][w_idx]
+                        neuron.weights[w_idx] += update
+                        prev_weight_updates[l_idx][n_idx][w_idx] = update
+                    }
+                    neuron.bias += lr * delta
+                    for w_idx in range(len(neuron.weights)) {
+                        new_errors[w_idx] += neuron.weights[w_idx] * delta
+                    }
+                }
+                errors = new_errors
+            }
+        }
+    }
+}
+
+# --- Fractal Renderer (ASCII fallback) ---
+
+var canvas = map[(int, int), char]()
+
+func draw_pixel(x: int, y: int, color: string = "#FFFFFF") {
+    # No graphics lib — ASCII fallback
+    canvas[(x, y)] = '*'
+}
+
+func clear_canvas() {
+    canvas = {}
+}
+
+func print_canvas(width: int, height: int) {
+    for y in range(height) {
+        var line = ""
+        for x in range(width) {
+            line += canvas.get((x, y), ' ')
+        }
+        call print(line)
+    }
+}
+
+func sierpinski(x: int, y: int, size: int, level: int) {
+    if level == 0 {
+        draw_pixel(x, y)
+        return
+    }
+    val new_size = size / 2
+    sierpinski(x, y, new_size, level - 1)
+    sierpinski(x + new_size, y, new_size, level - 1)
+    sierpinski(x, y + new_size, new_size, level - 1)
+}
+
+# --- Event-driven Async REPL ---
+
+var cmd_queue = []
+var running = true
+var env = map[string, float]()
+
+func enqueue_command(cmd: string) {
+    cmd_queue.append(cmd)
+}
+
+func process_command(line: string) {
+    val parts = line.strip().split(" ")
+    if len(parts) == 0 {
+        return
+    }
+    val cmd = parts[0].lower()
+
+    when cmd {
+        "quit", "exit": running = false
+
+        "eval": {
+            if len(parts) < 2 {
+                call print("Usage: eval <expression>")
+                return
+            }
+            val expr_str = line[len("eval "):]
+            val parsed = parse(expr_str)
+            val val_res = evaluate(parsed, env)
+            call print("Result: {val_res}")
+        }
+
+        "diff": {
+            if len(parts) < 2 {
+                call print("Usage: diff <expression> [variable]")
+                return
+            }
+            val var_name = "x"
+            if len(parts) > 2 {
+                var_name = parts[2]
+            }
+            val expr_str = line[len("diff "):].strip()
+            val parsed = parse(expr_str)
+            val deriv = differentiate(parsed, var_name)
+            val deriv_str = expr_to_string(deriv)
+            call print("Derivative wrt {var_name}: {deriv_str}")
+        }
+
+        "set": {
+            if len(parts) != 3 {
+                call print("Usage: set <variable> <value>")
+                return
+            }
+            val var_name = parts[1]
+            val val_float = float(parts[2])
+            env[var_name] = val_float
+            call print("Set {var_name} = {val_float}")
+        }
+
+        "showenv": {
+            call print("Environment Variables:")
+            for k, v in env.items() {
+                call print("  {k} = {v}")
+            }
+        }
+
+        "fractal": {
+            clear_canvas()
+            sierpinski(0, 0, 16, 4)
+            print_canvas(32, 16)
+        }
+
+        "help": {
+            call print("Commands:")
+            call print("  eval <expr>   Evaluate expression")
+            call print("  diff <expr> [var]   Differentiate expression")
+            call print("  set <var> <val>   Set variable value")
+            call print("  showenv   Show all variable assignments")
+            call
+
