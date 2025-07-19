@@ -1,3 +1,5 @@
+star
+
 func plugin_pull_manifest(repo_url: string) as Map:
     print("Syncing manifest from {repo_url} ...")
     # Mocked remote call
@@ -14,3 +16,5 @@ func plugin_sync_all(repo_url: string):
     for name in remote.keys():
         meta = remote[name]
         call plugin_register(name, LibrarySystem.fetch(name), meta)
+
+end
