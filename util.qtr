@@ -125,3 +125,65 @@ func ping() {
 }
 
 end
+
+func log(level: string, message: string) {
+    val timestamp: int = now()
+    val formatted: primative = "[{level.upper()} {timestamp}] {message}"
+    call print(formatted)
+
+    when level == "error":
+        ErrorHandler.error(500, message)
+    elif level == "warn":
+        ErrorHandler.warn(message)
+    elif level == "info":
+        ErrorHandler.info(message)
+    end when
+}
+
+func log_ast(ast: AST, label: string) {
+    val code: primative = Formatter.format(ast)
+    call print("==== AST Dump: {label} ====")
+    call print(code)
+}
+
+func mirror_dg(x: dg, label: string) {
+    val color: string = dg_color_gradient(from_dg(x))
+    val dg_str: string = to_dg(x)
+    call print("[{label}] DG Reflect: <{color}> {dg_str}")
+}
+
+func trace_tagged(x: int, label: string, phase: string) {
+    val timestamp: int = now()
+    val tag: string = "{label.upper()}-{phase}"
+    call print("🔍 {tag} @ {timestamp}: {x}")
+}
+
+func dg_color_gradient(value: int) as string {
+    when value < 12: return "#AA12FF"     # Low DGs
+    when value < 144: return "#FFD700"    # Mid DGs
+    else: return "#FF5555"                # High DGs
+}
+
+func run_repl() {
+    loop true {
+        call print("➤ QuarterLang REPL:")
+        val cmd: primative = ask()
+
+        when cmd == "exit":
+            stop
+
+        elif cmd == "mirror":
+            call mirror(42)
+        
+        elif cmd == "trace":
+            call trace_tagged(99, "REPL", "debug")
+        
+        elif cmd == "dg":
+            call mirror_dg(dg: 1XY4, "CapsuleDG")
+
+        else:
+            call log("info", "Unknown command: {cmd}")
+        end when
+    }
+}
+
