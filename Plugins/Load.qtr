@@ -1,4 +1,5 @@
 star
+
 import "LibrarySystem.qtr"
 
 # Registry map
@@ -17,3 +18,5 @@ func plugin_describe(name: string):
     else:
         call print("[Plugin {name}]: Metadata not found")
 end func
+
+end
