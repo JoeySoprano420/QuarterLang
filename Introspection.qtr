@@ -1,0 +1,18 @@
+star
+import "Formatter.qtr", "SyntaxHighlighter.qtr", "Lexer.qtr", "Parser.qtr"
+
+func parse_ast():
+    val src = ask()
+    val tokens = Lexer.lex(src)
+    val cursor = Cursor.new(tokens)
+    val ast = Parser.parse_program(cursor)
+    val pretty = Formatter.format(ast)
+    call print(pretty)
+end
+
+func highlight_source():
+    val src = ask()
+    val tokens = Lexer.lex(src)
+    val styled = SyntaxHighlighter.highlight(tokens)
+    for t in styled: call print("{t.style}: {t.token.value}")
+end
