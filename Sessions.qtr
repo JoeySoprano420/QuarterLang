@@ -13,3 +13,208 @@ func login(username: string):
 
 func session_get_config(user: string, key: string) as string:
     return session_map
+
+star
+
+# ==== User & Session Management System ====
+
+var users as List[string] = []
+var session_map as Map[string, Map[string, primative]] = {}  # username → config map
+
+# Internal helper: Check if user exists
+func user_exists(username: string) as bool {
+    return users.contains(username)
+}
+
+# Login user and create session with default config
+func login(username: string) {
+    when user_exists(username) {
+        call print("⚠️ User '{username}' already logged in.")
+        return
+    }
+    users.push(username)
+    val dg_id: dg = to_dg(generate_uid())
+    session_map[username] = {
+        "theme": "galactic",
+        "prompt": "⭑",
+        "dg_sig": dg_id,
+        "last_active": now(),
+        "session_start": now(),
+        "permissions": ["read", "write"],
+        "timeout_sec": 3600  # 1 hour session timeout
+    }
+    call log("info", "User '{username}' logged in with session DG {dg_id}.")
+    call print("🔓 Welcome, {username}!")
+}
+
+# Logout user and remove session
+func logout(username: string) {
+    when !user_exists(username) {
+        call print("⚠️ User '{username}' not logged in.")
+        return
+    }
+    users.remove(username)
+    session_map.remove(username)
+    call log("info", "User '{username}' logged out and session cleared.")
+    call print("🔒 Goodbye, {username}!")
+}
+
+# Get session config value for user and key
+func session_get_config(username: string, key: string) as primative {
+    when !user_exists(username) {
+        call print("⚠️ No active session for user '{username}'.")
+        return null
+    }
+    val config: Map[string, primative] = session_map[username]
+    when !config.contains(key) {
+        call print("⚠️ Key '{key}' not found in session config for '{username}'.")
+        return null
+    }
+    return config[key]
+}
+
+# Set session config key-value for user
+func session_set_config(username: string, key: string, value: primative) {
+    when !user_exists(username) {
+        call print("⚠️ No active session for user '{username}'.")
+        return
+    }
+    session_map[username][key] = value
+    call log("info", "Session config '{key}' updated for user '{username}'.")
+}
+
+# Update last active timestamp for user session
+func session_touch(username: string) {
+    when user_exists(username) {
+        session_map[username]["last_active"] = now()
+    }
+}
+
+# Check session expiration, logout if timed out
+func check_session_expiry() {
+    val current_time: int = now()
+    for user in users {
+        val config = session_map[user]
+        val last_active: int = config["last_active"]
+        val timeout_sec: int = config["timeout_sec"]
+        when current_time - last_active > timeout_sec {
+            call log("warn", "Session expired for user '{user}', logging out.")
+            call logout(user)
+        }
+    }
+}
+
+# Persist sessions to file (JSON-like format)
+func save_sessions_to_file(path: string) {
+    val serialized: string = serialize_sessions()
+    file_write(path, serialized)
+    call log("info", "Sessions saved to '{path}'.")
+}
+
+# Load sessions from file and restore
+func load_sessions_from_file(path: string) {
+    when !file_exists(path) {
+        call print("No session file found at '{path}', skipping load.")
+        return
+    }
+    val data: string = file_read(path)
+    deserialize_sessions(data)
+    call log("info", "Sessions loaded from '{path}'.")
+}
+
+# Serialize sessions map to string (basic JSON style)
+func serialize_sessions() as string {
+    var sb: string = "{\n"
+    var first_user: bool = true
+    for user in users {
+        when !first_user {
+            sb = sb + ",\n"
+        }
+        sb = sb + "  \"{user}\": {\n"
+        val config: Map[string, primative] = session_map[user]
+        var first_key: bool = true
+        for key in config.keys() {
+            when !first_key {
+                sb = sb + ",\n"
+            }
+            val val_str: string = to_string(config[key])
+            sb = sb + "    \"{key}\": \"{val_str}\""
+            first_key = false
+        }
+        sb = sb + "\n  }"
+        first_user = false
+    }
+    sb = sb + "\n}"
+    return sb
+}
+
+# Deserialize sessions from string (very basic parser for demo)
+func deserialize_sessions(data: string) {
+    # This demo assumes a very strict JSON format; implement real parser as needed
+    # For now, clear all and do nothing
+    users = []
+    session_map = {}
+    call print("Deserialization placeholder - implement parser here")
+}
+
+# List active users
+func list_users() {
+    when len(users) == 0 {
+        call print("No active users.")
+        return
+    }
+    call print("Active users:")
+    for user in users {
+        call print("- {user}")
+    }
+}
+
+# Interactive CLI demo for login/logout/status
+func cli_user_demo() {
+    call print("User Session CLI demo. Commands: login <name>, logout <name>, list, config <name> <key>, exit")
+    loop true {
+        val line: string = read_line()
+        val parts: list[string] = split(line, " ")
+        when len(parts) == 0 {
+            continue
+        }
+        val cmd: string = parts[0]
+        when cmd {
+            "login" {
+                when len(parts) < 2 {
+                    call print("Usage: login <username>")
+                    continue
+                }
+                call login(parts[1])
+            }
+            "logout" {
+                when len(parts) < 2 {
+                    call print("Usage: logout <username>")
+                    continue
+                }
+                call logout(parts[1])
+            }
+            "list" {
+                call list_users()
+            }
+            "config" {
+                when len(parts) < 3 {
+                    call print("Usage: config <username> <key>")
+                    continue
+                }
+                val val_out = session_get_config(parts[1], parts[2])
+                call print("Config value: {val_out}")
+            }
+            "exit" {
+                call print("Exiting User Session CLI.")
+                stop
+            }
+            else {
+                call print("Unknown command: {cmd}")
+            }
+        }
+    }
+}
+
+end
+
