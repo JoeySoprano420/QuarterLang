@@ -21,3 +21,13 @@ func launch(config: Map):
         QuarterUI.draw(config)
         GLRenderer.flush()
 end
+
+star
+func init():
+    WebGL.init_canvas("capsule-canvas", 1280, 720)
+    update_theme(settings["theme"])
+    bind_wasm_events()
+
+func update_theme(theme: string):
+    WebGL.set_canvas_style("background", get_color(theme))
+
