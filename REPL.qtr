@@ -360,3 +360,11 @@ func session_get_config(username: string, key: string) as string {
 
 end
 
+func main_command_router(cmd: string):
+  # First try plugin manager commands
+  call PluginManager.handle_command(cmd)
+
+  # Then route other commands...
+  # CommandProcessor.route(cmd)
+end func
+
