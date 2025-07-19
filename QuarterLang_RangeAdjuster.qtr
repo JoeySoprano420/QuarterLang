@@ -13,3 +13,32 @@ module RangeAdjuster:
   end define
 end module
 end
+
+star
+module RangeAdjuster:
+
+  # Adjust numeric ranges
+  define clamp(value as primative, min as primative, max as primative) as primative:
+    when value < min:
+      return min
+    end when
+
+    when value > max:
+      return max
+    end when
+
+    return value
+  end define
+
+  define normalize(value as primative, in_min as primative, in_max as primative, out_min as primative, out_max as primative) as primative:
+    val ratio as primative = (value - in_min) / (in_max - in_min)
+    return out_min + ratio * (out_max - out_min)
+  end define
+
+  define register_plugin(env as RuntimeEnv) as void:
+    env.register("clamp", ref clamp)
+    env.register("normalize", ref normalize)
+  end define
+
+end module
+end
