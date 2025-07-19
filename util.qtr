@@ -1,196 +1,911 @@
 star
 
-# Identity & Reflection
+# ── Identity & Reflection ──────────────────────────────
 
 func identity(x: int) {
-    call print(x)
+  call print(x)
 }
 
-func echo(x: int) {
-    call print(x)
-    return x
+func echo(x: int) -> int {
+  call print(x)
+  return x
 }
 
 func mirror(x: int) {
-    call print("Reflection: {x}")
+  call print("Reflection: {x}")
 }
 
 func trace(x: int, label: string) {
-    call print("{label}: {x}")
+  call print("{label}: {x}")
 }
 
-
-# Equality & Comparison
-
-func equal(x: int, y: int) {
-    val result: int = when x == y: 1 else: 0
-    call print(result)
+func trace_tagged(x: int, label: string, phase: string) {
+  val timestamp: int = now()
+  val tag: string = "{label.upper()}-{phase}"
+  call print("🔍 {tag} @ {timestamp}: {x}")
 }
-
-func not_equal(x: int, y: int) {
-    val result: int = when x != y: 1 else: 0
-    call print(result)
-}
-
-func greater_than(x: int, y: int) {
-    val result: int = when x > y: 1 else: 0
-    call print(result)
-}
-
-func less_than(x: int, y: int) {
-    val result: int = when x < y: 1 else: 0
-    call print(result)
-}
-
-func compare_verbose(x: int, y: int) {
-    when x > y:
-        call print("{x} is greater than {y}")
-    elif x < y:
-        call print("{x} is less than {y}")
-    else:
-        call print("{x} is equal to {y}")
-}
-
-
-# Logical Utilities
-
-func and(x: int, y: int) {
-    val result: int = when x == 1 and y == 1: 1 else: 0
-    call print(result)
-}
-
-func or(x: int, y: int) {
-    val result: int = when x == 1 or y == 1: 1 else: 0
-    call print(result)
-}
-
-func not(x: int) {
-    val result: int = when x == 1: 0 else: 1
-    call print(result)
-}
-
-
-# Swapping & Rearranging
-
-func swap(x: int, y: int) {
-    call print("Before: x={x}, y={y}")
-    val temp: int = x
-    val x2: int = y
-    val y2: int = temp
-    call print("After: x={x2}, y={y2}")
-}
-
-
-# Debugging Tools
 
 func debug(x: int, label: string) {
-    call print("[DEBUG {label}]: {x}")
+  call print("[DEBUG {label}]: {x}")
 }
 
 func profile(name: string, x: int) {
-    val timestamp: int = now()
-    call print("Profile {name} @ {timestamp}: {x}")
+  val timestamp: int = now()
+  call print("Profile {name} @ {timestamp}: {x}")
 }
 
+# ── Equality & Comparison ───────────────────────────────
 
-# DG Support (Symbolic Base-12)
+func equal(x: int, y: int) {
+  val result: int = when x == y: 1 else: 0
+  call print(result)
+}
+
+func not_equal(x: int, y: int) {
+  val result: int = when x != y: 1 else: 0
+  call print(result)
+}
+
+func greater_than(x: int, y: int) {
+  val result: int = when x > y: 1 else: 0
+  call print(result)
+}
+
+func less_than(x: int, y: int) {
+  val result: int = when x < y: 1 else: 0
+  call print(result)
+}
+
+func compare_verbose(x: int, y: int) {
+  when x > y:
+    call print("{x} is greater than {y}")
+  elif x < y:
+    call print("{x} is less than {y}")
+  else:
+    call print("{x} is equal to {y}")
+}
+
+# ── Logical Utilities ───────────────────────────────────
+
+func and(x: int, y: int) {
+  val result: int = when x == 1 and y == 1: 1 else: 0
+  call print(result)
+}
+
+func or(x: int, y: int) {
+  val result: int = when x == 1 or y == 1: 1 else: 0
+  call print(result)
+}
+
+func not(x: int) {
+  val result: int = when x == 1: 0 else: 1
+  call print(result)
+}
+
+# ── Swapping & Rearranging ──────────────────────────────
+
+func swap(x: int, y: int) {
+  call print("Before: x={x}, y={y}")
+  val temp: int = x
+  val x2: int = y
+  val y2: int = temp
+  call print("After: x={x2}, y={y2}")
+}
+
+# ── DG Support (Symbolic Base-12) ──────────────────────
 
 func echo_dg(d: dg) {
-    call print("Dodeca: {d}")
+  call print("Dodeca: {d}")
 }
 
-func identity_dg(d: dg) {
-    return d
+func identity_dg(d: dg) -> dg {
+  return d
 }
 
 func trace_dg(d: dg, label: string) {
-    call print("{label}: {to_dg(from_dg(d))}")
+  call print("{label}: {to_dg(from_dg(d))}")
 }
 
+func mirror_dg(x: dg, label: string) {
+  val color: string = dg_color_gradient(from_dg(x))
+  val dg_str: string = to_dg(x)
+  call print("[{label}] DG Reflect: <{color}> {dg_str}")
+}
 
-# Meta Utilities
+func dg_color_gradient(value: int) -> string {
+  when value < 12: return "#AA12FF"     # Low DGs
+  when value < 144: return "#FFD700"    # Mid DGs
+  else: return "#FF5555"                # High DGs
+}
+
+# ── Meta Utilities ──────────────────────────────────────
 
 func noop() {
-    # Intentionally does nothing
+  # Intentionally does nothing
 }
 
 func assert(condition: int, message: string) {
-    when condition != 1:
-        call print("[ASSERT FAILED]: {message}")
-        stop
+  when condition != 1:
+    call print("[ASSERT FAILED]: {message}")
+    stop
 }
 
 func ping() {
-    call print("pong")
+  call print("pong")
+}
+
+# ── Structured Logging ──────────────────────────────────
+
+func log(level: string, message: string) {
+  val timestamp: int = now()
+  val formatted: primative = "[{level.upper()} {timestamp}] {message}"
+  call print(formatted)
+  
+  when level == "error":
+    ErrorHandler.error(500, message)
+  elif level == "warn":
+    ErrorHandler.warn(message)
+  elif level == "info":
+    ErrorHandler.info(message)
+  end when
+}
+
+func log_symbolic(level: string, message: string, phase: string, dg: dg) {
+  val ts = now()
+  val dg_str = to_dg(dg)
+  val tag = "{level.upper()}:{phase}"
+  call print("⚙️ {tag} @ {ts} [DG:{dg_str}] ⇒ {message}")
+}
+
+# ── Debugging & Introspection ───────────────────────────
+
+func log_ast(ast: AST, label: string) {
+  val code: primative = Formatter.format(ast)
+  call print("==== AST Dump: {label} ====")
+  call print(code)
+}
+
+# ── REPL & Command Loop ─────────────────────────────────
+
+func run_repl() {
+  loop true {
+    call print("➤ QuarterLang REPL:")
+    val cmd: primative = ask()
+    
+    when cmd == "exit":
+      stop
+      
+    elif cmd == "mirror":
+      call mirror(42)
+      
+    elif cmd == "trace":
+      call trace_tagged(99, "REPL", "debug")
+      
+    elif cmd == "dg":
+      call mirror_dg(dg: 1XY4, "CapsuleDG")
+      
+    else:
+      call log("info", "Unknown command: {cmd}")
+    end when
+  }
+}
+
+# ── Plugin System ───────────────────────────────────────
+
+var plugin_meta as Map = {}
+
+func plugin_register(name: string, mod: Module, meta: string) {
+  LibrarySystem.register(name, mod)
+  plugin_meta[name] = meta
+  log("info", "Plugin '{name}' registered.")
+}
+
+func plugin_describe(name: string) {
+  when plugin_meta.contains(name):
+    call print("[Plugin {name}]: {plugin_meta[name]}")
+  else:
+    call print("[Plugin {name}]: No description found.")
+}
+
+# ── Session Management ──────────────────────────────────
+
+var sessions as Map = {}  # username → session config
+
+func start_session(user: string) {
+  val dg_id: dg = generate_dg_id(user)
+  # Placeholder for session setup
+}
+
+# ── Temporal Execution Tracker ──────────────────────────
+
+func trace_execution(label: string, start: int, end: int) {
+  val duration: int = end - start
+  val stamp: int = now()
+  call print("⏱ Trace '{label}' @ {stamp}: Duration = {duration} units")
+}
+
+func benchmark_block(label: string, block: fn) {
+  val t0: int = now()
+  call block()
+  val t1: int = now()
+  trace_execution(label, t0, t1)
 }
 
 end
 
-func log(level: string, message: string) {
-    val timestamp: int = now()
-    val formatted: primative = "[{level.upper()} {timestamp}] {message}"
-    call print(formatted)
+star
 
-    when level == "error":
-        ErrorHandler.error(500, message)
-    elif level == "warn":
-        ErrorHandler.warn(message)
-    elif level == "info":
-        ErrorHandler.info(message)
-    end when
+# ────────────────────────────────────────────────
+# QuarterLang Enhanced Runtime Core + REPL + Tests
+# ────────────────────────────────────────────────
+
+# Native print simulation (replace with real native in prod)
+func print(msg: string) {
+    # Assume native print, here just marks output
 }
 
-func log_ast(ast: AST, label: string) {
-    val code: primative = Formatter.format(ast)
-    call print("==== AST Dump: {label} ====")
-    call print(code)
+# Timestamp simulation (monotonic counter)
+var current_time: int = 0
+func now() -> int {
+    current_time = current_time + 1
+    return current_time
 }
 
-func mirror_dg(x: dg, label: string) {
-    val color: string = dg_color_gradient(from_dg(x))
-    val dg_str: string = to_dg(x)
-    call print("[{label}] DG Reflect: <{color}> {dg_str}")
+# Dynamic user input queue for REPL (simulate user input)
+var repl_input_queue: list[string] = []
+var repl_input_index: int = 0
+
+func repl_ask() -> string {
+    when repl_input_index < len(repl_input_queue):
+        val cmd = repl_input_queue[repl_input_index]
+        repl_input_index = repl_input_index + 1
+        return cmd
+    else:
+        return "exit"  # Default exit if queue exhausted
+}
+
+# ------------------------
+# String Helpers
+# ------------------------
+
+func int_to_str(x: int) -> string {
+    # Basic integer to string (positive only for simplicity)
+    when x == 0: return "0"
+    var digits = "0123456789"
+    var result = ""
+    var n = x
+    loop n > 0 {
+        val rem = n % 10
+        n = n / 10
+        result = digits[rem] + result
+    }
+    return result
+}
+
+func str_upper(s: string) -> string {
+    # ASCII A-Z uppercase (simplified: assume input is lowercase or uppercase)
+    var result = ""
+    var i = 0
+    loop i < len(s) {
+        val c = s[i]
+        val code = ord(c)
+        if code >= 97 and code <= 122:  # a-z
+            result = result + chr(code - 32)
+        else:
+            result = result + c
+        i = i + 1
+    }
+    return result
+}
+
+func str_replace(s: string, old: string, new: string) -> string {
+    # Replace all occurrences of old in s with new
+    var result = ""
+    var i = 0
+    var old_len = len(old)
+    while i < len(s) {
+        if i + old_len <= len(s) and s[i:i+old_len] == old {
+            result = result + new
+            i = i + old_len
+        } else {
+            result = result + s[i]
+            i = i + 1
+        }
+    }
+    return result
+}
+
+# ------------------------
+# Formatting template: replaces {key} with vars[key]
+# ------------------------
+
+func print_fmt(template: string, vars: map[string, string]) {
+    var output = template
+    for key in vars {
+        val placeholder = "{" + key + "}"
+        output = str_replace(output, placeholder, vars[key])
+    }
+    print(output)
+}
+
+# ------------------------
+# DG base-12 conversion helpers
+# ------------------------
+
+func to_dg(value: int) -> string {
+    var digits = "0123456789AB"
+    when value == 0: return "0"
+    var result = ""
+    var v = value
+    loop v > 0 {
+        val rem = v % 12
+        v = v / 12
+        result = digits[rem] + result
+    }
+    return result
+}
+
+func from_dg(dg: string) -> int {
+    var digits = "0123456789AB"
+    var value = 0
+    var length = len(dg)
+    var i = 0
+    loop i < length {
+        val c = dg[i]
+        val idx = digits.find(c)
+        when idx == -1:
+            print_fmt("Invalid DG char: {c}", {"c": c})
+            return -1
+        value = value * 12 + idx
+        i = i + 1
+    }
+    return value
+}
+
+# ------------------------
+# DG Color gradient helper
+# ------------------------
+
+func dg_color_gradient(value: int) -> string {
+    when value < 12: return "#AA12FF"
+    when value < 144: return "#FFD700"
+    else: return "#FF5555"
+}
+
+# ------------------------
+# Core logic functions
+# ------------------------
+
+func identity(x: int) {
+    print(int_to_str(x))
+}
+
+func echo(x: int) -> int {
+    print(int_to_str(x))
+    return x
+}
+
+func mirror(x: int) {
+    print_fmt("Reflection: {x}", {"x": int_to_str(x)})
+}
+
+func trace(x: int, label: string) {
+    print_fmt("{label}: {x}", {"label": label, "x": int_to_str(x)})
+}
+
+func equal(x: int, y: int) {
+    val result = when x == y: 1 else: 0
+    print(int_to_str(result))
+}
+
+func not_equal(x: int, y: int) {
+    val result = when x != y: 1 else: 0
+    print(int_to_str(result))
+}
+
+func greater_than(x: int, y: int) {
+    val result = when x > y: 1 else: 0
+    print(int_to_str(result))
+}
+
+func less_than(x: int, y: int) {
+    val result = when x < y: 1 else: 0
+    print(int_to_str(result))
+}
+
+func compare_verbose(x: int, y: int) {
+    when x > y:
+        print_fmt("{x} is greater than {y}", {"x": int_to_str(x), "y": int_to_str(y)})
+    elif x < y:
+        print_fmt("{x} is less than {y}", {"x": int_to_str(x), "y": int_to_str(y)})
+    else:
+        print_fmt("{x} is equal to {y}", {"x": int_to_str(x), "y": int_to_str(y)})
+}
+
+func and(x: int, y: int) {
+    val result = when x == 1 and y == 1: 1 else: 0
+    print(int_to_str(result))
+}
+
+func or(x: int, y: int) {
+    val result = when x == 1 or y == 1: 1 else: 0
+    print(int_to_str(result))
+}
+
+func not(x: int) {
+    val result = when x == 1: 0 else: 1
+    print(int_to_str(result))
+}
+
+func swap(x: int, y: int) {
+    print_fmt("Before: x={x}, y={y}", {"x": int_to_str(x), "y": int_to_str(y)})
+    val temp = x
+    val x2 = y
+    val y2 = temp
+    print_fmt("After: x={x2}, y={y2}", {"x2": int_to_str(x2), "y2": int_to_str(y2)})
+}
+
+func debug(x: int, label: string) {
+    print_fmt("[DEBUG {label}]: {x}", {"label": label, "x": int_to_str(x)})
+}
+
+func profile(name: string, x: int) {
+    val timestamp = now()
+    print_fmt("Profile {name} @ {timestamp}: {x}", {"name": name, "timestamp": int_to_str(timestamp), "x": int_to_str(x)})
+}
+
+func echo_dg(d: string) {
+    print_fmt("Dodeca: {d}", {"d": d})
+}
+
+func identity_dg(d: string) -> string {
+    return d
+}
+
+func trace_dg(d: string, label: string) {
+    val value = from_dg(d)
+    val dg_str = to_dg(value)
+    print_fmt("{label}: {dg_str}", {"label": label, "dg_str": dg_str})
+}
+
+func mirror_dg(x: string, label: string) {
+    val value = from_dg(x)
+    val color = dg_color_gradient(value)
+    val dg_str = to_dg(value)
+    print_fmt("[{label}] DG Reflect: <{color}> {dg_str}", {"label": label, "color": color, "dg_str": dg_str})
 }
 
 func trace_tagged(x: int, label: string, phase: string) {
-    val timestamp: int = now()
-    val tag: string = "{label.upper()}-{phase}"
-    call print("🔍 {tag} @ {timestamp}: {x}")
+    val timestamp = now()
+    val tag = str_upper(label) + "-" + phase
+    print_fmt("🔍 {tag} @ {timestamp}: {x}", {"tag": tag, "timestamp": int_to_str(timestamp), "x": int_to_str(x)})
 }
 
-func dg_color_gradient(value: int) as string {
-    when value < 12: return "#AA12FF"     # Low DGs
-    when value < 144: return "#FFD700"    # Mid DGs
-    else: return "#FF5555"                # High DGs
+func noop() {
+    # no operation
 }
+
+func assert(condition: int, message: string) {
+    when condition != 1:
+        print_fmt("[ASSERT FAILED]: {message}", {"message": message})
+        stop()
+}
+
+func ping() {
+    print("pong")
+}
+
+func log(level: string, message: string) {
+    val timestamp = now()
+    val formatted = "[" + str_upper(level) + " " + int_to_str(timestamp) + "] " + message
+    print(formatted)
+    when level == "error":
+        print("[ERROR HANDLER] Code 500: " + message)
+    elif level == "warn":
+        print("[WARN HANDLER]: " + message)
+    elif level == "info":
+        print("[INFO HANDLER]: " + message)
+}
+
+func log_symbolic(level: string, message: string, phase: string, d: string) {
+    val ts = now()
+    val tag = str_upper(level) + ":" + phase
+    print_fmt("⚙️ {tag} @ {ts} [DG:{d}] ⇒ {message}",
+              {"tag": tag, "ts": int_to_str(ts), "d": d, "message": message})
+}
+
+# ------------------------
+# REPL Main Loop
+# ------------------------
 
 func run_repl() {
     loop true {
-        call print("➤ QuarterLang REPL:")
-        val cmd: primative = ask()
+        print("➤ QuarterLang REPL:")
+        val cmd = repl_ask()
 
         when cmd == "exit":
-            stop
+            print("Exiting REPL.")
+            stop()
 
         elif cmd == "mirror":
-            call mirror(42)
-        
+            mirror(42)
+
         elif cmd == "trace":
-            call trace_tagged(99, "REPL", "debug")
-        
+            trace_tagged(99, "REPL", "debug")
+
         elif cmd == "dg":
-            call mirror_dg(dg: 1XY4, "CapsuleDG")
+            mirror_dg("1AB4", "CapsuleDG")
+
+        elif cmd == "test":
+            run_tests()
+
+        elif cmd == "ping":
+            ping()
 
         else:
-            call log("info", "Unknown command: {cmd}")
-        end when
+            log("info", "Unknown command: " + cmd)
     }
 }
 
-func log_symbolic(level: string, message: string, phase: string, dg: dg):
+# ------------------------
+# Unit Tests for core functions
+# ------------------------
+
+func assert_eq_int(expected: int, actual: int, test_name: string) {
+    when expected == actual:
+        print_fmt("[PASS] {test_name}", {"test_name": test_name})
+    else:
+        print_fmt("[FAIL] {test_name} - Expected: {expected}, Got: {actual}",
+                  {"test_name": test_name, "expected": int_to_str(expected), "actual": int_to_str(actual)})
+}
+
+func run_tests() {
+    print("Running Unit Tests...")
+
+    # to_dg & from_dg roundtrip test
+    val base12_val = 2748  # 1AB4 in base12
+    val dg_str = to_dg(base12_val)
+    val roundtrip = from_dg(dg_str)
+    assert_eq_int(base12_val, roundtrip, "DG Conversion Roundtrip")
+
+    # Logical tests
+    equal(5, 5)  # prints 1
+    not_equal(5, 4)  # prints 1
+    greater_than(10, 5)  # prints 1
+    less_than(3, 6)  # prints 1
+
+    # Compare verbose output test (just prints)
+    compare_verbose(5, 3)
+    compare_verbose(2, 7)
+    compare_verbose(4, 4)
+
+    # Boolean logic tests
+    and(1, 1)  # 1
+    and(1, 0)  # 0
+    or(0, 0)   # 0
+    or(1, 0)   # 1
+    not(1)     # 0
+    not(0)     # 1
+
+    # Swap test (prints before and after)
+    swap(10, 20)
+
+    # Test assert (should fail and stop)
+    #assert(0, "Assert test failure")
+
+    print("All tests completed.")
+}
+
+# ------------------------
+# Initialize REPL input commands for demo
+# ------------------------
+
+repl_input_queue = [
+    "ping",
+    "mirror",
+    "trace",
+    "dg",
+    "test",
+    "unknown_cmd",
+    "exit"
+]
+
+# ------------------------
+# Entry point
+# ------------------------
+
+run_repl()
+
+end
+
+star
+
+# ──────────────────────────────────────────────
+# QuarterLang Advanced Async REPL + File IO + Memory Log
+# ──────────────────────────────────────────────
+
+# ----- Global State -----
+
+var current_time: int = 0
+var event_queue: list[string] = []
+var files: map[string, string] = {}
+var log_entries: list[map[string, string]] = []
+
+# ----- Time -----
+
+func now() -> int {
+    current_time = current_time + 1
+    return current_time
+}
+
+# ----- Memory Logging -----
+
+func log_entry(entry_type: string, content: string) {
     val ts = now()
-    val dg_str = to_dg(dg)
-    val tag = "{level.upper()}:{phase}"
-    call print("⚙️ {tag} @ {ts} [DG:{dg_str}] ⇒ {message}")
+    val entry = {"timestamp": int_to_str(ts), "type": entry_type, "content": content}
+    log_entries = log_entries + [entry]
+}
+
+func log_show() {
+    print("=== Memory Log Entries ===")
+    var i = 0
+    loop i < len(log_entries) {
+        val e = log_entries[i]
+        print_fmt("[{e[timestamp]}][{e[type]}]: {e[content]}", e)
+        i = i + 1
+    }
+}
+
+func log_clear() {
+    log_entries = []
+    print("Memory log cleared.")
+}
+
+# ----- File System -----
+
+func save_file(filename: string, content: string) {
+    files[filename] = content
+    print_fmt("File '{filename}' saved.", {"filename": filename})
+}
+
+func load_file(filename: string) {
+    when files.contains(filename):
+        val content = files[filename]
+        print_fmt("File '{filename}' loaded: {content}", {"filename": filename, "content": content})
+    else:
+        print_fmt("File '{filename}' not found.", {"filename": filename})
+}
+
+# ----- Async Event Queue Processing -----
+
+func enqueue_event(cmd: string) {
+    event_queue = event_queue + [cmd]
+    log_entry("input", cmd)
+}
+
+func dequeue_event() -> string {
+    when len(event_queue) > 0:
+        val cmd = event_queue[0]
+        event_queue = event_queue[1:]
+        return cmd
+    else:
+        return ""
+}
+
+# ----- Native Print (wrap with log) -----
+
+func print(msg: string) {
+    # Native print simulation
+    native_print(msg)
+    log_entry("output", msg)
+}
+
+func native_print(msg: string) {
+    # This function simulates actual printing to console/output
+    # Replace with real native print in production
+}
+
+# ----- Helper Functions -----
+
+func int_to_str(x: int) -> string {
+    when x == 0: return "0"
+    var digits = "0123456789"
+    var result = ""
+    var n = x
+    loop n > 0 {
+        val rem = n % 10
+        n = n / 10
+        result = digits[rem] + result
+    }
+    return result
+}
+
+func str_upper(s: string) -> string {
+    var result = ""
+    var i = 0
+    loop i < len(s) {
+        val c = s[i]
+        val code = ord(c)
+        if code >= 97 and code <= 122:
+            result = result + chr(code - 32)
+        else:
+            result = result + c
+        i = i + 1
+    }
+    return result
+}
+
+func str_replace(s: string, old: string, new: string) -> string {
+    var result = ""
+    var i = 0
+    var old_len = len(old)
+    while i < len(s) {
+        if i + old_len <= len(s) and s[i:i+old_len] == old {
+            result = result + new
+            i = i + old_len
+        } else {
+            result = result + s[i]
+            i = i + 1
+        }
+    }
+    return result
+}
+
+func print_fmt(template: string, vars: map[string, string]) {
+    var output = template
+    for key in vars {
+        val placeholder = "{" + key + "}"
+        output = str_replace(output, placeholder, vars[key])
+    }
+    print(output)
+}
+
+# ----- Command Handlers -----
+
+func cmd_ping(args: list[string]) {
+    print("pong")
+}
+
+func cmd_echo(args: list[string]) {
+    when len(args) > 0:
+        print(args[0])
+    else:
+        print("Usage: echo <text>")
+}
+
+func cmd_save(args: list[string]) {
+    when len(args) < 2:
+        print("Usage: save <filename> <text>")
+    else:
+        val filename = args[0]
+        val content = join(args[1:], " ")
+        save_file(filename, content)
+}
+
+func cmd_load(args: list[string]) {
+    when len(args) != 1:
+        print("Usage: load <filename>")
+    else:
+        load_file(args[0])
+}
+
+func cmd_log(args: list[string]) {
+    when len(args) == 0:
+        print("Usage: log show | clear")
+    else:
+        when args[0] == "show":
+            log_show()
+        elif args[0] == "clear":
+            log_clear()
+        else:
+            print("Unknown log command")
+}
+
+func cmd_help(args: list[string]) {
+    print("Commands: ping, echo, save, load, log, help, exit")
+}
+
+func cmd_exit(args: list[string]) {
+    print("Exiting REPL.")
+    stop()
+}
+
+# ----- Command Dispatcher -----
+
+func dispatch(cmd: string) {
+    val parts = split(cmd, " ")
+    val command = parts[0]
+    val args = parts[1:]
+
+    when command == "ping":
+        cmd_ping(args)
+    elif command == "echo":
+        cmd_echo(args)
+    elif command == "save":
+        cmd_save(args)
+    elif command == "load":
+        cmd_load(args)
+    elif command == "log":
+        cmd_log(args)
+    elif command == "help":
+        cmd_help(args)
+    elif command == "exit":
+        cmd_exit(args)
+    elif command == "":
+        # empty input, do nothing
+    else:
+        print_fmt("Unknown command: {command}", {"command": command})
+}
+
+# ----- REPL Loop (async event-driven) -----
+
+func run_repl() {
+    print("Welcome to QuarterLang Async REPL. Type 'help' for commands.")
+    loop true {
+        # Normally would await input here asynchronously,
+        # For simulation, we process event_queue
+
+        when len(event_queue) == 0:
+            # In a real async environment, wait for event/input here
+            break  # Stop for simulation
+
+        val cmd = dequeue_event()
+        dispatch(cmd)
+    }
+}
+
+# ----- Simulate Input ----- 
+
+func simulate_input() {
+    enqueue_event("ping")
+    enqueue_event("echo Hello QuarterLang")
+    enqueue_event("save greetings.txt Hello from QuarterLang!")
+    enqueue_event("load greetings.txt")
+    enqueue_event("log show")
+    enqueue_event("log clear")
+    enqueue_event("log show")
+    enqueue_event("unknown_cmd")
+    enqueue_event("help")
+    enqueue_event("exit")
+}
+
+# ----- String split and join -----
+
+func split(s: string, sep: string) -> list[string] {
+    var result: list[string] = []
+    var i = 0
+    var start = 0
+    var sep_len = len(sep)
+    while i <= len(s) - sep_len {
+        if s[i:i+sep_len] == sep {
+            result = result + [s[start:i]]
+            i = i + sep_len
+            start = i
+        } else {
+            i = i + 1
+        }
+    }
+    result = result + [s[start:len(s)]]
+    return result
+}
+
+func join(lst: list[string], sep: string) -> string {
+    var result = ""
+    var i = 0
+    loop i < len(lst) {
+        result = result + lst[i]
+        if i < len(lst) - 1 {
+            result = result + sep
+        }
+        i = i + 1
+    }
+    return result
+}
+
+# ----- Entry point -----
+
+simulate_input()
+run_repl()
+
 end
 
