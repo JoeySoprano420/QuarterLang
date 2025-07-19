@@ -10,3 +10,87 @@ module Formatter:
   end define
 end module
 end
+
+star
+
+# Formatter: Regenerates human-readable QuarterLang source from AST nodes with symbolic annotations, styling hints, and traceability
+
+module Formatter:
+
+  # Core formatter entry
+  define format(ast as AST) as primative:
+    var out as primative = ""
+    var line_index as int = 0
+
+    for node in ast.nodes:
+      val context = FormatterContext.new(
+        line = line_index,
+        node_type = node.type,
+        lineage = generate_lineage_id(node),
+        phase = detect_phase(node)
+      )
+
+      val styled_line = format_node(node, context)
+      out = out + styled_line + "\n"
+      line_index = line_index + 1
+    end for
+
+    return out
+  end define
+
+
+  # Context-aware node formatter
+  define format_node(node as Node, ctx as FormatterContext) as primative:
+    val glyph = match ctx.node_type:
+      case "Function": return "ƒ"
+      case "Loop": return "⟳"
+      case "Declaration": return "Δ"
+      case "Expression": return "»"
+      else: return "·"
+    end match
+
+    val comment = "# [{ctx.phase}] Lineage: {ctx.lineage}"
+    val source = node.to_source()
+
+    return "{glyph} {source} {comment}"
+  end define
+
+
+  # Helper: detect symbolic execution phase
+  define detect_phase(node as Node) as string:
+    when node.type == "Function": return "func"
+    when node.type == "Loop": return "loop"
+    when node.type == "Declaration": return "bind"
+    else: return "emit"
+  end define
+
+
+  # Helper: lineage signature generation
+  define generate_lineage_id(node as Node) as string:
+    return hash(node.to_source() + "::" + node.type + "::" + now())
+  end define
+
+
+  # Preview-only: formatted summary block
+  define summarize(ast as AST):
+    println("📄 Formatter Summary — Nodes: {ast.nodes.size}")
+    for node in ast.nodes:
+      val preview = node.to_source()
+      println("• {preview[0..42]}...")
+    end for
+  end define
+
+
+  # Diagnostic: dump node types and glyphs
+  define diagnostics(ast as AST):
+    println("🔍 AST Diagnostics")
+    for node in ast.nodes:
+      val glyph = format_node(node, FormatterContext.new(0, node.type, "", ""))
+      println("{node.type}: {glyph}")
+    end for
+  end define
+
+end module
+
+end
+
