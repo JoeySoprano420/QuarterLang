@@ -368,3 +368,461 @@ func main_command_router(cmd: string):
   # CommandProcessor.route(cmd)
 end func
 
+star
+import Parser
+import Interpreter
+import Codegen
+
+module REPL:
+
+  define start() as void:
+    print("VACU REPL :: type 'exit' to quit")
+    loop:
+      print(">>> ", newline=false)
+      val input = read_line()
+      if input == "exit": break end if
+
+      val ast = Parser.parse(input)
+      print("AST: " + ast.to_string())
+
+      val result = Interpreter.eval(ast)
+      print("=> " + result.to_string())
+
+      val bytecode = Codegen.emit(ast)
+      print("Bytecode: " + bytecode.join(" | "))
+    end loop
+  end define
+
+end module
+end
+
+star
+module Node:
+  record Number(value as Number)
+  record String(value as String)
+  record Identifier(name as String)
+  record Binary(op as String, left as Node, right as Node)
+  record Call(callee as Node, args as List<Node>)
+  record VarDecl(name as String, value as Node)
+  record VarAssign(name as String, value as Node)
+  record FunctionDef(name as String, params as List<String>, body as List<Node>)
+  record Block(statements as List<Node>)
+  record Return(value as Node)
+  record Import(module as String)
+end module
+end
+
+star
+module Interpreter:
+  record Env(parent as Env?, vars as Map<String, Any>)
+
+  define Env.new(parent as Env?) as Env:
+    return Env(parent, {})
+  end
+
+  define Env.get(env as Env, key as String) as Any:
+    if key in env.vars: return env.vars[key]
+    elseif env.parent != nil: return get(env.parent, key)
+    else: ErrorHandler.error(404, "Undefined variable: " + key)
+  end
+
+  define Env.set(env as Env, key as String, val as Any) as void:
+    env.vars[key] = val
+  end
+
+  define eval(node as Node, env as Env) as Any:
+    match node
+      case Node.Number(n): return n
+      case Node.String(s): return s
+      case Node.Identifier(name): return Env.get(env, name)
+
+      case Node.Binary(op, left, right):
+        val l = eval(left, env)
+        val r = eval(right, env)
+        match op
+          case "+": return l + r
+          case "-": return l - r
+          case "*": return l * r
+          case "/": return l / r
+        end match
+
+      case Node.VarDecl(name, value):
+        val v = eval(value, env)
+        Env.set(env, name, v)
+        return v
+
+      case Node.VarAssign(name, value):
+        val v = eval(value, env)
+        Env.set(env, name, v)
+        return v
+
+      case Node.Call(callee, args):
+        val fn = eval(callee, env)
+        val argvals = args.map(x -> eval(x, env))
+        return fn.apply(argvals)
+
+      case Node.FunctionDef(name, params, body):
+        val fn = lambda(args as List<Any>):
+          val local = Env.new(env)
+          for i = 0; i < params.length(); i += 1:
+            Env.set(local, params[i], args[i])
+          end for
+          var result as Any
+          for stmt in body:
+            result = eval(stmt, local)
+            if result isa Node.Return: return result.value
+          end for
+          return result
+        end
+        Env.set(env, name, fn)
+        return fn
+
+      case Node.Block(statements):
+        var result as Any
+        for stmt in statements:
+          result = eval(stmt, env)
+        end for
+        return result
+
+      case Node.Return(value):
+        return eval(value, env)
+
+      case Node.Import(module):
+        val imported = Importer.load(module)
+        for name, val in imported:
+          Env.set(env, name, val)
+        end for
+        return nil
+    end match
+  end
+end module
+end
+
+star
+module Codegen:
+  record VMState(reg as Map<String, Number>, mem as Map<String, Number>, pc as Number)
+
+  define emit(node as Node, state as VMState) as List<String>:
+    match node
+      case Node.Number(n): return ["PUSH " + n.toString()]
+      case Node.Identifier(name): return ["LOAD " + name]
+      case Node.Binary(op, left, right):
+        val code = []
+        code += emit(left, state)
+        code += emit(right, state)
+        code += ["OP " + op]
+        return code
+      case Node.VarDecl(name, value):
+        val code = emit(value, state)
+        code += ["STORE " + name]
+        return code
+      case Node.FunctionDef(name, params, body):
+        val label = "FUNC_" + name
+        val bodycode = body.flatmap(stmt -> emit(stmt, state))
+        return ["LABEL " + label] + bodycode + ["RET"]
+    end match
+  end
+end module
+end
+
+star
+module Importer:
+  val registry as Map<String, Map<String, Any>> = {
+    "math": {
+      "pi": 3.14159,
+      "square": lambda(xs): xs[0] * xs[0],
+    }
+  }
+
+  define load(name as String) as Map<String, Any>:
+    if name in registry: return registry[name]
+    ErrorHandler.error(501, "Module not found: " + name)
+  end
+end module
+end
+
+star
+module REPL:
+  val global_env as Interpreter.Env = Interpreter.Env.new(nil)
+
+  define run() as void:
+    while true:
+      print("> ", newline: false)
+      val input = IO.read_line()
+      val ast = Parser.parse(input)
+      for stmt in ast.body:
+        val result = Interpreter.eval(stmt, global_env)
+        if result != nil: print("=> ", result)
+      end for
+    end while
+  end
+end module
+end
+
+module BytecodePrinter:
+  define print_bytecode(code as list) as void:
+    for i from 0 to len(code) - 1:
+      val instr = code[i]
+      print "[", i, "] ", instr.opcode, " ", join(instr.operands, ", ")
+    end for
+  end define
+end module
+
+module VMachine:
+  struct Instruction:
+    opcode as str
+    operands as list
+  end struct
+
+  define run(code as list, env as dict) as primative:
+    val ip = 0
+    val stack = []
+    val memory = env  # Shared symbol memory
+
+    loop:
+      when ip >= len(code): break end when
+      val instr = code[ip]
+      ip += 1
+
+      match instr.opcode:
+        case "PUSH":
+          stack.append(instr.operands[0])
+        case "LOAD":
+          stack.append(memory[instr.operands[0]])
+        case "STORE":
+          memory[instr.operands[0]] = stack.pop()
+        case "ADD":
+          val b = stack.pop()
+          val a = stack.pop()
+          stack.append(a + b)
+        case "SUB":
+          val b = stack.pop()
+          val a = stack.pop()
+          stack.append(a - b)
+        case "MUL":
+          val b = stack.pop()
+          val a = stack.pop()
+          stack.append(a * b)
+        case "DIV":
+          val b = stack.pop()
+          val a = stack.pop()
+          stack.append(a / b)
+        case "CALL":
+          val func = memory[instr.operands[0]]
+          val args = []
+          for i from 0 to instr.operands[1] - 1:
+            args.prepend(stack.pop())
+          val result = func.call(args)
+          stack.append(result)
+        case "HALT":
+          break
+        default:
+          error "Unknown opcode: ", instr.opcode
+      end match
+    end loop
+
+    return stack.pop()
+  end define
+end module
+
+module REPL:
+  val global_env as dict = {}
+  val history as list = []
+
+  define repl_loop() as void:
+    loop:
+      print "\n🔁 QuarterLang> ",
+      val line = input()
+      when line == "exit": break end when
+      when line == "history":
+        for i from 0 to len(history) - 1:
+          print i, ": ", history[i]
+        end for
+        continue
+      end when
+
+      history.append(line)
+
+      # Tokenize → Parse → Compile → Run
+      val ast = ExpressionParser.parse(line)
+      val bytecode = Codegen.compile(ast)
+      BytecodePrinter.print_bytecode(bytecode)
+      val result = VMachine.run(bytecode, global_env)
+
+      print "🟢 Result: ", result
+    end loop
+
+    save_history()
+  end define
+
+  define save_history() as void:
+    val f = open("repl_history.txt", "w")
+    for line in history: f.write(line + "\n") end for
+    f.close()
+  end define
+
+  define load_history() as void:
+    when exists("repl_history.txt"):
+      val f = open("repl_history.txt", "r")
+      while not f.eof():
+        history.append(f.readline())
+      end while
+      f.close()
+    end when
+  end define
+end module
+
+# Session Start
+REPL.load_history()
+REPL.repl_loop()
+
+module TypeChecker:
+
+  type TypeEnv = Table of (String -> String)  # e.g., "x" -> "Number", "foo" -> "Function"
+
+  define check(ast as ASTNode, env as TypeEnv) as String:
+    match ast.kind:
+      case "number":
+        return "Number"
+      case "identifier":
+        return env.get(ast.name, "Unknown")
+      case "binary":
+        left = check(ast.left, env)
+        right = check(ast.right, env)
+        if left == "Number" and right == "Number":
+          return "Number"
+        else:
+          error("Type mismatch in binary operation")
+      case "call":
+        func_type = check(ast.callee, env)
+        if func_type != "Function":
+          error("Trying to call non-function")
+        return "Any"  # or look up function return type
+      case "assign":
+        val_type = check(ast.value, env)
+        env[ast.name] = val_type
+        return val_type
+      case "function":
+        env[ast.name] = "Function"
+        return "Function"
+    end match
+  end define
+
+end module
+
+type Function = Struct(name, params, body, closure_env)
+
+define make_function(name, params, body, env) as Function:
+  return Function(name, params, body, clone(env))  # captured closure
+end define
+
+define call_function(fn as Function, args as List) as Value:
+  env = clone(fn.closure_env)
+  for i = 0 to len(fn.params):
+    env[fn.params[i]] = args[i]
+  end for
+  return eval(fn.body, env)
+end define
+
+module Profiler:
+  var instruction_count = Table()
+
+  define track(op as String):
+    instruction_count[op] = instruction_count.get(op, 0) + 1
+  end define
+
+  define report():
+    print("Instruction Profile:")
+    for k, v in instruction_count:
+      print("  " + k + ": " + str(v))
+    end for
+  end define
+end module
+
+define execute(op as String):
+  Profiler.track(op)
+  ... # actual execution
+end define
+
+type Bytecode = Struct(code, source_map)  # code: List of Instr, source_map: IP → Line
+
+define emit(instr, line):
+  bc.code.append(instr)
+  bc.source_map[len(bc.code) - 1] = line
+end define
+
+define debug_trace(ip):
+  line = bc.source_map.get(ip, -1)
+  if line != -1:
+    print("Executing line: " + str(line))
+  end if
+end define
+
+module BinaryFormat:
+  define save(bytecode as Bytecode, path as String):
+    out = open(path, "wb")
+    out.write(serialize(bytecode.code))
+    out.write(serialize(bytecode.source_map))
+    out.close()
+  end define
+
+  define load(path as String) as Bytecode:
+    inp = open(path, "rb")
+    code = deserialize(inp.read_chunk())
+    smap = deserialize(inp.read_chunk())
+    return Bytecode(code, smap)
+  end define
+end module
+
+type Module = Struct(name, exports, bytecode)
+
+module Linker:
+  var modules = Table()
+
+  define import(path as String) as Module:
+    bc = BinaryFormat.load(path)
+    name = infer_module_name(path)
+    mod = Module(name, extract_exports(bc), bc)
+    modules[name] = mod
+    return mod
+  end define
+
+  define link(main_bc as Bytecode):
+    for mod in modules:
+      inject_into_main(main_bc, mod.bytecode)
+    end for
+  end define
+end module
+
+module REPL:
+  var history = []
+  var global_env = {}
+
+  define loop():
+    while true:
+      line = input(">> ")
+      history.append(line)
+      ast = ExpressionParser.parse(line)
+      TypeChecker.check(ast, global_env)
+      bc = Codegen.compile(ast)
+      VM.run(bc, global_env)
+    end while
+  end define
+
+  define save_history(path):
+    write(path, join(history, "\n"))
+  end define
+
+  define load_history(path):
+    content = read(path)
+    history = split(content, "\n")
+    for line in history:
+      ast = ExpressionParser.parse(line)
+      bc = Codegen.compile(ast)
+      VM.run(bc, global_env)
+    end for
+  end define
+end module
+
+
+
