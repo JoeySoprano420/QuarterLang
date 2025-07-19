@@ -31,3 +31,4 @@ func init():
 func update_theme(theme: string):
     WebGL.set_canvas_style("background", get_color(theme))
 
+end
