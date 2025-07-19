@@ -1,0 +1,20 @@
+star
+import "Net.qtr"
+import "ManifestParser.qtr"
+import "PluginManager.qtr"
+import "ErrorHandler.qtr"
+
+let manifest_url = "https://plugins.quarterlang.org/remote.manifest"
+
+func pull_remote():
+  Net.fetch(url: manifest_url, on_success: ManifestParser.parse, on_fail: ErrorHandler.warn)
+
+func install_manifest(name: string):
+  let manifest = ManifestParser.get(name)
+  if manifest:
+    PluginManager.install_from_manifest(manifest)
+  else:
+    ErrorHandler.warn("Manifest not found: {name}")
+
+func update_all():
+  ManifestParser.get_all().each(name => install_manifest(name))
