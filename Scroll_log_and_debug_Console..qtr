@@ -1,0 +1,15 @@
+star
+
+var log_entries = []
+
+func log(msg: string):
+    if settings["enable_logging"]:
+        append log_entries, "[LOG]: " + msg
+        print(msg)
+
+func show_console():
+    for entry in log_entries:
+        print(entry)
+
+end
+
