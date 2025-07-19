@@ -698,3 +698,1773 @@ module AdvancedHighlightingREPL:
 end module
 end
 
+star
+module CLI:
+
+  var input_buffer as string = ""
+  var cursor_pos as int = 0
+  var history as List[string] = []
+  var history_index as int = -1
+
+  # Simple mock of reading a key with enhanced input
+  func read_key() as string:
+    # Simulate reading a single char or special key code here
+    # For demo: just return input line from ask()
+    val line = ask()
+    return line
+  end func
+
+  # Print with no newline option
+  func print(text: string, end: string = "\n"):
+    # For demo, just normal print
+    call system_print(text, end)
+  end func
+
+  # Ask with enhanced features
+  func ask_enhanced(history_ref: List[string], history_pos: int, autocomplete_fn: fn(string) -> List[string]) as string:
+    call print("> ", end="")
+    val line = ask()
+
+    # Add to history
+    history_ref.push(line)
+
+    # Provide autocomplete suggestions (simple prefix match)
+    val prefix = line.strip()
+    val suggestions = autocomplete_fn(prefix)
+    if len(suggestions) > 0:
+      call print("↪ Suggestions: {suggestions}")
+    end if
+
+    return line
+  end func
+
+  # Simple wrapper for blocking user input
+  func ask() as string:
+    # In a real environment, this reads from stdin
+    # Placeholder: read line from console
+    return system_ask()
+  end func
+
+  # Register commands into CLI system
+  var commands as Map[string, fn(List[string])] = {}
+
+  func register_command(name: string, handler: fn(List[string])):
+    commands[name] = handler
+  end func
+
+  func route(cmd_line: string):
+    val parts = cmd_line.strip().split(" ")
+    val cmd = parts[0]
+    val args = parts[1:]
+
+    if commands.contains(cmd):
+      commands[cmd](args)
+    else:
+      call print("Unknown command: {cmd}")
+    end if
+  end func
+
+end module
+end
+
+star
+module Themes:
+
+  var base_themes as Map[string, Map[string, string]] = {
+    "default": {
+      "keyword": "\033[1;34m",
+      "string": "\033[1;32m",
+      "comment": "\033[0;90m",
+      "number": "\033[1;35m",
+      "operator": "\033[1;33m",
+      "plain": "\033[0m"
+    },
+    "solarized": {
+      "keyword": "\033[1;36m",
+      "string": "\033[1;32m",
+      "comment": "\033[0;90m",
+      "number": "\033[1;33m",
+      "operator": "\033[1;31m",
+      "plain": "\033[0m"
+    }
+  }
+
+  var user_themes as Map[string, Map[string, string]] = {}
+
+  func add_user_theme(name: string, theme_map: Map[string, string]):
+    user_themes[name] = theme_map
+    call CLI.print("User theme '{name}' added.")
+  end func
+
+  func get_theme(name: string) as Map[string, string]:
+    if user_themes.contains(name):
+      return user_themes[name]
+    elif base_themes.contains(name):
+      return base_themes[name]
+    else:
+      return base_themes["default"]
+    end if
+  end func
+
+  func list_themes() as List[string]:
+    return base_themes.keys() + user_themes.keys()
+  end func
+
+end module
+end
+
+star
+module UserSession:
+
+  var sessions as Map[string, Map[string, primative]] = {}
+
+  func create_session(username: string):
+    when sessions.contains(username):
+      call CLI.print("Session for '{username}' already exists.")
+      return
+    end when
+    sessions[username] = {
+      "theme": "default",
+      "last_active": now(),
+      "plugins": []
+    }
+    call CLI.print("Session created for '{username}'.")
+  end func
+
+  func get_session(username: string) as Map[string, primative]:
+    return sessions.get(username, {})
+  end func
+
+  func update_session(username: string, key: string, value: primative):
+    if sessions.contains(username):
+      sessions[username][key] = value
+      sessions[username]["last_active"] = now()
+      call CLI.print("Session '{username}' updated: {key} = {value}")
+    else:
+      call CLI.print("No session for '{username}'.")
+    end if
+  end func
+
+end module
+
+
+module PluginSystem:
+
+  var plugins as Map[string, fn()] = {}
+  var plugin_metadata as Map[string, Map[string, primative]] = {}
+
+  func register_plugin(name: string, init_fn: fn(), meta: Map[string, primative]):
+    if plugins.contains(name):
+      call CLI.print("Plugin '{name}' already registered.")
+      return
+    end if
+    plugins[name] = init_fn
+    plugin_metadata[name] = meta
+    call CLI.print("Plugin '{name}' registered.")
+  end func
+
+  func activate_plugin(name: string):
+    if plugins.contains(name):
+      call plugins[name]()
+      call CLI.print("Plugin '{name}' activated.")
+    else:
+      call CLI.print("Plugin '{name}' not found.")
+    end if
+  end func
+
+  func list_plugins() as List[string]:
+    return plugins.keys()
+  end func
+
+end module
+end
+
+star
+import "InterpreterEngine.qtr"
+import "CLI.qtr"
+import "Themes.qtr"
+import "UserSession.qtr"
+import "PluginSystem.qtr"
+import "SyntaxHighlighter.qtr"
+
+module UnifiedREPL:
+
+  var current_user as string = ""
+  var current_theme as string = "default"
+  var running as bool = true
+
+  # Initialize system
+  func initialize():
+    call CLI.print("Welcome to QuarterLang REPL!")
+    call CLI.print("Loading plugins...")
+    # Load default or user-saved plugins (simulate)
+    for plugin_name in PluginSystem.list_plugins():
+      call PluginSystem.activate_plugin(plugin_name)
+    end for
+    call CLI.print("Plugins loaded.")
+  end func
+
+  # Switch user session or create new one
+  func login_user(username: string):
+    current_user = username
+    if not UserSession.sessions.contains(username):
+      call UserSession.create_session(username)
+    end if
+    val user_sess = UserSession.get_session(username)
+    current_theme = user_sess.get("theme", "default")
+    call CLI.print("Logged in as '{username}', theme '{current_theme}'")
+  end func
+
+  # Switch theme for current user/session
+  func switch_theme(theme_name: string):
+    val available = Themes.list_themes()
+    if available.contains(theme_name):
+      current_theme = theme_name
+      UserSession.update_session(current_user, "theme", theme_name)
+      call CLI.print("Theme switched to '{theme_name}'.")
+    else:
+      call CLI.print("Theme '{theme_name}' not available.")
+    end if
+  end func
+
+  # Autocomplete function for CLI.ask_enhanced
+  func autocomplete(prefix: string) as List[string]:
+    var results as List[string] = []
+    # Add builtin functions + plugins + commands + variables
+    for fn_name in InterpreterEngine.get_builtin_functions():
+      if fn_name.starts_with(prefix):
+        results.push(fn_name)
+      end if
+    end for
+    for plugin_name in PluginSystem.list_plugins():
+      if plugin_name.starts_with(prefix):
+        results.push(plugin_name)
+      end if
+    end for
+    # Add session usernames
+    for user in UserSession.sessions.keys():
+      if user.starts_with(prefix):
+        results.push(user)
+      end if
+    end for
+    return results
+  end func
+
+  # Command routing with extended commands for session, theme, plugins, exit
+  func route_command(line: string):
+    val parts = line.strip().split(" ")
+    val cmd = parts[0]
+    val args = parts[1:]
+
+    when cmd:
+      "login":
+        if len(args) >= 1:
+          login_user(args[0])
+        else:
+          call CLI.print("Usage: login <username>")
+        end if
+      "theme":
+        if len(args) >= 1:
+          switch_theme(args[0])
+        else:
+          call CLI.print("Available themes: {Themes.list_themes()}")
+        end if
+      "plugins":
+        call CLI.print("Available plugins: {PluginSystem.list_plugins()}")
+      "loadplugin":
+        if len(args) >= 1:
+          PluginSystem.activate_plugin(args[0])
+        else:
+          call CLI.print("Usage: loadplugin <plugin_name>")
+        end if
+      "exit":
+        running = false
+      _:
+        # Evaluate with interpreter
+        val result = InterpreterEngine.evaluate(line)
+        if result != null:
+          call CLI.print("=> {result}")
+        end if
+    end when
+  end func
+
+  # Main REPL loop with live persistence & theme-aware prompt
+  func repl_loop():
+    initialize()
+
+    while running:
+      val prompt_str = "{current_user}@QuarterLang [{current_theme}]> "
+      call CLI.print(prompt_str, end="")
+
+      val line = CLI.ask_enhanced(
+        UserSession.sessions.get(current_user, {}).get("history", []),
+        -1,
+        autocomplete
+      )
+
+      if line.strip() != "":
+        UserSession.sessions.get(current_user, {}).get("history", []).push(line)
+        route_command(line)
+      end if
+    end while
+
+    call CLI.print("Goodbye!")
+  end func
+
+end module
+
+# Entry point
+call UnifiedREPL.repl_loop()
+end
+
+star
+module InterpreterEngine:
+
+  var variables as Map[string, primative] = {}
+  var functions as Map[string, fn(List[primative]) -> primative] = {}
+
+  # Initialize builtins with real implementations
+  func initialize_builtins():
+    functions["print"] = fn(args: List[primative]) -> primative:
+      for arg in args:
+        call CLI.print(str(arg), end=" ")
+      end for
+      call CLI.print("")
+      return null
+    end fn
+
+    functions["add"] = fn(args: List[primative]) -> primative:
+      return args[0] + args[1]
+    end fn
+
+    functions["sub"] = fn(args: List[primative]) -> primative:
+      return args[0] - args[1]
+    end fn
+
+    # Add more builtins...
+  end func
+
+  # Mini parser & evaluator (handles simple expressions)
+  func evaluate(source: string) as primative:
+    # Tokenize by spaces for demo (real parser needed for full grammar)
+    val tokens = source.strip().split(" ")
+    if len(tokens) == 0:
+      return null
+    end if
+
+    # Example: function call: add 2 3
+    val func_name = tokens[0]
+    val args = tokens[1:].map(fn(t): 
+      try: return int(t)
+      except: return t
+      end try
+    end fn)
+
+    if functions.contains(func_name):
+      return functions[func_name](args)
+    else:
+      # Return raw source if unknown
+      return source
+    end if
+  end func
+
+  initialize_builtins()
+
+  func get_builtin_functions() as List[string]:
+    return functions.keys()
+  end func
+
+end module
+
+star
+module InterpreterEngine:
+
+  # ==== Tokenizer ====
+
+  enum TokenType:
+    IDENT
+    NUMBER
+    STRING
+    LPAREN
+    RPAREN
+    COMMA
+    PLUS
+    MINUS
+    MUL
+    DIV
+    POW
+    ASSIGN
+    EOF
+
+  struct Token:
+    val type: TokenType
+    val text: string
+    val pos: int
+
+  var source: string = ""
+  var pos: int = 0
+  var current_char: string = ""
+
+  func advance():
+    pos += 1
+    if pos >= len(source):
+      current_char = ""
+    else:
+      current_char = source[pos]
+    end if
+  end func
+
+  func skip_whitespace():
+    while current_char != "" and current_char.isspace():
+      advance()
+    end while
+  end func
+
+  func number() as Token:
+    var num_str: string = ""
+    while current_char != "" and (current_char.isdigit() or current_char == '.'):
+      num_str += current_char
+      advance()
+    end while
+    return Token.new(TokenType.NUMBER, num_str, pos)
+  end func
+
+  func identifier() as Token:
+    var id_str: string = ""
+    while current_char != "" and (current_char.isalnum() or current_char == '_'):
+      id_str += current_char
+      advance()
+    end while
+    return Token.new(TokenType.IDENT, id_str, pos)
+  end func
+
+  func get_next_token() as Token:
+    while current_char != "":
+      if current_char.isspace():
+        skip_whitespace()
+        continue
+      end if
+      if current_char.isdigit():
+        return number()
+      end if
+      if current_char.isalpha() or current_char == '_':
+        return identifier()
+      end if
+      match current_char:
+        '(' => { advance(); return Token.new(TokenType.LPAREN, "(", pos) }
+        ')' => { advance(); return Token.new(TokenType.RPAREN, ")", pos) }
+        ',' => { advance(); return Token.new(TokenType.COMMA, ",", pos) }
+        '+' => { advance(); return Token.new(TokenType.PLUS, "+", pos) }
+        '-' => { advance(); return Token.new(TokenType.MINUS, "-", pos) }
+        '*' => { advance(); return Token.new(TokenType.MUL, "*", pos) }
+        '/' => { advance(); return Token.new(TokenType.DIV, "/", pos) }
+        '^' => { advance(); return Token.new(TokenType.POW, "^", pos) }
+        '=' => { advance(); return Token.new(TokenType.ASSIGN, "=", pos) }
+        _ => call error("Unknown char: {current_char} at {pos}")
+      end match
+    end while
+    return Token.new(TokenType.EOF, "", pos)
+  end func
+
+  # ==== Parser AST Nodes ====
+
+  enum ASTType:
+    NUM
+    BINOP
+    UNOP
+    VAR
+    ASSIGN
+    CALL
+
+  struct ASTNode:
+    val type: ASTType
+    val value: any
+    val left: ASTNode
+    val right: ASTNode
+    val args: List[ASTNode]
+
+  # ==== Parser ====
+
+  var current_token: Token
+
+  func eat(tt: TokenType):
+    if current_token.type == tt:
+      current_token = get_next_token()
+    else:
+      call error("Unexpected token {current_token.text}, expected {tt}")
+    end if
+  end func
+
+  func factor() as ASTNode:
+    # factor: (PLUS|MINUS) factor | NUMBER | IDENT | LPAREN expr RPAREN | function call
+    val token = current_token
+
+    when token.type:
+      TokenType.PLUS:
+        eat(TokenType.PLUS)
+        return ASTNode.new(ASTType.UNOP, "+", factor(), null, [])
+      TokenType.MINUS:
+        eat(TokenType.MINUS)
+        return ASTNode.new(ASTType.UNOP, "-", factor(), null, [])
+      TokenType.NUMBER:
+        eat(TokenType.NUMBER)
+        return ASTNode.new(ASTType.NUM, float(token.text), null, null, [])
+      TokenType.IDENT:
+        val name = token.text
+        eat(TokenType.IDENT)
+        if current_token.type == TokenType.LPAREN:
+          # function call
+          eat(TokenType.LPAREN)
+          var args: List[ASTNode] = []
+          if current_token.type != TokenType.RPAREN:
+            args.push(expr())
+            while current_token.type == TokenType.COMMA:
+              eat(TokenType.COMMA)
+              args.push(expr())
+            end while
+          end if
+          eat(TokenType.RPAREN)
+          return ASTNode.new(ASTType.CALL, name, null, null, args)
+        else:
+          return ASTNode.new(ASTType.VAR, name, null, null, [])
+        end if
+      TokenType.LPAREN:
+        eat(TokenType.LPAREN)
+        val node = expr()
+        eat(TokenType.RPAREN)
+        return node
+      _:
+        call error("Unexpected token in factor: {token.text}")
+    end when
+  end func
+
+  func power() as ASTNode:
+    val node = factor()
+    while current_token.type == TokenType.POW:
+      val token = current_token
+      eat(TokenType.POW)
+      node = ASTNode.new(ASTType.BINOP, token.text, node, factor(), [])
+    end while
+    return node
+  end func
+
+  func term() as ASTNode:
+    var node = power()
+    while current_token.type in [TokenType.MUL, TokenType.DIV]:
+      val token = current_token
+      if token.type == TokenType.MUL:
+        eat(TokenType.MUL)
+      else:
+        eat(TokenType.DIV)
+      end if
+      node = ASTNode.new(ASTType.BINOP, token.text, node, power(), [])
+    end while
+    return node
+  end func
+
+  func expr() as ASTNode:
+    # expr: term ((PLUS | MINUS) term)*
+    var node = term()
+    while current_token.type in [TokenType.PLUS, TokenType.MINUS]:
+      val token = current_token
+      if token.type == TokenType.PLUS:
+        eat(TokenType.PLUS)
+      else:
+        eat(TokenType.MINUS)
+      end if
+      node = ASTNode.new(ASTType.BINOP, token.text, node, term(), [])
+    end while
+    return node
+  end func
+
+  func assignment() as ASTNode:
+    # assignment: IDENT = expr | expr
+    if current_token.type == TokenType.IDENT:
+      val var_name = current_token.text
+      eat(TokenType.IDENT)
+      if current_token.type == TokenType.ASSIGN:
+        eat(TokenType.ASSIGN)
+        val right = expr()
+        return ASTNode.new(ASTType.ASSIGN, var_name, null, right, [])
+      else:
+        # Not assignment, rollback to expr parsing
+        pos -= len(var_name)
+        current_token = get_next_token()
+        return expr()
+      end if
+    else:
+      return expr()
+    end if
+  end func
+
+  func parse(input_source: string) as ASTNode:
+    source = input_source
+    pos = 0
+    current_char = source[0]
+    current_token = get_next_token()
+    return assignment()
+  end func
+
+  # ==== Bytecode Instructions ====
+
+  enum OpCode:
+    PUSH_CONST
+    LOAD_VAR
+    STORE_VAR
+    ADD
+    SUB
+    MUL
+    DIV
+    POW
+    NEG
+    CALL_FUNC
+    RETURN
+
+  struct Instruction:
+    val op: OpCode
+    val arg: any
+
+  # ==== Compiler (AST to bytecode) ====
+
+  var constants: List[primative] = []
+  var bytecode: List[Instruction] = []
+
+  func compile(node: ASTNode):
+    when node.type:
+      ASTType.NUM:
+        val idx = add_constant(node.value)
+        bytecode.push(Instruction.new(OpCode.PUSH_CONST, idx))
+      ASTType.VAR:
+        bytecode.push(Instruction.new(OpCode.LOAD_VAR, node.value))
+      ASTType.ASSIGN:
+        compile(node.right)
+        bytecode.push(Instruction.new(OpCode.STORE_VAR, node.value))
+      ASTType.BINOP:
+        compile(node.left)
+        compile(node.right)
+        val op_map = {
+          "+": OpCode.ADD,
+          "-": OpCode.SUB,
+          "*": OpCode.MUL,
+          "/": OpCode.DIV,
+          "^": OpCode.POW
+        }
+        bytecode.push(Instruction.new(op_map[node.value], null))
+      ASTType.UNOP:
+        compile(node.left)
+        if node.value == "-":
+          bytecode.push(Instruction.new(OpCode.NEG, null))
+        else:
+          # no-op for '+'
+        end if
+      ASTType.CALL:
+        for arg in node.args:
+          compile(arg)
+        bytecode.push(Instruction.new(OpCode.CALL_FUNC, node.value))
+      _:
+        call error("Unknown AST node for compilation: {node.type}")
+    end when
+  end func
+
+  func add_constant(c: primative) as int:
+    constants.push(c)
+    return len(constants) - 1
+  end func
+
+  # ==== Virtual Machine ====
+
+  var stack: List[primative] = []
+  var vars: Map[string, primative] = {}
+
+  func run():
+    var ip = 0
+    while ip < len(bytecode):
+      val instr = bytecode[ip]
+      when instr.op:
+        OpCode.PUSH_CONST:
+          stack.push(constants[instr.arg])
+        OpCode.LOAD_VAR:
+          stack.push(vars.get(instr.arg, 0))
+        OpCode.STORE_VAR:
+          val v = stack.pop()
+          vars[instr.arg] = v
+        OpCode.ADD:
+          val b = stack.pop()
+          val a = stack.pop()
+          stack.push(a + b)
+        OpCode.SUB:
+          val b = stack.pop()
+          val a = stack.pop()
+          stack.push(a - b)
+        OpCode.MUL:
+          val b = stack.pop()
+          val a = stack.pop()
+          stack.push(a * b)
+        OpCode.DIV:
+          val b = stack.pop()
+          val a = stack.pop()
+          stack.push(a / b)
+        OpCode.POW:
+          val b = stack.pop()
+          val a = stack.pop()
+          stack.push(pow(a, b))
+        OpCode.NEG:
+          val a = stack.pop()
+          stack.push(-a)
+        OpCode.CALL_FUNC:
+          val func_name = instr.arg
+          # Simplified: support "print" only for now
+          if func_name == "print":
+            val arg = stack.pop()
+            call CLI.print(arg)
+            stack.push(null)
+          else:
+            call error("Unknown function call '{func_name}'")
+          end if
+        OpCode.RETURN:
+          return
+      end when
+      ip += 1
+    end while
+    if len(stack) > 0:
+      return stack.pop()
+    else:
+      return null
+    end if
+  end func
+
+  func evaluate(source: string) as primative:
+    # Reset compiler state
+    constants.clear()
+    bytecode.clear()
+    stack.clear()
+    vars.clear()
+    # Parse & compile
+    val ast = parse(source)
+    compile(ast)
+    # Execute VM
+    return run()
+  end func
+
+end module
+
+star
+module CLI:
+
+  import SyntaxHighlighter
+
+  var history: List[string] = []
+  var current_input: string = ""
+
+  # Simulated async input buffer for multi-line
+  func ask_multiline() as string:
+    var lines: List[string] = []
+    while true:
+      call print(">> ", end="")
+      val line: string = async_ask_line()
+      if line.strip() == "":
+        break
+      end if
+      lines.push(line)
+    end while
+    return "\n".join(lines)
+  end func
+
+  # Basic async input simulation
+  func async_ask_line() as string:
+    # Here, simulate async user input or integrate with real async input system
+    return ask()
+  end func
+
+  func print(text: string, end: string = "\n"):
+    # Can enhance to output with color/style from theme or highlighter
+    sys_print(text + end)
+  end func
+
+  # Live syntax highlight preview
+  func preview_highlight(input_str: string):
+    # Tokenize input
+    val tokens = tokenize(input_str)
+    val styled_tokens = SyntaxHighlighter.highlight(tokens)
+    for styled_token in styled_tokens:
+      # Print colored token based on styled_token.style
+      call print("[{styled_token.style}]{styled_token.token.text}[/]")
+    end for
+  end func
+
+  func tokenize(input_str: string) as List[Token]:
+    # Use interpreter tokenizer or simplified version here
+    return InterpreterEngine.tokenize(input_str)
+  end func
+
+end module
+
+star
+module Persistence:
+
+  var sessions_file: string = "sessions.dat"
+  var themes_file: string = "themes.dat"
+  var plugins_file: string = "plugins.dat"
+
+  func save_sessions(sessions: Map):
+    val serialized = serialize_to_string(sessions)
+    write_file(sessions_file, serialized)
+  end func
+
+  func load_sessions() as Map:
+    if file_exists(sessions_file):
+      val content = read_file(sessions_file)
+      return deserialize_from_string(content)
+    else:
+      return {}
+    end if
+  end func
+
+  func save_themes(themes: Map):
+    val serialized = serialize_to_string(themes)
+    write_file(themes_file, serialized)
+  end func
+
+  func load_themes() as Map:
+    if file_exists(themes_file):
+      val content = read_file(themes_file)
+      return deserialize_from_string(content)
+    else:
+      return {}
+    end if
+  end func
+
+  func save_plugins(plugins: Map):
+    val serialized = serialize_to_string(plugins)
+    write_file(plugins_file, serialized)
+  end func
+
+  func load_plugins() as Map:
+    if file_exists(plugins_file):
+      val content = read_file(plugins_file)
+      return deserialize_from_string(content)
+    else:
+      return {}
+    end if
+  end func
+
+  # Serialization helpers (JSON, YAML, or custom)
+  func serialize_to_string(data: any) as string:
+    # Implement JSON serialization or similar
+    return JSON.stringify(data)
+  end func
+
+  func deserialize_from_string(data_str: string) as any:
+    # Implement JSON deserialization or similar
+    return JSON.parse(data_str)
+  end func
+
+end module
+
+star
+module AsyncInput:
+
+  var input_queue: List[string] = []
+  var waiting: bool = false
+
+  func enqueue_input(line: string):
+    input_queue.push(line)
+  end func
+
+  func get_input() as string:
+    while len(input_queue) == 0:
+      # In real async system, yield or wait for input event
+      call sleep(10)
+    end while
+    return input_queue.pop(0)
+  end func
+
+end module
+
+star
+module Graphics:
+
+  # Requires graphical backend bindings
+
+  func plot_pixel(x: int, y: int, color: string):
+    # Bind to graphical system to draw pixel
+  end func
+
+  func render_mandelbrot(width: int, height: int, max_iter: int):
+    for px in 0 .. width-1:
+      for py in 0 .. height-1:
+        var x0 = (px / width) * 3.5 - 2.5
+        var y0 = (py / height) * 2.0 - 1.0
+        var x = 0.0
+        var y = 0.0
+        var iter = 0
+        while (x*x + y*y <= 4) and (iter < max_iter):
+          var xtemp = x*x - y*y + x0
+          y = 2*x*y + y0
+          x = xtemp
+          iter += 1
+        end while
+        val color = map_iter_to_color(iter, max_iter)
+        call plot_pixel(px, py, color)
+      end for
+    end for
+  end func
+
+  func map_iter_to_color(iter: int, max_iter: int) as string:
+    # Map iterations to color gradient string
+    return "#000000" # Simplified black for demo
+  end func
+
+end module
+
+star
+module Parser:
+
+  enum TokenType:
+    IDENT
+    NUMBER
+    STRING
+    LPAREN
+    RPAREN
+    LBRACE
+    RBRACE
+    COMMA
+    SEMICOLON
+    PLUS
+    MINUS
+    MUL
+    DIV
+    POW
+    ASSIGN
+    IF
+    ELSE
+    WHILE
+    FOR
+    FUNC
+    RETURN
+    EOF
+
+  struct Token:
+    val type: TokenType
+    val text: string
+    val pos: int
+
+  var source: string = ""
+  var pos: int = 0
+  var current_char: string = ""
+  var current_token: Token
+
+  func advance():
+    pos += 1
+    if pos >= len(source):
+      current_char = ""
+    else:
+      current_char = source[pos]
+    end if
+  end func
+
+  func skip_whitespace_and_comments():
+    while current_char != "":
+      if current_char.isspace():
+        advance()
+      elif current_char == '#':
+        # Skip comment till end of line
+        while current_char != "" and current_char != '\n':
+          advance()
+        end while
+      else:
+        break
+      end if
+    end while
+  end func
+
+  func tokenize() as List[Token]:
+    var tokens: List[Token] = []
+    pos = 0
+    current_char = source[pos]
+
+    while current_char != "":
+      skip_whitespace_and_comments()
+      if current_char == "":
+        break
+      elif current_char.isdigit():
+        tokens.push(number())
+      elif current_char.isalpha() or current_char == '_':
+        tokens.push(identifier_or_keyword())
+      else:
+        tokens.push(symbol())
+      end if
+    end while
+    tokens.push(Token.new(TokenType.EOF, "", pos))
+    return tokens
+  end func
+
+  func number() as Token:
+    var num_str: string = ""
+    while current_char != "" and (current_char.isdigit() or current_char == '.'):
+      num_str += current_char
+      advance()
+    end while
+    return Token.new(TokenType.NUMBER, num_str, pos)
+  end func
+
+  func identifier_or_keyword() as Token:
+    var id_str: string = ""
+    while current_char != "" and (current_char.isalnum() or current_char == '_'):
+      id_str += current_char
+      advance()
+    end while
+    val keyword_map = {
+      "if": TokenType.IF,
+      "else": TokenType.ELSE,
+      "while": TokenType.WHILE,
+      "for": TokenType.FOR,
+      "func": TokenType.FUNC,
+      "return": TokenType.RETURN
+    }
+    return Token.new(keyword_map.get(id_str, TokenType.IDENT), id_str, pos)
+  end func
+
+  func symbol() as Token:
+    match current_char:
+      '(' => { advance(); return Token.new(TokenType.LPAREN, "(", pos) }
+      ')' => { advance(); return Token.new(TokenType.RPAREN, ")", pos) }
+      '{' => { advance(); return Token.new(TokenType.LBRACE, "{", pos) }
+      '}' => { advance(); return Token.new(TokenType.RBRACE, "}", pos) }
+      ',' => { advance(); return Token.new(TokenType.COMMA, ",", pos) }
+      ';' => { advance(); return Token.new(TokenType.SEMICOLON, ";", pos) }
+      '+' => { advance(); return Token.new(TokenType.PLUS, "+", pos) }
+      '-' => { advance(); return Token.new(TokenType.MINUS, "-", pos) }
+      '*' => { advance(); return Token.new(TokenType.MUL, "*", pos) }
+      '/' => { advance(); return Token.new(TokenType.DIV, "/", pos) }
+      '^' => { advance(); return Token.new(TokenType.POW, "^", pos) }
+      '=' => { advance(); return Token.new(TokenType.ASSIGN, "=", pos) }
+      _ => call error("Unknown symbol '{current_char}' at pos {pos}")
+    end match
+  end func
+
+  var tokens: List[Token] = []
+  var current_index: int = 0
+
+  func consume(tt: TokenType) as Token:
+    val tok = tokens[current_index]
+    if tok.type == tt:
+      current_index += 1
+      return tok
+    else:
+      call error("Expected token {tt}, found {tok.type} at {tok.pos}")
+    end if
+  end func
+
+  func peek() as Token:
+    return tokens[current_index]
+  end func
+
+  # === Grammar parsing starts here ===
+
+  # Program = Statement*
+  func parse_program() as ASTNode:
+    var stmts: List[ASTNode] = []
+    while peek().type != TokenType.EOF:
+      stmts.push(parse_statement())
+    end while
+    return ASTNode.new(ASTType.BLOCK, null, null, null, stmts)
+  end func
+
+  func parse_statement() as ASTNode:
+    val tok = peek()
+    when tok.type:
+      TokenType.IF: return parse_if()
+      TokenType.WHILE: return parse_while()
+      TokenType.FOR: return parse_for()
+      TokenType.FUNC: return parse_function()
+      TokenType.RETURN: return parse_return()
+      TokenType.IDENT:
+        # Could be assignment or expr statement
+        val next_tok = tokens[current_index + 1]
+        if next_tok.type == TokenType.ASSIGN:
+          return parse_assignment()
+        else:
+          val expr_node = parse_expression()
+          consume(TokenType.SEMICOLON)
+          return expr_node
+        end if
+      else:
+        val expr_node = parse_expression()
+        consume(TokenType.SEMICOLON)
+        return expr_node
+    end when
+  end func
+
+  func parse_if() as ASTNode:
+    consume(TokenType.IF)
+    consume(TokenType.LPAREN)
+    val cond = parse_expression()
+    consume(TokenType.RPAREN)
+    val then_block = parse_block()
+    var else_block: ASTNode = null
+    if peek().type == TokenType.ELSE:
+      consume(TokenType.ELSE)
+      else_block = parse_block()
+    end if
+    return ASTNode.new(ASTType.IF, cond, then_block, else_block, [])
+  end func
+
+  func parse_while() as ASTNode:
+    consume(TokenType.WHILE)
+    consume(TokenType.LPAREN)
+    val cond = parse_expression()
+    consume(TokenType.RPAREN)
+    val body = parse_block()
+    return ASTNode.new(ASTType.WHILE, cond, body, null, [])
+  end func
+
+  func parse_for() as ASTNode:
+    consume(TokenType.FOR)
+    consume(TokenType.LPAREN)
+    val var_tok = consume(TokenType.IDENT)
+    consume(TokenType.ASSIGN)
+    val start_expr = parse_expression()
+    consume(TokenType.SEMICOLON)
+    val cond_expr = parse_expression()
+    consume(TokenType.SEMICOLON)
+    val step_expr = parse_expression()
+    consume(TokenType.RPAREN)
+    val body = parse_block()
+    return ASTNode.new(ASTType.FOR, var_tok.text, start_expr, cond_expr, step_expr, body)
+  end func
+
+  func parse_function() as ASTNode:
+    consume(TokenType.FUNC)
+    val name_tok = consume(TokenType.IDENT)
+    consume(TokenType.LPAREN)
+    var params: List[string] = []
+    if peek().type != TokenType.RPAREN:
+      params.push(consume(TokenType.IDENT).text)
+      while peek().type == TokenType.COMMA:
+        consume(TokenType.COMMA)
+        params.push(consume(TokenType.IDENT).text)
+      end while
+    end if
+    consume(TokenType.RPAREN)
+    val body = parse_block()
+    return ASTNode.new(ASTType.FUNCTION, name_tok.text, null, null, params, body)
+  end func
+
+  func parse_return() as ASTNode:
+    consume(TokenType.RETURN)
+    val val_expr = parse_expression()
+    consume(TokenType.SEMICOLON)
+    return ASTNode.new(ASTType.RETURN, val_expr, null, null, [])
+  end func
+
+  func parse_assignment() as ASTNode:
+    val var_tok = consume(TokenType.IDENT)
+    consume(TokenType.ASSIGN)
+    val val_expr = parse_expression()
+    consume(TokenType.SEMICOLON)
+    return ASTNode.new(ASTType.ASSIGN, var_tok.text, null, val_expr, [])
+  end func
+
+  func parse_block() as ASTNode:
+    consume(TokenType.LBRACE)
+    var stmts: List[ASTNode] = []
+    while peek().type != TokenType.RBRACE:
+      stmts.push(parse_statement())
+    end while
+    consume(TokenType.RBRACE)
+    return ASTNode.new(ASTType.BLOCK, null, null, null, stmts)
+  end func
+
+  # Expression parsing based on operator precedence
+
+  func parse_expression() as ASTNode:
+    return parse_logic_or()
+  end func
+
+  func parse_logic_or() as ASTNode:
+    var node = parse_logic_and()
+    while peek().type == TokenType.OR:
+      val op = consume(TokenType.OR)
+      val right = parse_logic_and()
+      node = ASTNode.new(ASTType.BINOP, op.text, node, right, [])
+    end while
+    return node
+  end func
+
+  func parse_logic_and() as ASTNode:
+    var node = parse_equality()
+    while peek().type == TokenType.AND:
+      val op = consume(TokenType.AND)
+      val right = parse_equality()
+      node = ASTNode.new(ASTType.BINOP, op.text, node, right, [])
+    end while
+    return node
+  end func
+
+  func parse_equality() as ASTNode:
+    var node = parse_comparison()
+    while peek().type in [TokenType.EQ, TokenType.NE]:
+      val op = consume(peek().type)
+      val right = parse_comparison()
+      node = ASTNode.new(ASTType.BINOP, op.text, node, right, [])
+    end while
+    return node
+  end func
+
+  func parse_comparison() as ASTNode:
+    var node = parse_term()
+    while peek().type in [TokenType.LT, TokenType.LTE, TokenType.GT, TokenType.GTE]:
+      val op = consume(peek().type)
+      val right = parse_term()
+      node = ASTNode.new(ASTType.BINOP, op.text, node, right, [])
+    end while
+    return node
+  end func
+
+  func parse_term() as ASTNode:
+    var node = parse_factor()
+    while peek().type in [TokenType.PLUS, TokenType.MINUS]:
+      val op = consume(peek().type)
+      val right = parse_factor()
+      node = ASTNode.new(ASTType.BINOP, op.text, node, right, [])
+    end while
+    return node
+  end func
+
+  func parse_factor() as ASTNode:
+    var node = parse_unary()
+    while peek().type in [TokenType.MUL, TokenType.DIV]:
+      val op = consume(peek().type)
+      val right = parse_unary()
+      node = ASTNode.new(ASTType.BINOP, op.text, node, right, [])
+    end while
+    return node
+  end func
+
+  func parse_unary() as ASTNode:
+    val tok = peek()
+    if tok.type in [TokenType.PLUS, TokenType.MINUS]:
+      val op = consume(tok.type)
+      val operand = parse_unary()
+      return ASTNode.new(ASTType.UNOP, op.text, operand, null, [])
+    else:
+      return parse_power()
+    end if
+  end func
+
+  func parse_power() as ASTNode:
+    var node = parse_primary()
+    if peek().type == TokenType.POW:
+      consume(TokenType.POW)
+      val exponent = parse_unary()
+      node = ASTNode.new(ASTType.BINOP, "^", node, exponent, [])
+    end if
+    return node
+  end func
+
+  func parse_primary() as ASTNode:
+    val tok = peek()
+    when tok.type:
+      TokenType.NUMBER:
+        consume(TokenType.NUMBER)
+        return ASTNode.new(ASTType.NUM, float(tok.text), null, null, [])
+      TokenType.IDENT:
+        consume(TokenType.IDENT)
+        # Could be var or function call
+        if peek().type == TokenType.LPAREN:
+          consume(TokenType.LPAREN)
+          var args: List[ASTNode] = []
+          if peek().type != TokenType.RPAREN:
+            args.push(parse_expression())
+            while peek().type == TokenType.COMMA:
+              consume(TokenType.COMMA)
+              args.push(parse_expression())
+            end while
+          end if
+          consume(TokenType.RPAREN)
+          return ASTNode.new(ASTType.CALL, tok.text, null, null, args)
+        else:
+          return ASTNode.new(ASTType.VAR, tok.text, null, null, [])
+        end if
+      TokenType.LPAREN:
+        consume(TokenType.LPAREN)
+        val node = parse_expression()
+        consume(TokenType.RPAREN)
+        return node
+      _:
+        call error("Unexpected token {tok.text} at parse_primary")
+    end when
+  end func
+
+end module
+
+star
+module GraphicsFrontend:
+
+  var width: int = 800
+  var height: int = 600
+  var framebuffer: List[List[string]] = []  # 2D array of color strings
+
+  func init_framebuffer():
+    framebuffer.clear()
+    for i in 0 .. height-1:
+      var row: List[string] = []
+      for j in 0 .. width-1:
+        row.push("#000000")  # black background
+      end for
+      framebuffer.push(row)
+    end for
+  end func
+
+  func plot_pixel(x: int, y: int, color: string):
+    if x >= 0 and x < width and y >= 0 and y < height:
+      framebuffer[y][x] = color
+    end if
+  end func
+
+  func render():
+    # Bind to graphical system or terminal with color support
+    for y in 0 .. height-1:
+      var line = ""
+      for x in 0 .. width-1:
+        line += convert_color_to_char(framebuffer[y][x])
+      end for
+      call CLI.print(line)
+    end for
+  end func
+
+  func convert_color_to_char(color: string) as string:
+    # Simplified mapping colors to ASCII blocks or terminal colors
+    return "█"  # Full block for demonstration
+  end func
+
+  func render_fractal():
+    init_framebuffer()
+    # Example Mandelbrot with 80x40 for demo
+    var w = 80
+    var h = 40
+    for px in 0 .. w-1:
+      for py in 0 .. h-1:
+        var x0 = (px / w) * 3.5 - 2.5
+        var y0 = (py / h) * 2.0 - 1.0
+        var x = 0.0
+        var y = 0.0
+        var iter = 0
+        val max_iter = 50
+        while (x*x + y*y <= 4) and (iter < max_iter):
+          var xtemp = x*x - y*y + x0
+          y = 2*x*y + y0
+          x = xtemp
+          iter += 1
+        end while
+        val color = if iter == max_iter: "#000000" else: "#FFFFFF"
+        plot_pixel(px, py, color)
+      end for
+    end for
+    render()
+  end func
+
+end module
+
+star
+module AsyncREPL:
+
+  import CLI
+  import SyntaxHighlighter
+  import InterpreterEngine
+
+  var running: bool = true
+  var input_buffer: string = ""
+
+  func run():
+    call CLI.print("Welcome to QuarterLang Async REPL! Type 'exit' to quit.")
+    while running:
+      call CLI.print("ql> ", end="")
+      val line = async_read_line()
+      if line.strip() == "exit":
+        running = false
+        break
+      end if
+      input_buffer += line + "\n"
+      # Live syntax highlight preview (simple)
+      call CLI.preview_highlight(input_buffer)
+      if line.strip().endswith(";") or line.strip() == "":
+        # Execute when statement complete (ends with semicolon or empty line)
+        try:
+          val result = InterpreterEngine.evaluate(input_buffer)
+          if result != null:
+            call CLI.print("=> {result}")
+          end if
+        except err:
+          call CLI.print("Error: {err}")
+        end try
+        input_buffer = ""
+      end if
+    end while
+  end func
+
+  func async_read_line() as string:
+    # Integrate real async input or simulate with blocking input for demo
+    return CLI.ask()
+  end func
+
+end module
+
+star
+module UserProfile:
+
+  import Persistence
+
+  var profiles: Map[string, Map[string, any]] = Persistence.load_sessions()
+
+  func get_profile(username: string) as Map[string, any]:
+    if profiles.contains(username):
+      return profiles[username]
+    else:
+      val default_profile = {
+        "theme": "dark",
+        "font_size": 14,
+        "plugins_enabled": []
+      }
+      profiles[username] = default_profile
+      return default_profile
+    end if
+  end func
+
+  func save_profile(username: string):
+    Persistence.save_sessions(profiles)
+  end func
+
+  func set_theme(username: string, theme: string):
+    val profile = get_profile(username)
+    profile["theme"] = theme
+    save_profile(username)
+  end func
+
+  func list_themes() as List[string]:
+    return ["dark", "light", "solarized", "galactic"]
+  end func
+
+  func apply_theme(username: string):
+    val profile = get_profile(username)
+    val theme = profile["theme"]
+    # Apply theme colors to CLI or REPL environment
+    call CLI.print("Theme set to {theme}")
+  end func
+
+  # UI for changing themes interactively
+  func theme_selection_ui(username: string):
+    call CLI.print("Available themes:")
+    for theme in list_themes():
+      call CLI.print(" - {theme}")
+    end for
+    call CLI.print("Enter theme name:")
+    val choice = CLI.ask()
+    if list_themes().contains(choice):
+      set_theme(username, choice)
+      call apply_theme(username)
+    else:
+      call CLI.print("Invalid theme")
+    end if
+  end func
+
+end module
+
+star
+module BytecodeVM:
+
+  enum OpCode:
+    PUSH_CONST
+    LOAD_VAR
+    STORE_VAR
+    ADD
+    SUB
+    MUL
+    DIV
+    POW
+    NEG
+    JMP
+    JMP_IF_FALSE
+    CALL
+    RET
+    HALT
+
+  struct Instruction:
+    val opcode: OpCode
+    val operand: any
+
+  var instructions: List[Instruction] = []
+  var ip: int = 0       # Instruction pointer
+  var stack: List[any] = []
+  var call_stack: List[int] = []
+  var globals: Map[string, any] = {}
+  var locals_stack: List[Map[string, any]] = []
+
+  func reset():
+    ip = 0
+    stack.clear()
+    call_stack.clear()
+    globals.clear()
+    locals_stack.clear()
+    locals_stack.push(Map[string, any]())
+  end func
+
+  func push(value: any):
+    stack.push(value)
+  end func
+
+  func pop() as any:
+    if stack.is_empty():
+      call error("Stack underflow")
+    end if
+    return stack.pop()
+  end func
+
+  func peek() as any:
+    return stack[-1]
+  end func
+
+  func run(bytecode: List[Instruction]) as any:
+    instructions = bytecode
+    reset()
+    while ip < len(instructions):
+      val inst = instructions[ip]
+      ip += 1
+      match inst.opcode:
+        OpCode.PUSH_CONST:
+          push(inst.operand)
+        OpCode.LOAD_VAR:
+          val name: string = inst.operand
+          val val = resolve_variable(name)
+          push(val)
+        OpCode.STORE_VAR:
+          val name: string = inst.operand
+          val val = pop()
+          assign_variable(name, val)
+        OpCode.ADD:
+          val b = pop()
+          val a = pop()
+          push(a + b)
+        OpCode.SUB:
+          val b = pop()
+          val a = pop()
+          push(a - b)
+        OpCode.MUL:
+          val b = pop()
+          val a = pop()
+          push(a * b)
+        OpCode.DIV:
+          val b = pop()
+          val a = pop()
+          if b == 0: call error("Division by zero")
+          push(a / b)
+        OpCode.POW:
+          val exp = pop()
+          val base = pop()
+          push(math_pow(base, exp))
+        OpCode.NEG:
+          val a = pop()
+          push(-a)
+        OpCode.JMP:
+          ip = inst.operand
+        OpCode.JMP_IF_FALSE:
+          val cond = pop()
+          if not cond:
+            ip = inst.operand
+          end if
+        OpCode.CALL:
+          val fn_addr = inst.operand
+          call_stack.push(ip)
+          ip = fn_addr
+          locals_stack.push(Map[string, any]())
+        OpCode.RET:
+          ip = call_stack.pop()
+          locals_stack.pop()
+        OpCode.HALT:
+          break
+        _:
+          call error("Unknown opcode")
+      end match
+    end while
+    if stack.is_empty():
+      return null
+    else:
+      return pop()
+    end if
+  end func
+
+  func resolve_variable(name: string) as any:
+    # Look in locals stack from top down
+    for locals in locals_stack.reverse_iter():
+      if locals.contains(name):
+        return locals[name]
+      end if
+    end for
+    # Then globals
+    if globals.contains(name):
+      return globals[name]
+    end if
+    call error("Undefined variable: {name}")
+  end func
+
+  func assign_variable(name: string, val: any):
+    # Assign in top locals frame if exists, else globals
+    if locals_stack.is_empty():
+      globals[name] = val
+    else:
+      locals_stack[-1][name] = val
+    end if
+  end func
+
+  # Compile AST to bytecode (very simplified demo)
+  func compile(ast: ASTNode) as List[Instruction]:
+    var code: List[Instruction] = []
+    # Recursively compile AST nodes here
+    # For brevity, only basic expressions:
+    compile_node(ast, code)
+    code.push(Instruction.new(OpCode.HALT, null))
+    return code
+  end func
+
+  func compile_node(node: ASTNode, code: List[Instruction]):
+    when node.type:
+      ASTType.NUM:
+        code.push(Instruction.new(OpCode.PUSH_CONST, node.value))
+      ASTType.VAR:
+        code.push(Instruction.new(OpCode.LOAD_VAR, node.name))
+      ASTType.ASSIGN:
+        compile_node(node.right, code)
+        code.push(Instruction.new(OpCode.STORE_VAR, node.name))
+      ASTType.BINOP:
+        compile_node(node.left, code)
+        compile_node(node.right, code)
+        match node.operator:
+          "+" => code.push(Instruction.new(OpCode.ADD, null))
+          "-" => code.push(Instruction.new(OpCode.SUB, null))
+          "*" => code.push(Instruction.new(OpCode.MUL, null))
+          "/" => code.push(Instruction.new(OpCode.DIV, null))
+          "^" => code.push(Instruction.new(OpCode.POW, null))
+          _ => call error("Unknown binary operator {node.operator}")
+        end match
+      ASTType.UNOP:
+        compile_node(node.left, code)
+        if node.operator == "-" then
+          code.push(Instruction.new(OpCode.NEG, null))
+        else
+          call error("Unknown unary operator {node.operator}")
+        end if
+      _:
+        call error("Unsupported AST node {node.type}")
+    end when
+  end func
+
+end module
+
+star
+module AsyncInput:
+
+  var input_queue: List[string] = []
+  var input_waiting: bool = false
+
+  func enqueue_input(line: string):
+    input_queue.push(line)
+    if input_waiting:
+      input_waiting = false
+      resume_waiting()
+    end if
+  end func
+
+  func async_read_line() as string:
+    if input_queue.is_empty():
+      input_waiting = true
+      suspend_current_coroutine()  # Async yield until resumed
+    end if
+    return input_queue.pop()
+  end func
+
+  func run_event_loop():
+    while true:
+      # Poll OS for input (simplified)
+      val line = poll_os_input()
+      if line != null:
+        enqueue_input(line)
+      end if
+      run_other_async_tasks()
+      sleep(10)  # ms
+    end while
+  end func
+
+end module
+
+star
+module GraphicsWindow:
+
+  var window_handle: WindowHandle = null
+  var width: int = 800
+  var height: int = 600
+  var framebuffer: List[List[int]] = []  # RGB pixel buffer
+
+  func init():
+    window_handle = SDL_CreateWindow("QuarterLang Graphics", width, height)
+    framebuffer = make_2d_array(width, height, 0x000000)
+  end func
+
+  func plot_pixel(x: int, y: int, color: int):
+    if x >= 0 and x < width and y >= 0 and y < height:
+      framebuffer[y][x] = color
+    end if
+  end func
+
+  func update_window():
+    SDL_UpdateWindowPixels(window_handle, framebuffer)
+    SDL_PollEvents()
+  end func
+
+  func main_loop():
+    while not SDL_WindowShouldClose(window_handle):
+      update_window()
+      sleep(16)  # approx 60 FPS
+    end while
+    SDL_DestroyWindow(window_handle)
+  end func
+
+end module
+
+star
+module PluginManager:
+
+  var plugins: Map[string, Module] = {}
+
+  func load_plugin(name: string, filepath: string):
+    val mod = load_module_from_file(filepath)
+    plugins[name] = mod
+    call print("Plugin {name} loaded.")
+  end func
+
+  func unload_plugin(name: string):
+    if plugins.contains(name):
+      plugins.erase(name)
+      call print("Plugin {name} unloaded.")
+    else:
+      call print("Plugin {name} not found.")
+    end if
+  end func
+
+  func list_plugins():
+    for name in plugins.keys():
+      call print("- {name}")
+    end for
+  end func
+
+  func call_plugin_func(name: string, func_name: string, args: List[any]) as any:
+    if plugins.contains(name):
+      val mod = plugins[name]
+      return mod.call_function(func_name, args)
+    else:
+      call error("Plugin {name} not loaded.")
+    end if
+  end func
+
+end module
+
