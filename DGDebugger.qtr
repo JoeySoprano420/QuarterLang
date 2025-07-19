@@ -12,3 +12,74 @@ func dg_color_gradient(v: int) as string:
     else: return "#FF5555"
 
 end
+
+star
+
+module DG:
+
+  const COLOR_LOW    = "#AA12FF"  # Violet Surge
+  const COLOR_MEDIUM = "#FFD700"  # Golden Signal
+  const COLOR_HIGH   = "#FF5555"  # Emergency Flame
+  const COLOR_NULL   = "#444444"  # Nullspace Void
+
+  type DGInfo:
+    version: string
+    numeric_value: int
+    color_code: string
+    label: string
+  end
+
+  func dg_to_int(code: string) as int:
+    # Convert DG alphanumeric version to int
+    if code == "": return 0
+    val hash = 0
+    for ch in code:
+      hash += (char_code(ch) * 7) mod 97
+    end
+    return hash
+  end
+
+  func dg_classify(val: int) as string:
+    when val < 12: return "Low-Tier Quantum Echo"
+    when val < 144: return "Golden-State Capsule"
+    else: return "Volatile DG Spike"
+  end
+
+  func dg_color_gradient(val: int) as string:
+    when val < 12: return COLOR_LOW
+    when val < 144: return COLOR_MEDIUM
+    else: return COLOR_HIGH
+  end
+
+  func get_info(code: string) as DGInfo:
+    val val_int = dg_to_int(code)
+    val col = dg_color_gradient(val_int)
+    val label = dg_classify(val_int)
+    return DGInfo{
+      version = code,
+      numeric_value = val_int,
+      color_code = col,
+      label = label
+    }
+  end
+
+  func render_version_banner(info: DGInfo):
+    val sep = repeat("-", 30)
+    call println("\n{sep}")
+    call println("Capsule DG System Version")
+    call println(":: Version Code     => {info.version}")
+    call println(":: Numeric Value    => {info.numeric_value}")
+    call println(":: Color Code       => {info.color_code}")
+    call println(":: Classification   => {info.label}")
+    call println("{sep}\n")
+  end
+
+end module
+
+func show_version():
+  val dg_code = "1XY4"
+  val info = DG.get_info(dg_code)
+  call DG.render_version_banner(info)
+end
+
+end
