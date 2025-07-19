@@ -1,0 +1,194 @@
+star
+module DebuggerUI:
+
+  import "curses"  # hypothetical curses binding module
+  import "DebugBackend"
+
+  var screen = curses.init()
+  var watches_win = screen.new_window(height=10, width=40, y=0, x=0)
+  var callstack_win = screen.new_window(height=10, width=40, y=0, x=41)
+  var input_win = screen.new_window(height=3, width=81, y=11, x=0)
+
+  # Main event loop with async input and render
+  define run():
+    loop true:
+      call render()
+      val input = input_win.get_key_nonblocking()
+      if input != null:
+        handle_input(input)
+      end if
+      sleep(30)  # ms frame delay
+    end loop
+  end define
+
+  define render():
+    watches_win.clear()
+    callstack_win.clear()
+    input_win.clear()
+
+    # Render watches
+    val watches = DebugBackend.get_watches()
+    watches_win.addstr("Watches:\n")
+    for (k,v) in watches.items():
+      watches_win.addstr("  {k}: {v}\n")
+    end for
+
+    # Render call stack
+    val stack = DebugBackend.get_call_stack()
+    callstack_win.addstr("Call Stack:\n")
+    for i in 0 to stack.length - 1:
+      val frame = stack[i]
+      callstack_win.addstr("  [{i}] {frame.fn_name} @ {frame.line}\n")
+    end for
+
+    input_win.addstr("Debugger> ")
+
+    watches_win.refresh()
+    callstack_win.refresh()
+    input_win.refresh()
+  end define
+
+  define handle_input(key):
+    when key == 'q':
+      call curses.end()
+      exit(0)
+    when key == 'n':
+      DebugBackend.step_over()
+    when key == 's':
+      DebugBackend.step_into()
+    # More keys: continue, breakpoint toggle, evaluate expr, etc.
+  end define
+
+end module
+end
+
+star
+module TypeInference:
+
+  type TypeVar = {
+    id: int,
+    instance: Type | null
+  }
+
+  type Type = 
+    | TInt
+    | TBool
+    | TVar(TypeVar)
+    | TFun(Type, Type)
+    | TCon(string, List[Type])
+
+  var next_typevar_id = 0
+
+  define new_type_var() as TypeVar:
+    val tv = TypeVar{id=next_typevar_id, instance=null}
+    next_typevar_id = next_typevar_id + 1
+    return tv
+  end define
+
+  define unify(t1: Type, t2: Type):
+    # If either is a type variable, bind or check occurs
+    # If both are same concrete type, ok
+    # If functions, unify arg and return types
+    # Otherwise error
+    # (Full code here with occurs check etc.)
+  end define
+
+  define infer_expr(expr: Expr, env: Env) as Type:
+    # Walk AST, recursively infer types for variables, function calls, literals
+    # Generate constraints, unify as needed
+    # Support let-polymorphism via generalization/instantiation
+  end define
+
+end module
+end
+
+star
+module LSPServer:
+
+  import "json"
+  import "io"
+
+  define start():
+    loop true:
+      val raw = io.read_line()
+      if raw is null: break end if
+      val request = json.parse(raw)
+      spawn handle_request(request)
+    end loop
+  end define
+
+  define handle_request(req: Map):
+    val method = req["method"]
+    val id = req.get("id", null)
+
+    when method == "initialize":
+      send_response(id, {"capabilities": get_capabilities()})
+    when method == "textDocument/hover":
+      val pos = req["params"]["position"]
+      val contents = handle_hover(pos)
+      send_response(id, {"contents": contents})
+    when method == "textDocument/didChange":
+      val changes = req["params"]["contentChanges"]
+      update_document(changes)
+    else:
+      send_response(id, {"error": "Method not implemented"})
+    end when
+  end define
+
+  define send_response(id, result):
+    val resp = {"jsonrpc": "2.0", "id": id, "result": result}
+    io.write_line(json.stringify(resp))
+  end define
+
+end module
+end
+
+star
+module AsyncREPL:
+
+  import "SyntaxHighlighter"
+  import "EventLoop"
+  import "Terminal"
+
+  var input_buffer = ""
+  var cursor_pos = 0
+  var history = List[string]()
+  var history_pos = -1
+
+  define start():
+    EventLoop.register_stdin(on_input)
+    EventLoop.run()
+  end define
+
+  define on_input(data: string):
+    input_buffer = input_buffer + data
+    highlight_and_render(input_buffer)
+    if input_buffer.ends_with("\n"):
+      val result = evaluate(input_buffer)
+      Terminal.print(result)
+      history.push(input_buffer)
+      input_buffer = ""
+      cursor_pos = 0
+      highlight_and_render(input_buffer)
+    end if
+  end define
+
+  define highlight_and_render(text: string):
+    val tokens = Lexer.lex(text)
+    val styled_tokens = SyntaxHighlighter.highlight(tokens)
+    Terminal.clear_line()
+    Terminal.render_styled(styled_tokens)
+  end define
+
+  define evaluate(src: string) as string:
+    try:
+      val ast = Parser.parse(src)
+      val result = Interpreter.eval(ast)
+      return result.to_string()
+    catch e:
+      return "Error: " + e.message
+    end try
+  end define
+
+end module
+end
