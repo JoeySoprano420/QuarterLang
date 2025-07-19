@@ -1,0 +1,9 @@
+func init():
+    return {"echo_count": 0}
+
+func on_input(line: string):
+    print("[echo]: " + line)
+
+func resume(old_state: Map):
+    print("Restoring previous state ...")
+    return old_state
