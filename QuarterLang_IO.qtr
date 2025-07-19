@@ -19,3 +19,122 @@ module IO:
   end define
 end module
 end
+
+star
+
+# QuarterLang IO: Capsule-grade I/O utilities with formatting, tracing, and thread-safe symbolic pipelines
+
+module IO:
+
+  # ── File I/O ───────────────────────────────────────────
+
+  define read_file(path as primative) as primative:
+    when path == "":
+      ErrorHandler.error(301, "Missing path to file")
+      return ""
+    end when
+    val content: primative = __sys_read_file(path)
+    return content
+  end define
+
+  define write_file(path as primative, data as primative):
+    when path == "":
+      ErrorHandler.error(302, "Missing path for write")
+      stop
+    end when
+    __sys_write_file(path, data)
+  end define
+
+  define read_file_lines(path as primative) as List<primative>:
+    val block: primative = read_file(path)
+    return block.split("\n")
+  end define
+
+  define append_file(path as primative, data as primative):
+    val current: primative = read_file(path)
+    write_file(path, current + "\n" + data)
+  end define
+
+
+  # ── Console Output ────────────────────────────────────
+
+  define print(text as primative):
+    __console_write(text)
+  end define
+
+  define println(text as primative):
+    __console_write(text + "\n")
+  end define
+
+  define prompt(message as primative) as primative:
+    __console_write(message + " > ")
+    val result: primative = ask()
+    return result
+  end define
+
+
+  # ── Buffered & Styled Output ───────────────────────────
+
+  var buffer as List<primative> = []
+
+  define buffer_write(text as primative):
+    buffer.push(text)
+  end define
+
+  define flush():
+    for line in buffer:
+      println(line)
+    end for
+    buffer.clear()
+  end define
+
+  define print_colored(text as primative, color as string):
+    __console_write("<{color}>{text}</{color}>\n")
+  end define
+
+
+  # ── Logging & Session Hooks ────────────────────────────
+
+  define log(text as primative, level as string = "info"):
+    val stamp: int = now()
+    val tag: string = "[{level.upper()} {stamp}]"
+    println("{tag} {text}")
+  end define
+
+  define session_output(user as string, msg as primative):
+    println("🗣 {user}: {msg}")
+  end define
+
+
+  # ── DG-Aware Streams ───────────────────────────────────
+
+  define print_dg(d as dg):
+    val dg_str: string = to_dg(d)
+    val color: string = when from_dg(d) < 12: "#AA12FF" elif from_dg(d) < 144: "#FFD700" else: "#FF4444"
+    print_colored("DG Emit: {dg_str}", color)
+  end define
+
+  define print_dgvec(stream as dgvec):
+    for val in stream:
+      print_dg(val)
+    end for
+  end define
+
+
+  # ── Diagnostics & Tracing ──────────────────────────────
+
+  define io_trace(tag as string, payload as primative):
+    val time: int = now()
+    println("🔎 I/O Trace — [{tag}] @ {time}: {payload}")
+  end define
+
+  define dump_buffer():
+    println("🧾 Buffer Dump:")
+    for line in buffer: println("• {line}")
+    end for
+  end define
+
+end module
+
+end
+
