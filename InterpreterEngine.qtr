@@ -1,0 +1,61 @@
+star
+module InterpreterEngine:
+
+  # Simulate an interpreter context with state, variables, functions, etc.
+  var variables as Map[string, primative] = {}
+  var functions as Map[string, fn(List[primative]) -> primative] = {}
+
+  # Initialize built-in functions
+  func initialize_builtins():
+    functions["print"] = fn(args: List[primative]) -> primative:
+      for arg in args:
+        call CLI.print(str(arg), end=" ")
+      end for
+      call CLI.print("")  # newline
+      return null
+    end fn
+
+    functions["add"] = fn(args: List[primative]) -> primative:
+      return args[0] + args[1]
+    end fn
+
+    functions["sub"] = fn(args: List[primative]) -> primative:
+      return args[0] - args[1]
+    end fn
+
+    # Add more built-ins here...
+  end func
+
+  # Evaluate QuarterLang source code (basic parsing + execution)
+  func evaluate(source: string) as primative:
+    # Simple example: interpret single line expressions only
+    # Real parser would be complex; here a minimal evaluator for demo
+
+    # Trim source
+    val code = source.strip()
+
+    # Handle function calls like print(123), add(1,2)
+    if code.starts_with("print(") and code.ends_with(")"):
+      val inside = code.substring(6, code.length - 1).strip()
+      call functions["print"]([inside])
+      return null
+    elif code.starts_with("add(") and code.ends_with(")"):
+      val args_str = code.substring(4, code.length - 1)
+      val args = args_str.split(",").map(fn(s): return int(s.strip()) end fn)
+      return functions["add"](args)
+    else:
+      # For unsupported or complex expressions, return source as result
+      return code
+    end if
+  end func
+
+  # Return list of builtin functions for autocompletion
+  func get_builtin_functions() as List[string]:
+    return functions.keys()
+  end func
+
+  # Initialize interpreter at module load
+  initialize_builtins()
+
+end module
+end
