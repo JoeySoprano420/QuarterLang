@@ -15,3 +15,105 @@ module ErrorHandler:
   end define
 end module
 end
+
+star
+
+# Filer: Symbolic loader, validator, and registrar of QuarterLang capsule modules
+
+module Filer:
+
+  # Registry for loaded modules
+  var loaded_modules as Map = {}      # name → Module
+  var module_metadata as Map = {}     # name → {path, timestamp, lineage, size}
+
+
+  # Core loader: safely reads and parses source file, tracks metadata
+  define load_module(name as primative) as Module:
+    val path: primative = "modules/" + name + ".qtr"
+    val src: primative = IO.read_file(path)
+
+    when src == "":
+      ErrorHandler.error(601, "Module file not found: {name}")
+      return Module.empty()
+    end when
+
+    val mod: Module = Parser.parse(src)
+
+    val meta = {
+      "path": path,
+      "timestamp": now(),
+      "lineage": generate_lineage_id(src),
+      "size": src.size
+    }
+
+    loaded_modules[name] = mod
+    module_metadata[name] = meta
+    IO.log("info", "Loaded module '{name}' from {path}")
+    return mod
+  end define
+
+
+  # Preload module if not already loaded
+  define require(name as primative) as Module:
+    when loaded_modules.contains(name):
+      return loaded_modules[name]
+    else:
+      return load_module(name)
+    end when
+  end define
+
+
+  # Reload an existing module by name
+  define reload(name as primative):
+    val mod = load_module(name)
+    IO.log("info", "Reloaded module '{name}'")
+  end define
+
+
+  # List all loaded modules with metadata
+  define list_modules():
+    println("📦 Loaded Modules:")
+    for name in loaded_modules.keys():
+      val meta = module_metadata[name]
+      println("• {name} @ {meta['path']} [{meta['size']}b] — {meta['lineage']}")
+    end for
+  end define
+
+
+  # Extract lineage hash for traceable load
+  define generate_lineage_id(source as primative) as string:
+    return hash(source + "::" + now())
+  end define
+
+
+  # Capsule diagnostic: module health probe
+  define probe(name as primative):
+    when module_metadata.contains(name):
+      val meta = module_metadata[name]
+      println("🔍 Module Probe: {name}")
+      println("↪ Path: {meta['path']}")
+      println("↪ Size: {meta['size']} bytes")
+      println("↪ Loaded @ {meta['timestamp']}")
+      println("↪ Lineage: {meta['lineage']}")
+    else:
+      ErrorHandler.warn("No metadata found for module '{name}'")
+    end when
+  end define
+
+
+  # Export module as capsule block
+  define export_module(name as primative) as primative:
+    when loaded_modules.contains(name):
+      val src: primative = IO.read_file("modules/" + name + ".qtr")
+      val capsule_block: primative = "QTRC2.1::" + name + "::" + src
+      return capsule_block
+    else:
+      ErrorHandler.warn("Module '{name}' not loaded")
+      return ""
+    end when
+  end define
+
+end module
+
+end
+
