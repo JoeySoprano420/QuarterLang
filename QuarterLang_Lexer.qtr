@@ -25,3 +25,500 @@ module Lexer:
   end define
 end module
 end
+
+star
+module Lexer:
+  # Improved Lexer with full token category handling, error detection, and diagnostics
+  
+  # Token structure assumed:
+  # Token(type: String, value: String, line: Int, column: Int)
+
+  var KEYWORDS as Set = {"if", "else", "while", "return", "module", "define", "end"}
+  var OPERATORS as Set = {"+", "-", "*", "/", "%", "=", "==", "!=", "<", ">", "<=", ">=", "&&", "||"}
+  var SYMBOLS as Set = {"(", ")", "{", "}", "[", "]", ",", ":", ".", ";"}
+
+  define lex(input as primative) as List<Token>:
+    var tokens as List<Token> = []
+    var idx as primative = 0
+    var line as primative = 1
+    var col as primative = 1
+
+    while idx < input.length:
+      val c = input[idx]
+
+      # Whitespace
+      if is_whitespace(c):
+        if c == "\n":
+          line = line + 1
+          col = 1
+        else:
+          col = col + 1
+        idx = idx + 1
+        continue
+      end if
+
+      # Identifier or keyword
+      if is_alpha(c):
+        val start = idx
+        val startCol = col
+        while idx < input.length and is_alnum(input[idx]):
+          idx = idx + 1
+          col = col + 1
+        end while
+        val value = input.substring(start, idx)
+        val type = KEYWORDS.contains(value) ? "KEYWORD" : "IDENT"
+        tokens.push(Token.new(type, value, line, startCol))
+        continue
+      end if
+
+      # Numbers (integers and floats)
+      if is_digit(c):
+        val start = idx
+        val startCol = col
+        var isFloat = false
+        while idx < input.length and is_digit(input[idx]):
+          idx = idx + 1
+          col = col + 1
+        end while
+        if idx < input.length and input[idx] == ".":
+          isFloat = true
+          idx = idx + 1
+          col = col + 1
+          while idx < input.length and is_digit(input[idx]):
+            idx = idx + 1
+            col = col + 1
+          end while
+        end if
+        val value = input.substring(start, idx)
+        tokens.push(Token.new(isFloat ? "FLOAT" : "NUMBER", value, line, startCol))
+        continue
+      end if
+
+      # Strings
+      if c == '"':
+        val startCol = col
+        idx = idx + 1
+        col = col + 1
+        val start = idx
+        while idx < input.length and input[idx] != '"':
+          if input[idx] == '\\' and idx + 1 < input.length: idx = idx + 2 col = col + 2 continue end if
+          idx = idx + 1
+          col = col + 1
+        end while
+        if idx >= input.length:
+          ErrorHandler.error(line, "Unterminated string literal")
+          break
+        end if
+        val value = input.substring(start, idx)
+        idx = idx + 1
+        col = col + 1
+        tokens.push(Token.new("STRING", value, line, startCol))
+        continue
+      end if
+
+      # Comments
+      if c == "#":
+        while idx < input.length and input[idx] != "\n": idx = idx + 1 end while
+        continue
+      end if
+
+      # Operators
+      var op = ""
+      for i in [3, 2, 1]:
+        if idx + i <= input.length:
+          val candidate = input.substring(idx, idx + i)
+          if OPERATORS.contains(candidate):
+            op = candidate
+            break
+          end if
+        end if
+      end for
+      if op != "":
+        tokens.push(Token.new("OPERATOR", op, line, col))
+        idx = idx + op.length
+        col = col + op.length
+        continue
+      end if
+
+      # Symbols
+      if SYMBOLS.contains(c):
+        tokens.push(Token.new("SYMBOL", c, line, col))
+        idx = idx + 1
+        col = col + 1
+        continue
+      end if
+
+      # Unknown character
+      ErrorHandler.error(line, "Unknown character: " + c)
+      idx = idx + 1
+      col = col + 1
+    end while
+
+    return tokens
+  end define
+end module
+end
+
+star
+module Lexer:
+  var source as primative = ""
+  var pos as primative = 0
+  var line as primative = 1
+  var column as primative = 1
+
+  enum TokenType:
+    IDENTIFIER, NUMBER, STRING, SYMBOL, OPERATOR, COMMENT, WHITESPACE, DIRECTIVE, EOF
+  end enum
+
+  record Token:
+    type as TokenType
+    value as primative
+    line as primative
+    column as primative
+  end record
+
+  class LexError:
+    var message as primative
+    var line as primative
+    var column as primative
+
+    define init(msg as primative, l as primative, c as primative):
+      message = msg
+      line = l
+      column = c
+    end define
+
+    define toString() as primative:
+      return "LexError(" + message + " at line " + line + ", col " + column + ")"
+    end define
+  end class
+
+  define init(input as primative):
+    source = input
+    pos = 0
+    line = 1
+    column = 1
+  end define
+
+  define peek() as primative:
+    when pos >= source.length:
+      return ""
+    end when
+    return source[pos]
+  end define
+
+  define advance() as primative:
+    var char as primative = peek()
+    if char == "\n":
+      line += 1
+      column = 1
+    else:
+      column += 1
+    end if
+    pos += 1
+    return char
+  end define
+
+  define isWhitespace(c as primative) as bool:
+    return c == " " or c == "\t" or c == "\n" or c == "\r"
+  end define
+
+  define isAlpha(c as primative) as bool:
+    return c >= "a" and c <= "z" or c >= "A" and c <= "Z" or c == "_"
+  end define
+
+  define isDigit(c as primative) as bool:
+    return c >= "0" and c <= "9"
+  end define
+
+  define isSymbol(c as primative) as bool:
+    return "!@#$%^&*()-=+[]{};:'\",.<>?/\\|".contains(c)
+  end define
+
+  define readWhile(cond as func(primative) as bool) as primative:
+    var result as primative = ""
+    while cond(peek()):
+      result += advance()
+    end while
+    return result
+  end define
+
+  define skipWhitespace():
+    readWhile(isWhitespace)
+  end define
+
+  define readNumber() as Token:
+    var startLine as primative = line
+    var startCol as primative = column
+    var value as primative = readWhile(isDigit)
+    return Token(TokenType.NUMBER, value, startLine, startCol)
+  end define
+
+  define readIdentifier() as Token:
+    var startLine as primative = line
+    var startCol as primative = column
+    var value as primative = readWhile(func(c): return isAlpha(c) or isDigit(c))
+    return Token(TokenType.IDENTIFIER, value, startLine, startCol)
+  end define
+
+  define readString() as Token:
+    var startLine as primative = line
+    var startCol as primative = column
+    var quote as primative = advance()
+    var value as primative = ""
+    while peek() != quote and peek() != "":
+      value += advance()
+    end while
+    if peek() == quote:
+      advance()
+    else:
+      throw LexError("Unterminated string", startLine, startCol)
+    end if
+    return Token(TokenType.STRING, value, startLine, startCol)
+  end define
+
+  define readDirective() as Token:
+    var startLine as primative = line
+    var startCol as primative = column
+    advance()  # consume '@'
+    var value as primative = readWhile(func(c): return isAlpha(c) or isDigit(c))
+    return Token(TokenType.DIRECTIVE, value, startLine, startCol)
+  end define
+
+  define nextToken() as Token:
+    skipWhitespace()
+    var c as primative = peek()
+    var startLine as primative = line
+    var startCol as primative = column
+    if c == "":
+      return Token(TokenType.EOF, "", line, column)
+    end if
+    if isDigit(c):
+      return readNumber()
+    end if
+    if isAlpha(c):
+      return readIdentifier()
+    end if
+    if c == "\"" or c == "'":
+      return readString()
+    end if
+    if c == "@":
+      return readDirective()
+    end if
+    if isSymbol(c):
+      return Token(TokenType.SYMBOL, advance(), startLine, startCol)
+    end if
+    throw LexError("Unexpected character: " + c, line, column)
+  end define
+
+  define tokenize(input as primative) as List:
+    init(input)
+    var tokens as List = []
+    while true:
+      var token = nextToken()
+      tokens.push(token)
+      if token.type == TokenType.EOF:
+        break
+      end if
+    end while
+    return tokens
+  end define
+
+  define testLexer():
+    var example as primative = "@load main \"string\" 42 #comment"
+    var result as List = tokenize(example)
+    for token in result:
+      print("[" + token.type + "] '" + token.value + "' (line " + token.line + ", col " + token.column + ")")
+    end for
+  end define
+end module
+end
+
+star
+module Lexer:
+
+  # LexerError class for detailed lexing exceptions
+  class LexerError extends Error:
+    val line: int
+    val column: int
+    val message: string
+
+    init(line: int, column: int, message: string):
+      self.line = line
+      self.column = column
+      self.message = message
+      super(message + " at line {line}, column {column}")
+    end init
+  end class
+
+
+  # Token with source position and type
+  class Token:
+    val type: string
+    val value: primative
+    val line: int
+    val column: int
+
+    init(type: string, value: primative, line: int, column: int):
+      self.type = type
+      self.value = value
+      self.line = line
+      self.column = column
+    end init
+  end class
+
+
+  # Internal GC log buffer for this lexer run
+  var gc_log as List<string> = []
+
+  # Performance heatmap overlay buffer
+  var perf_heatmap as Map[int, int] = {}  # line -> ms spent
+
+  # Utility: Record GC log entry
+  func gc_log_entry(entry: string):
+    gc_log.push("[GCLOG {now()}] {entry}")
+  end func
+
+  # Utility: Record perf time for a line
+  func perf_record(line: int, ms: int):
+    val prev: int = when perf_heatmap.contains(line): perf_heatmap[line] else: 0
+    perf_heatmap[line] = prev + ms
+  end func
+
+  # Unicode-safe character getter
+  func char_at(src: primative, idx: int) as string:
+    # Assuming src is UTF-8, slice correctly for multibyte
+    return src.substring(idx, idx + 1)  # placeholder, replace with full UTF8 slice if possible
+  end func
+
+  # Check if char is whitespace (unicode aware)
+  func is_whitespace(c: string) as bool:
+    return c in [" ", "\t", "\n", "\r", "\u00A0", "\u200B"]
+  end func
+
+  # Check if char is alphabetic unicode
+  func is_alpha(c: string) as bool:
+    val code = ord(c)
+    return (code >= 65 and code <= 90) or (code >= 97 and code <= 122) or (code >= 0x00C0 and code <= 0x00FF)
+  end func
+
+  # Check if char is alphanumeric unicode
+  func is_alnum(c: string) as bool:
+    return is_alpha(c) or is_digit(c)
+  end func
+
+  # Check if char is digit
+  func is_digit(c: string) as bool:
+    val code = ord(c)
+    return code >= 48 and code <= 57
+  end func
+
+  # Check if char begins a macro or directive
+  func is_macro_start(c: string) as bool:
+    return c == "#" or c == "@"
+  end func
+
+
+  # Main lexer function: tokenizes input string into tokens with position info
+  define lex(input: primative) as List<Token>:
+    var tokens as List<Token> = []
+    var idx as int = 0
+    var line as int = 1
+    var column as int = 1
+
+    gc_log_entry("Lexing started")
+
+    while idx < input.length:
+      val start_time = now_ms()
+
+      val c: string = char_at(input, idx)
+
+      if is_whitespace(c):
+        # Track line/column for newlines
+        if c == "\n":
+          line = line + 1
+          column = 1
+        else:
+          column = column + 1
+        end if
+        idx = idx + 1
+        continue
+      end if
+
+      if is_alpha(c):
+        val start_idx = idx
+        val start_col = column
+        while idx < input.length and is_alnum(char_at(input, idx)):
+          idx = idx + 1
+          column = column + 1
+        end while
+        val value = input.substring(start_idx, idx)
+        tokens.push(Token.new("IDENT", value, line, start_col))
+        gc_log_entry("Token IDENT '{value}' at {line}:{start_col}")
+        perf_record(line, now_ms() - start_time)
+        continue
+      end if
+
+      if is_digit(c):
+        val start_idx = idx
+        val start_col = column
+        while idx < input.length and is_digit(char_at(input, idx)):
+          idx = idx + 1
+          column = column + 1
+        end while
+        val value = input.substring(start_idx, idx)
+        tokens.push(Token.new("NUMBER", value, line, start_col))
+        gc_log_entry("Token NUMBER '{value}' at {line}:{start_col}")
+        perf_record(line, now_ms() - start_time)
+        continue
+      end if
+
+      if is_macro_start(c):
+        val start_idx = idx
+        val start_col = column
+        # consume until end of line or whitespace
+        idx = idx + 1
+        column = column + 1
+        while idx < input.length and char_at(input, idx) != "\n" and not is_whitespace(char_at(input, idx)):
+          idx = idx + 1
+          column = column + 1
+        end while
+        val value = input.substring(start_idx, idx)
+        tokens.push(Token.new("MACRO", value, line, start_col))
+        gc_log_entry("Token MACRO '{value}' at {line}:{start_col}")
+        perf_record(line, now_ms() - start_time)
+        continue
+      end if
+
+      # Single-character tokens (operators/punctuation)
+      tokens.push(Token.new(c, c, line, column))
+      gc_log_entry("Token CHAR '{c}' at {line}:{column}")
+      idx = idx + 1
+      column = column + 1
+      perf_record(line, now_ms() - start_time)
+    end while
+
+    gc_log_entry("Lexing finished: total tokens {tokens.length}")
+    return tokens
+  end define
+
+  # Unit tests for Lexer
+  define test_lexer():
+    val test_input = """
+      #define MAX 100
+      var x = 42
+      var π = 3.14
+      @inline func test() { return x + π }
+    """
+    val tokens = lex(test_input)
+    assert(tokens.length > 0, "Lexer produced no tokens")
+    var ident_count = 0
+    for token in tokens:
+      if token.type == "IDENT": ident_count = ident_count + 1 end if
+    end for
+    assert(ident_count >= 5, "Expected at least 5 IDENT tokens")
+    call print("Lexer unit tests passed!")
+  end define
+
+end module
+end
