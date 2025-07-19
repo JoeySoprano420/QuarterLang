@@ -12,3 +12,689 @@ module SyntaxHighlighter:
   end define
 end module
 end
+
+star
+module SyntaxHighlighter:
+
+  # Types and Data Structures
+  type Token {
+    type: string  # e.g., IDENT, KEYWORD, NUMBER, STRING, COMMENT, OPERATOR, etc.
+    value: string
+    line: int
+    column: int
+  }
+
+  type StyledToken {
+    token: Token
+    style: string  # e.g., "keyword", "string-literal", "comment", "number", "operator", etc.
+    color_code: string  # optional hex color or ANSI code for terminal coloring
+  }
+
+  # Configurable Color Palette for Styles (Hex or ANSI codes)
+  var style_palette as Map[string, string] = {
+    "plain": "#FFFFFF",
+    "keyword": "#FF79C6",
+    "identifier": "#8BE9FD",
+    "string-literal": "#F1FA8C",
+    "number": "#BD93F9",
+    "comment": "#6272A4",
+    "operator": "#FF5555",
+    "function-name": "#50FA7B",
+    "type": "#FFB86C",
+    "constant": "#FF6E6E",
+    "builtin": "#66D9EF",
+    "preprocessor": "#FFAA00",
+    "error": "#FF5555",
+    "warning": "#FFB86C"
+  }
+
+  # Expanded Keyword Set (can be dynamically extended)
+  var keywords as List[string] = [
+    "func", "var", "when", "loop", "return", "import", "module", "end",
+    "star", "call", "val", "if", "else", "elif", "true", "false", "null"
+  ]
+
+  var builtin_types as List[string] = [
+    "int", "string", "bool", "float", "dg", "primative", "list", "map"
+  ]
+
+  # Regex Patterns for Token Types (optimized for QLang)
+  var regex_patterns as Map[string, string] = {
+    "IDENT": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+    "NUMBER": "^\\d+(\\.\\d+)?$",  # integers and floats
+    "STRING": "^\".*\"$",  # simplistic string literal
+    "COMMENT": "^#.*$",
+    "OPERATOR": "^[+\\-*/%=<>!&|^~]+$",
+    "WHITESPACE": "^\\s+$",
+    "PREPROCESSOR": "^import$|^module$|^end$"
+  }
+
+  # Add-ons: Tracking line and column for error highlighting
+  # -------------------------------------
+
+  # Core Highlighting Function: Assigns style & color based on token type and value
+  define highlight(tokens as List<Token>) as List<StyledToken>:
+    var styled as List<StyledToken> = []
+
+    for token in tokens:
+      var style as string = "plain"
+      var color as string = style_palette["plain"]
+
+      # Whitespace is skipped from styling output
+      when token.type == "WHITESPACE":
+        style = "plain"
+        color = style_palette[style]
+
+      # Keyword detection (language reserved words)
+      elif token.type == "IDENT" and keywords.contains(token.value):
+        style = "keyword"
+        color = style_palette[style]
+
+      # Built-in types highlight
+      elif token.type == "IDENT" and builtin_types.contains(token.value):
+        style = "type"
+        color = style_palette[style]
+
+      # LibrarySystem dynamic built-in names
+      elif token.type == "IDENT" and LibrarySystem.libs.contains(token.value):
+        style = "builtin"
+        color = style_palette[style]
+
+      # Function names detected by heuristics (e.g., preceding 'func' keyword)
+      elif token.type == "IDENT" and is_function_name(token):
+        style = "function-name"
+        color = style_palette[style]
+
+      # Numeric literals
+      elif token.type == "NUMBER":
+        style = "number"
+        color = style_palette[style]
+
+      # String literals
+      elif token.type == "STRING":
+        style = "string-literal"
+        color = style_palette[style]
+
+      # Comments
+      elif token.type == "COMMENT":
+        style = "comment"
+        color = style_palette[style]
+
+      # Operators
+      elif token.type == "OPERATOR":
+        style = "operator"
+        color = style_palette[style]
+
+      # Preprocessor directives
+      elif token.type == "PREPROCESSOR":
+        style = "preprocessor"
+        color = style_palette[style]
+
+      # Error token fallback (unrecognized or malformed)
+      else:
+        style = "error"
+        color = style_palette[style]
+
+      styled.push(StyledToken.new(token, style, color))
+    end for
+
+    return styled
+  end define
+
+  # Heuristic function to detect if a token is a function name:
+  # For demo purposes, assumes function names follow 'func' keyword on same line
+  define is_function_name(token as Token) as bool:
+    # Access some global token context or previous tokens (simplified)
+    # This demo assumes tokens are globally available in a list `current_tokens`
+    # and `token` is an element in that list.
+    # Find index of token in current_tokens
+    var idx: int = current_tokens.index_of(token)
+    when idx > 0:
+      var prev_token: Token = current_tokens[idx - 1]
+      when prev_token.value == "func" and prev_token.line == token.line:
+        return true
+    return false
+  end define
+
+  # Tokenizer: Converts source code string into tokens with types & positions
+  define tokenize(source as string) as List<Token>:
+    var tokens as List<Token> = []
+    var line_num: int = 1
+    var col_num: int = 1
+
+    # A simple lexer splitting by whitespace and operators
+    var buffer: string = ""
+    var pos: int = 0
+
+    loop pos < len(source):
+      var ch: string = source[pos]
+
+      # Handle new lines
+      when ch == "\n":
+        if buffer != "":
+          tokens.push(classify_token(buffer, line_num, col_num - len(buffer)))
+          buffer = ""
+        line_num = line_num + 1
+        col_num = 1
+        pos = pos + 1
+        continue
+
+      # Check if char is operator
+      elif is_operator_char(ch):
+        if buffer != "":
+          tokens.push(classify_token(buffer, line_num, col_num - len(buffer)))
+          buffer = ""
+        # Add operator as single token
+        tokens.push(Token.new("OPERATOR", ch, line_num, col_num))
+        col_num = col_num + 1
+        pos = pos + 1
+        continue
+
+      # Check if whitespace
+      elif ch == " " or ch == "\t":
+        if buffer != "":
+          tokens.push(classify_token(buffer, line_num, col_num - len(buffer)))
+          buffer = ""
+        # Add whitespace token (optional, or skip)
+        tokens.push(Token.new("WHITESPACE", ch, line_num, col_num))
+        col_num = col_num + 1
+        pos = pos + 1
+        continue
+
+      else:
+        buffer = buffer + ch
+        col_num = col_num + 1
+        pos = pos + 1
+
+    # Flush remaining buffer
+    if buffer != "":
+      tokens.push(classify_token(buffer, line_num, col_num - len(buffer)))
+
+    return tokens
+  end define
+
+  # Classifies a raw string into token type based on regexes
+  define classify_token(text as string, line as int, col as int) as Token:
+    for ttype, pattern in regex_patterns.items():
+      when matches_regex(text, pattern):
+        return Token.new(ttype, text, line, col)
+    # Fallback to IDENT if no pattern matched
+    return Token.new("IDENT", text, line, col)
+  end define
+
+  # Checks if a char is a recognized operator character
+  define is_operator_char(ch as string) as bool:
+    return "+-*/%=<>!&|^~".contains(ch)
+  end define
+
+  # Syntax highlighting with ANSI color codes for terminal output (optional)
+  define render_ansi(styled_tokens as List<StyledToken>) as string:
+    var output: string = ""
+    for st in styled_tokens:
+      var color_code: string = st.color_code
+      # Convert hex to ANSI or use basic ANSI codes
+      var ansi_seq: string = convert_hex_to_ansi(color_code)
+      output = output + ansi_seq + st.token.value + "\x1b[0m"
+    return output
+  end define
+
+  # Converts hex color code string to nearest ANSI color sequence (simple approximation)
+  define convert_hex_to_ansi(hex_code as string) as string:
+    # For demonstration, map few colors to ANSI escape codes
+    when hex_code == "#FF79C6": return "\x1b[95m"  # bright magenta
+    when hex_code == "#8BE9FD": return "\x1b[96m"  # bright cyan
+    when hex_code == "#F1FA8C": return "\x1b[93m"  # bright yellow
+    when hex_code == "#BD93F9": return "\x1b[94m"  # bright blue
+    when hex_code == "#6272A4": return "\x1b[90m"  # bright black (gray)
+    when hex_code == "#FF5555": return "\x1b[91m"  # bright red
+    when hex_code == "#50FA7B": return "\x1b[92m"  # bright green
+    when hex_code == "#FFB86C": return "\x1b[33m"  # brown/yellow
+    when hex_code == "#66D9EF": return "\x1b[36m"  # cyan
+    when hex_code == "#FFAA00": return "\x1b[33m"  # orange/yellow
+    else: return "\x1b[0m"  # reset/default
+  end define
+
+  # Plugin system for adding custom highlight rules dynamically
+  var plugins as List[fn(List<Token>) -> List[StyledToken]] = []
+
+  # Register a new plugin (priority-based insertion optional)
+  define register_plugin(plugin_fn: fn(List<Token>) -> List[StyledToken]):
+    plugins.push(plugin_fn)
+    call log("info", "SyntaxHighlighter plugin registered.")
+  end define
+
+  # Run all plugins to transform or add styles
+  define apply_plugins(tokens: List<Token>) as List[StyledToken]:
+    var styled = highlight(tokens)
+    for plugin in plugins:
+      styled = plugin(styled)
+    return styled
+  end define
+
+  # Advanced Multi-Language Support (minimal framework)
+  var language_parsers as Map[string, fn(string) -> List[Token]] = {}
+
+  # Register parser for language
+  define register_language(name: string, parser_fn: fn(string) -> List[Token]):
+    language_parsers[name] = parser_fn
+    call log("info", "Language parser '{name}' registered.")
+  end define
+
+  # Parse source code by language
+  define parse_by_language(name: string, source: string) as List<Token]:
+    when language_parsers.contains(name):
+      return language_parsers[name](source)
+    else:
+      call print("Language parser '{name}' not found.")
+      return []
+  end define
+
+end module
+end
+
+star
+import "SyntaxHighlighter.qtr"
+import "CLI.qtr"
+
+module HighlightingREPL:
+
+  # REPL State: Tracks multiline input, indentation levels, and block nesting
+  var multiline_buffer as string = ""
+  var open_blocks as int = 0  # tracks `{` or `func` style nested blocks count
+
+  # Context-aware tokenizer override with multiline and nested block support
+  define tokenize_contextual(source as string) as List[SyntaxHighlighter.Token]:
+    # This enhanced tokenizer will:
+    # - Support multiline strings enclosed by triple quotes """
+    # - Track nested blocks by counting 'func', 'when', 'loop', and 'end'
+    # - Handle comments, operators, and indentation tokens (optional)
+
+    var tokens as List[SyntaxHighlighter.Token] = []
+    var line_num: int = 1
+    var col_num: int = 1
+
+    var pos: int = 0
+    var inside_multiline_string: bool = false
+    var buffer: string = ""
+
+    loop pos < len(source):
+      var ch: string = source[pos]
+
+      # Detect triple quotes for multiline strings
+      when source.substring(pos, pos + 3) == "\"\"\"":
+        if inside_multiline_string:
+          buffer = buffer + "\"\"\""
+          tokens.push(SyntaxHighlighter.Token.new("STRING", buffer, line_num, col_num - len(buffer)))
+          buffer = ""
+          inside_multiline_string = false
+          pos = pos + 3
+          col_num = col_num + 3
+          continue
+        else:
+          # Start multiline string
+          if buffer != "":
+            tokens.push(SyntaxHighlighter.classify_token(buffer, line_num, col_num - len(buffer)))
+            buffer = ""
+          inside_multiline_string = true
+          buffer = "\"\"\""
+          pos = pos + 3
+          col_num = col_num + 3
+          continue
+
+      if inside_multiline_string:
+        buffer = buffer + ch
+        if ch == "\n":
+          line_num = line_num + 1
+          col_num = 1
+        else:
+          col_num = col_num + 1
+        pos = pos + 1
+        continue
+
+      # Handle new lines (track line count)
+      when ch == "\n":
+        if buffer != "":
+          tokens.push(SyntaxHighlighter.classify_token(buffer, line_num, col_num - len(buffer)))
+          buffer = ""
+        tokens.push(SyntaxHighlighter.Token.new("WHITESPACE", ch, line_num, col_num))
+        line_num = line_num + 1
+        col_num = 1
+        pos = pos + 1
+        continue
+
+      # Operators as separate tokens
+      elif SyntaxHighlighter.is_operator_char(ch):
+        if buffer != "":
+          tokens.push(SyntaxHighlighter.classify_token(buffer, line_num, col_num - len(buffer)))
+          buffer = ""
+        tokens.push(SyntaxHighlighter.Token.new("OPERATOR", ch, line_num, col_num))
+        col_num = col_num + 1
+        pos = pos + 1
+        continue
+
+      # Whitespace handling (space or tab)
+      elif ch == " " or ch == "\t":
+        if buffer != "":
+          tokens.push(SyntaxHighlighter.classify_token(buffer, line_num, col_num - len(buffer)))
+          buffer = ""
+        tokens.push(SyntaxHighlighter.Token.new("WHITESPACE", ch, line_num, col_num))
+        col_num = col_num + 1
+        pos = pos + 1
+        continue
+
+      else:
+        buffer = buffer + ch
+        col_num = col_num + 1
+        pos = pos + 1
+
+    # Flush remaining buffer token
+    if buffer != "":
+      tokens.push(SyntaxHighlighter.classify_token(buffer, line_num, col_num - len(buffer)))
+
+    return tokens
+  end define
+
+
+  # Update block nesting counter based on tokens
+  define update_block_nesting(tokens as List[SyntaxHighlighter.Token]):
+    # Increment open_blocks for block starters, decrement for 'end'
+    for token in tokens:
+      when token.type == "IDENT":
+        when token.value in ["func", "when", "loop", "module"]:
+          open_blocks = open_blocks + 1
+        elif token.value == "end":
+          open_blocks = max(0, open_blocks - 1)
+    end for
+  end define
+
+
+  # Render highlighted source code to ANSI colored string for terminal display
+  define render_highlighted_source(source as string) as string:
+    # Tokenize with contextual awareness
+    var tokens = tokenize_contextual(source)
+
+    # Update block count to manage multiline inputs
+    update_block_nesting(tokens)
+
+    # Save tokens globally for function name detection heuristics
+    current_tokens = tokens  # Assume this is accessible to SyntaxHighlighter
+
+    # Highlight with plugins applied
+    var styled_tokens = SyntaxHighlighter.apply_plugins(tokens)
+
+    # Render ANSI colored string for terminal output
+    return SyntaxHighlighter.render_ansi(styled_tokens)
+  end define
+
+
+  # Main REPL loop for live input, highlighting, and evaluation
+  define start_repl():
+    call print("✨ QuarterLang Interactive Highlighting REPL v1.0 ✨")
+    call print("Type 'exit' to quit. Press Enter to submit multi-line input when blocks are open.\n")
+
+    loop true:
+      # Show prompt (customize prompt based on block state)
+      var prompt_str: string = when open_blocks > 0: "… " else: "⭑ "
+      call print(prompt_str, end="")  # No newline
+
+      var input_line: string = ask()
+
+      # Exit command
+      when input_line.strip() == "exit":
+        call print("Goodbye! 👋")
+        break
+
+      # Append input to multiline buffer
+      multiline_buffer = multiline_buffer + input_line + "\n"
+
+      # Tokenize and update block counts to decide if we should evaluate
+      var tokens = tokenize_contextual(multiline_buffer)
+      update_block_nesting(tokens)
+
+      # If no open blocks, evaluate input
+      when open_blocks == 0:
+        # Highlight and display input with color
+        var highlighted = render_highlighted_source(multiline_buffer)
+        call print(highlighted)
+
+        # Evaluate code (basic eval, safe sandbox)
+        try:
+          # For demonstration, replace with real QuarterLang eval call
+          val result = eval_quarterlang(multiline_buffer)
+          call print("▶ Result: {result}")
+        except err:
+          call print("[Error] {err}")
+
+        # Reset buffer
+        multiline_buffer = ""
+
+      else:
+        # Blocks still open, continue multiline input
+        call print("[…] Block open, continue input...")
+
+  end define
+
+
+  # Stub for QuarterLang evaluation engine - replace with actual QLang interpreter call
+  define eval_quarterlang(source as string) as string:
+    # Simple stub: just echo source trimmed (replace with real interpreter binding)
+    return source.strip()
+  end define
+
+
+  # Register this REPL plugin into CLI environment
+  CLI.register_command("highlight-repl", fn(args as List[string]) {
+    start_repl()
+  })
+
+end module
+end
+
+star
+import "SyntaxHighlighter.qtr"
+import "CLI.qtr"
+import "FileSystem.qtr"
+import "HistoryManager.qtr"
+import "AutoComplete.qtr"
+import "InterpreterEngine.qtr"  # The actual interpreter engine binding
+
+module AdvancedHighlightingREPL:
+
+  # --- REPL State ---
+  var multiline_buffer as string = ""
+  var open_blocks as int = 0
+  var history as List[string] = []
+  var history_index as int = -1
+
+  # --- Theme System ---
+  var themes as Map[string, Map[string, string]] = {
+    "default": {
+      "keyword": "\033[1;34m",      # Bold Blue
+      "string": "\033[1;32m",       # Bold Green
+      "comment": "\033[0;90m",      # Grey
+      "number": "\033[1;35m",       # Magenta
+      "operator": "\033[1;33m",     # Yellow
+      "plain": "\033[0m"            # Reset
+    },
+    "solarized": {
+      "keyword": "\033[1;36m",      # Cyan
+      "string": "\033[1;32m",       # Green
+      "comment": "\033[0;90m",      # Grey
+      "number": "\033[1;33m",       # Yellow
+      "operator": "\033[1;31m",     # Red
+      "plain": "\033[0m"
+    }
+  }
+  var current_theme as string = "default"
+
+  # --- File System Utility Functions ---
+  define load_file(path: string) as string:
+    when not FileSystem.exists(path):
+      call print("[File Error] File not found: {path}")
+      return ""
+    else:
+      return FileSystem.read_all(path)
+    end when
+  end define
+
+  define save_file(path: string, content: string):
+    FileSystem.write_all(path, content)
+    call print("[File] Saved to {path}")
+  end define
+
+  # --- Auto-Completion ---
+  define get_autocomplete_suggestions(prefix: string) as List[string]:
+    # Combine keywords, builtins, user-defined names, etc.
+    val keywords = ["func", "when", "loop", "end", "var", "return", "call", "import", "module"]
+    val builtins = InterpreterEngine.get_builtin_functions()
+    val all = keywords + builtins
+    return [w for w in all if w.starts_with(prefix)]
+  end define
+
+  # --- Tokenizer & Syntax Highlighting with Theme ---
+  define tokenize_contextual(source: string) as List[SyntaxHighlighter.Token]:
+    # [Use previously defined tokenizer with multiline strings, nested blocks support]
+    # For brevity assume SyntaxHighlighter.tokenize_contextual(source)
+    return SyntaxHighlighter.tokenize_contextual(source)
+  end define
+
+  define update_block_nesting(tokens: List[SyntaxHighlighter.Token]):
+    # As before: count block opens and closes
+    open_blocks = 0
+    for token in tokens:
+      when token.type == "IDENT":
+        when token.value in ["func", "when", "loop", "module"]:
+          open_blocks = open_blocks + 1
+        elif token.value == "end":
+          open_blocks = max(0, open_blocks - 1)
+    end for
+  end define
+
+  define render_highlighted_source(source: string) as string:
+    val tokens = tokenize_contextual(source)
+    update_block_nesting(tokens)
+
+    var styled_tokens = []
+    for token in tokens:
+      var style = current_theme == "default" ? themes["default"][token.type] ?? themes["default"]["plain"]
+                                             : themes[current_theme][token.type] ?? themes[current_theme]["plain"]
+      styled_tokens.push({token: token, style: style})
+    end for
+
+    # ANSI render with style applied to each token
+    var rendered = ""
+    for item in styled_tokens:
+      rendered = rendered + item.style + item.token.value
+    end for
+    rendered = rendered + themes[current_theme]["plain"]  # Reset ANSI at end
+
+    return rendered
+  end define
+
+  # --- REPL Core Loop ---
+  define start_repl():
+    call print("✨ QuarterLang Advanced REPL v2.0 ✨")
+    call print("Type 'exit' to quit, ':load <file>', ':save <file>', ':theme <name>' to change themes.")
+    call print("Use Up/Down arrows for history navigation. Press Tab for auto-completion.\n")
+
+    loop true:
+      var prompt_str = when open_blocks > 0: "… " else: "⭑ "
+      call print(prompt_str, end="")
+
+      # Input with history & autocomplete (assume CLI.ask_enhanced provides this)
+      var input_line = CLI.ask_enhanced(history, history_index, get_autocomplete_suggestions)
+
+      when input_line.strip() == "exit":
+        call print("Goodbye! 👋")
+        break
+
+      # Command handling
+      when input_line.starts_with(":load "):
+        val path = input_line.substring(6).strip()
+        val content = load_file(path)
+        if content != "":
+          multiline_buffer = content
+          call print("[Loaded content from {path}]")
+          # Evaluate loaded content immediately
+          evaluate_and_print(content)
+          multiline_buffer = ""
+        end when
+        continue
+
+      when input_line.starts_with(":save "):
+        val path = input_line.substring(6).strip()
+        save_file(path, multiline_buffer)
+        continue
+
+      when input_line.starts_with(":theme "):
+        val theme_name = input_line.substring(7).strip()
+        if themes.contains(theme_name):
+          current_theme = theme_name
+          call print("[Theme switched to {theme_name}]")
+        else:
+          call print("[Theme error] Unknown theme '{theme_name}'")
+        end when
+        continue
+
+      # Append input to multiline buffer
+      multiline_buffer = multiline_buffer + input_line + "\n"
+
+      # Tokenize and update blocks
+      val tokens = tokenize_contextual(multiline_buffer)
+      update_block_nesting(tokens)
+
+      # Add input line to history
+      history.push(input_line)
+      history_index = len(history)
+
+      when open_blocks == 0:
+        # Show highlighted code
+        call print(render_highlighted_source(multiline_buffer))
+
+        # Evaluate code & print result
+        evaluate_and_print(multiline_buffer)
+
+        multiline_buffer = ""
+      else:
+        call print("[…] Block open, continue input...")
+
+    end loop
+  end define
+
+  # --- Evaluation binding ---
+  define evaluate_and_print(source: string):
+    try:
+      val result = InterpreterEngine.evaluate(source)
+      call print("▶ Result: {result}")
+    except err:
+      call print("[Error] {err}")
+  end define
+
+  # --- Demo transcript logger ---
+  var demo_transcript as List[string] = []
+
+  define log_transcript(line: string):
+    demo_transcript.push(line)
+  end define
+
+  # Automatically hook into print and input for transcript logging (example)
+  func print(text: string, end: string = "\n"):
+    CLI.print(text, end)
+    log_transcript(text + end)
+  end func
+
+  func ask() as string:
+    val inp = CLI.ask()
+    log_transcript("> " + inp + "\n")
+    return inp
+  end func
+
+
+  # Register command into CLI
+  CLI.register_command("adv-repl", fn(args: List[string]):
+    start_repl()
+  end fn)
+
+end module
+end
+
