@@ -1,0 +1,16 @@
+func plugin_pull_manifest(repo_url: string) as Map:
+    print("Syncing manifest from {repo_url} ...")
+    # Mocked remote call
+    return {
+        "PluginA": {
+            "version": "1.2.3",
+            "dependencies": [],
+            "description": "A test plugin"
+        }
+    }
+
+func plugin_sync_all(repo_url: string):
+    remote = plugin_pull_manifest(repo_url)
+    for name in remote.keys():
+        meta = remote[name]
+        call plugin_register(name, LibrarySystem.fetch(name), meta)
