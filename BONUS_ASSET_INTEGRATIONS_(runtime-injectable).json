@@ -1,0 +1,14 @@
+// dg_manifest.json
+{
+  "current": "1XY4",
+  "channels": {
+    "stable": "1XY4",
+    "beta": "1XY5-beta",
+    "dev": "1XZ0-alpha"
+  },
+  "flags": {
+    "zoom": true,
+    "pan": true,
+    "remote-fetch": true
+  }
+}
