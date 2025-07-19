@@ -1,4 +1,5 @@
 star
+
 module Time:
   func now() as primative:
     return system.time()
@@ -8,4 +9,5 @@ module Time:
     return system.time_format(t, fmt)
   end func
 end module
+
 end
