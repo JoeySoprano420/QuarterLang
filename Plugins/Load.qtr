@@ -1,10 +1,19 @@
 star
 import "LibrarySystem.qtr"
 
-func plugin_register(name: string, mod: Module):
+# Registry map
+var plugin_meta as Map = {}  # name → metadata
+
+func plugin_register(name: string, mod: Module, metadata: string):
     LibrarySystem.register(name, mod)
-end
+    plugin_meta[name] = metadata
 
 func plugin_load(name: string):
     return LibrarySystem.get(name)
-end
+
+func plugin_describe(name: string):
+    when plugin_meta.contains(name):
+        call print("[Plugin {name}]: {plugin_meta[name]}")
+    else:
+        call print("[Plugin {name}]: Metadata not found")
+end func
