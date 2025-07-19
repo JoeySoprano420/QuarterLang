@@ -75,3 +75,4 @@ func debug_log(msg: string):
     call scroll_log_append(msg)
     call console_print(msg)
 
+end
