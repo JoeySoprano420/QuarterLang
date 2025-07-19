@@ -1,3 +1,5 @@
+star
+
 func read_manifest(path: string):
     # Parse JSON or INI for plugin entries
     return JSON.parse(File.read(path))
@@ -5,3 +7,5 @@ func read_manifest(path: string):
 func download_module(url: string):
     let code = Http.get(url)
     return LibrarySystem.compile(code)
+
+end
