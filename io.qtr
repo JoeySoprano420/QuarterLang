@@ -14,3 +14,272 @@ func input() {
 }
 
 end
+
+star
+
+# ==== Ultimate I/O Library ====
+
+# Print any primitive or list with formatting support
+func print(x: primative) {
+    when typeof(x) == "list" {
+        val output: string = "["
+        val first: bool = true
+        for elem in x {
+            when !first {
+                output = output + ", "
+            }
+            output = output + to_string(elem)
+            first = false
+        }
+        output = output + "]"
+        call say(output)
+    } else {
+        call say(to_string(x))
+    }
+}
+
+# Print with placeholders like {0}, {1}, ... supporting variadic args
+func printf(fmt: string, args: list[primative]) {
+    var output: string = fmt
+    var i: int = 0
+    while i < len(args) {
+        output = replace_all(output, "{" + to_string(i) + "}", to_string(args[i]))
+        i = i + 1
+    }
+    call say(output)
+}
+
+# Read a line as raw string from input
+func read_line() as string {
+    val line: string = ask()
+    return line
+}
+
+# Read integer input with validation loop and prompt
+func read_int(prompt: string) as int {
+    loop true {
+        call print(prompt)
+        val line: string = read_line()
+        val ok: bool = try_parse_int(line)
+        when ok {
+            val x: int = parse_int(line)
+            return x
+        } else {
+            call print("Invalid integer, try again.")
+        }
+    }
+}
+
+# Read float input with validation loop and prompt
+func read_float(prompt: string) as float {
+    loop true {
+        call print(prompt)
+        val line: string = read_line()
+        val ok: bool = try_parse_float(line)
+        when ok {
+            val x: float = parse_float(line)
+            return x
+        } else {
+            call print("Invalid float, try again.")
+        }
+    }
+}
+
+# Read string input with prompt
+func read_string(prompt: string) as string {
+    call print(prompt)
+    val line: string = read_line()
+    return line
+}
+
+# File existence check
+func file_exists(path: string) as bool {
+    val exists: bool = IO.file_exists(path)
+    return exists
+}
+
+# Read entire file content as string
+func file_read(path: string) as string {
+    when !file_exists(path) {
+        call print("Error: file not found: {path}")
+        stop
+    }
+    val content: string = IO.read_file(path)
+    return content
+}
+
+# Write string content to file (overwrite)
+func file_write(path: string, content: string) {
+    IO.write_file(path, content)
+    call print("Wrote to file: {path}")
+}
+
+# Append string content to file
+func file_append(path: string, content: string) {
+    IO.append_file(path, content)
+    call print("Appended to file: {path}")
+}
+
+# Async input example: reads input without blocking main thread (simulation)
+func async_read_int(prompt: string, callback: fn) {
+    call print(prompt)
+    # Emulate async by spawning thread or event-driven callback (mock)
+    spawn {
+        val line: string = ask()
+        val ok: bool = try_parse_int(line)
+        when ok {
+            val x: int = parse_int(line)
+            call callback(x)
+        } else {
+            call print("Invalid async int input")
+            call callback(0)
+        }
+    }
+}
+
+# Log message with level and timestamp
+func log(level: string, message: string) {
+    val ts: int = now()
+    val fmt: string = "[{level.upper()} {ts}]: {message}"
+    call print(fmt)
+}
+
+# Interactive CLI prompt helper
+func cli_prompt_loop() {
+    loop true {
+        call print("Enter command (type 'exit' to quit):")
+        val cmd: string = read_line()
+        when cmd {
+            "exit" {
+                call print("Exiting CLI.")
+                stop
+            }
+            "help" {
+                call print("Available commands: help, echo, time, exit")
+            }
+            "echo" {
+                call print("Echo mode enabled. Type 'stop' to end.")
+                loop true {
+                    val msg: string = read_line()
+                    when msg {
+                        "stop" {
+                            call print("Exiting echo mode.")
+                            break
+                        }
+                        else {
+                            call print(msg)
+                        }
+                    }
+                }
+            }
+            "time" {
+                val ts: int = now()
+                call print("Current timestamp: {ts}")
+            }
+            else {
+                call print("Unknown command: {cmd}")
+            }
+        }
+    }
+}
+
+# Helpers for type parsing (stub implementations)
+
+func try_parse_int(s: string) as bool {
+    # Return true if s can be parsed as int
+    # Implement simple regex or try-catch logic here
+    # For demonstration, assume always true if numeric characters only
+    when len(s) == 0 { return false }
+    var i: int = 0
+    loop i < len(s) {
+        val c = char_at(s, i)
+        when !(c >= '0' and c <= '9' or (c == '-' and i == 0)) { return false }
+        i = i + 1
+    }
+    return true
+}
+
+func parse_int(s: string) as int {
+    # Convert string to int
+    var result: int = 0
+    var sign: int = 1
+    var i: int = 0
+    when char_at(s, 0) == '-' {
+        sign = -1
+        i = 1
+    }
+    loop i < len(s) {
+        val c = char_at(s, i)
+        result = result * 10 + (ord(c) - ord('0'))
+        i = i + 1
+    }
+    return sign * result
+}
+
+func try_parse_float(s: string) as bool {
+    # Simple check: digits, one dot, optional leading -, no other chars
+    var dot_count: int = 0
+    var i: int = 0
+    when len(s) == 0 { return false }
+    loop i < len(s) {
+        val c = char_at(s, i)
+        when {
+            c == '.' { dot_count = dot_count + 1 }
+            c == '-' and i == 0 {}
+            c >= '0' and c <= '9' {}
+            else { return false }
+        }
+        if dot_count > 1 { return false }
+        i = i + 1
+    }
+    return true
+}
+
+func parse_float(s: string) as float {
+    # Simple parser: integer part + fraction
+    var result: float = 0.0
+    var sign: float = 1.0
+    var i: int = 0
+    var dot_pos: int = -1
+    when char_at(s, 0) == '-' {
+        sign = -1.0
+        i = 1
+    }
+    var digits_before_dot: int = 0
+    var digits_after_dot: int = 0
+    loop j in range(i, len(s)) {
+        when char_at(s, j) == '.' {
+            dot_pos = j
+            break
+        }
+    }
+    if dot_pos == -1 {
+        # No dot, parse as integer
+        loop i < len(s) {
+            val c = char_at(s, i)
+            result = result * 10 + (ord(c) - ord('0'))
+            i = i + 1
+        }
+        return sign * result
+    }
+    # Parse integer part
+    var k: int = i
+    while k < dot_pos {
+        val c = char_at(s, k)
+        result = result * 10 + (ord(c) - ord('0'))
+        k = k + 1
+    }
+    # Parse fractional part
+    var frac: float = 0.0
+    var base: float = 0.1
+    var l: int = dot_pos + 1
+    while l < len(s) {
+        val c = char_at(s, l)
+        frac = frac + base * (ord(c) - ord('0'))
+        base = base / 10
+        l = l + 1
+    }
+    return sign * (result + frac)
+}
+
+end
