@@ -18,3 +18,123 @@ func route_ui(name: string):
     else: raise("Unknown frontend: {name}")
 
 end
+
+star
+
+import "settings.qtr"
+import "sdl_ui.qtr"
+import "webgl_ui.qtr"
+import "gtk_ui.qtr"
+import "profiler.qtr"
+import "log.qtr"
+import "hot_reload.qtr"
+import "core/events.qtr"
+import "core/telemetry.qtr"
+
+var active_frontend as string = detect_preferred_ui()
+var initialized as bool = false
+var available_frontends = ["sdl", "webgl", "gtk"]
+var frontend_modules = {
+    "sdl": SDLUI,
+    "webgl": WebGLUI,
+    "gtk": GTKUI
+}
+
+func init_ui():
+    if initialized:
+        Log.warn("UI already initialized. Aborting duplicate init.")
+        return
+    end
+
+    load_defaults()
+    Log.info("Initializing frontend: {active_frontend}")
+    if not route_ui(active_frontend):
+        Log.fatal("Critical: UI routing failed for {active_frontend}. Attempting fallback.")
+        fallback_ui()
+    end
+    initialized = true
+    start_event_loop()
+end
+
+func detect_preferred_ui() -> string:
+    if ENV["FORCE_UI"] in available_frontends:
+        return ENV["FORCE_UI"]
+    elif system.has_gpu() and not system.is_headless():
+        return "webgl"
+    elif system.os() in ["linux", "unix"] and system.has_lib("gtk3"):
+        return "gtk"
+    else:
+        return "sdl"
+    end
+end
+
+func route_ui(name: string) -> bool:
+    if name notin frontend_modules:
+        Log.error("Unknown frontend: {name}")
+        return false
+    end
+
+    try:
+        frontend = frontend_modules[name]
+        frontend.launch(settings)
+        Log.success("Launched UI frontend: {name}")
+        return true
+    catch error:
+        Log.error("Failed to launch frontend {name}: {error}")
+        return false
+    end
+end
+
+func fallback_ui():
+    for alt in available_frontends:
+        if alt == active_frontend:
+            continue
+        end
+        Log.info("Attempting fallback UI: {alt}")
+        if route_ui(alt):
+            active_frontend = alt
+            Log.success("Fallback UI activated: {alt}")
+            return
+        end
+    end
+    raise("No viable UI frontends available. System halt.")
+end
+
+func start_event_loop():
+    Log.info("Starting UI event loop...")
+    EventDispatcher.loop(
+        on_event=handle_event,
+        on_tick=update_tick,
+        interval=settings.refresh_rate
+    )
+end
+
+func handle_event(evt):
+    match evt.kind:
+        "keyboard" => dispatch_keyboard(evt.key, evt.mods)
+        "mouse" => dispatch_mouse(evt.x, evt.y, evt.button, evt.state)
+        "window" => dispatch_window(evt.action)
+        else => Log.debug("Unhandled event: {evt.kind}")
+    end
+end
+
+func update_tick():
+    Profiler.begin_frame()
+    Telemetry.ping("UI", active_frontend)
+    frontend_modules[active_frontend].render()
+    Profiler.end_frame()
+end
+
+func reload_ui():
+    Log.warn("Hot-reloading frontend: {active_frontend}")
+    HotReload.reload_module(frontend_modules[active_frontend])
+    frontend_modules[active_frontend].launch(settings)
+end
+
+func shutdown():
+    Log.info("Shutting down UI: {active_frontend}")
+    frontend_modules[active_frontend].shutdown()
+    Log.info("UI shutdown complete.")
+end
+
+end
