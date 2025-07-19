@@ -5,3 +5,221 @@ module Seeder:
   end define
 end module
 end
+
+star
+module Seeder:
+
+  # Store registered modules and their dependencies
+  var registered_modules as Map[string, Module] = {}
+  var module_dependencies as Map[string, List[string]] = {}
+
+  # Metadata for modules (version, description, author)
+  var module_metadata as Map[string, Map[string, primative]] = {}
+
+  # Register a module with optional dependencies and metadata
+  define register_module(name as string, mod as Module, dependencies as List[string] = [], metadata as Map[string, primative] = {}):
+    registered_modules[name] = mod
+    module_dependencies[name] = dependencies
+    module_metadata[name] = metadata
+    call print("Seeder: Registered module '{name}' with dependencies: {dependencies}")
+  end define
+
+  # Internal: Resolve all dependencies for given module names, recursively
+  define resolve_dependencies(names as List[string]) as List[Module]:
+    var resolved as List[string] = []
+    var seen as Map[string, bool] = {}
+
+    func visit(name as string):
+      when seen.contains(name):
+        return
+      end when
+      seen[name] = true
+      when module_dependencies.contains(name):
+        for dep in module_dependencies[name]:
+          call visit(dep)
+        end for
+      end when
+      resolved.push(name)
+    end func
+
+    for nm in names:
+      call visit(nm)
+    end for
+
+    # Map resolved names to modules
+    var modules as List[Module] = []
+    for mod_name in resolved:
+      when registered_modules.contains(mod_name):
+        modules.push(registered_modules[mod_name])
+      else:
+        call print("[Seeder Warning] Module '{mod_name}' not found in registry.")
+      end when
+    end for
+
+    return modules
+  end define
+
+  # Seed standard library modules with full dependency handling
+  define seed_stdlib() as List[Module]:
+    val stdlib_names: List[string] = ["core", "math", "util", "io", "recursion", "compare"]
+    return resolve_dependencies(stdlib_names)
+  end define
+
+  # Seed custom modules by name list
+  define seed_custom(names as List[string]) as List[Module]:
+    return resolve_dependencies(names)
+  end define
+
+  # Get metadata info for a module
+  define get_module_info(name as string) as Map[string, primative]:
+    when module_metadata.contains(name):
+      return module_metadata[name]
+    else:
+      return {}
+    end when
+  end define
+
+  # Print detailed seed report for given modules
+  define print_seed_report(modules as List[Module]):
+    call print("Seeder: Seeded Modules Report")
+    for mod in modules:
+      val name = mod.name if hasattr(mod, "name") else "Unnamed"
+      val meta = get_module_info(name)
+      call print(" - {name}: Version {meta['version'] or 'N/A'}, Author: {meta['author'] or 'Unknown'}")
+    end for
+  end define
+
+  # Initialize Seeder with core modules registered (example)
+  func initialize():
+    # Example registration calls; assume LibrarySystem.get returns Module
+    call register_module("core", LibrarySystem.get("core"), [], {"version": "1.0.0", "author": "QuarterLang Team"})
+    call register_module("math", LibrarySystem.get("math"), ["core"], {"version": "1.2.3", "author": "Math Wizards"})
+    call register_module("util", LibrarySystem.get("util"), ["core"], {"version": "0.9.5", "author": "Utility Masters"})
+    call register_module("io", LibrarySystem.get("io"), ["core"], {"version": "1.1.0", "author": "I/O Experts"})
+    call register_module("recursion", LibrarySystem.get("recursion"), ["core", "math"], {"version": "2.0.0", "author": "Recursive Coders"})
+    call register_module("compare", LibrarySystem.get("compare"), ["core"], {"version": "1.0.1", "author": "Comparator Guild"})
+    call print("Seeder: Initialization complete with core modules registered.")
+  end func
+
+end module
+end
+
+star
+module PluginManager:
+
+  import Seeder  # Assumes Seeder module is loaded
+
+  # Keep track of loaded plugins: name -> Module
+  var loaded_plugins as Map[string, Module] = {}
+
+  # Load a plugin by name, including dependencies
+  define load_plugin(name as string) as bool:
+    when loaded_plugins.contains(name):
+      call print("PluginManager: Plugin '{name}' already loaded.")
+      return true
+    end when
+
+    # Resolve dependencies first
+    val modules_to_load: List[Module] = Seeder.resolve_dependencies([name])
+    if modules_to_load.is_empty():
+      call print("PluginManager: No modules found for '{name}'. Load failed.")
+      return false
+    end if
+
+    for mod in modules_to_load:
+      val mod_name = mod.name if hasattr(mod, "name") else "Unnamed"
+      when loaded_plugins.contains(mod_name):
+        # Already loaded
+        continue
+      end when
+      loaded_plugins[mod_name] = mod
+      # Hypothetical initialization call if module supports it
+      when hasattr(mod, "initialize"):
+        call mod.initialize()
+      end when
+      call print("PluginManager: Loaded plugin '{mod_name}'.")
+    end for
+
+    return true
+  end define
+
+  # Unload a plugin by name (does not unload dependencies to avoid breaking others)
+  define unload_plugin(name as string) as bool:
+    when not loaded_plugins.contains(name):
+      call print("PluginManager: Plugin '{name}' is not loaded.")
+      return false
+    end when
+
+    val mod = loaded_plugins[name]
+
+    # Hypothetical cleanup call if module supports it
+    when hasattr(mod, "cleanup"):
+      call mod.cleanup()
+    end when
+
+    loaded_plugins.remove(name)
+    call print("PluginManager: Unloaded plugin '{name}'.")
+    return true
+  end define
+
+  # Reload a plugin by unloading then loading again
+  define reload_plugin(name as string) as bool:
+    val unloaded = unload_plugin(name)
+    if not unloaded:
+      call print("PluginManager: Reload failed; plugin '{name}' was not loaded.")
+      return false
+    end if
+    return load_plugin(name)
+  end define
+
+  # List all currently loaded plugins
+  define list_loaded_plugins():
+    call print("PluginManager: Currently loaded plugins:")
+    for name in loaded_plugins.keys():
+      call print(" - {name}")
+    end for
+  end define
+
+  # Integration with REPL commands (to be called by CommandProcessor)
+  define handle_command(cmd as string):
+    val parts: List[string] = cmd.split(" ")
+    when parts.is_empty():
+      return
+    end when
+
+    val command = parts[0].lower()
+    val arg = if parts.size() > 1: parts[1] else: ""
+
+    when command == "plugin_load":
+      when arg == "":
+        call print("Usage: plugin_load <plugin_name>")
+      else:
+        load_plugin(arg)
+      end when
+
+    elif command == "plugin_unload":
+      when arg == "":
+        call print("Usage: plugin_unload <plugin_name>")
+      else:
+        unload_plugin(arg)
+      end when
+
+    elif command == "plugin_reload":
+      when arg == "":
+        call print("Usage: plugin_reload <plugin_name>")
+      else:
+        reload_plugin(arg)
+      end when
+
+    elif command == "plugin_list":
+      list_loaded_plugins()
+
+    else:
+      # Not a plugin command; ignore or forward
+      pass
+    end when
+  end define
+
+end module
+end
+
