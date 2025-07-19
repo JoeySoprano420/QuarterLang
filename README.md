@@ -215,7 +215,7 @@ Philosophical or poetic language enhancements
 🚀 Build Instructions (Planned)
 Eventually:
 
-bash
+(bash)
 
 $ qtr build
 $ qtr run examples/hello.qtr
