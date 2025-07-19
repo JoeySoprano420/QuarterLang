@@ -10,3 +10,353 @@ func run_repl():
         val cmd: string = ask()
         CommandProcessor.route(cmd)
 end
+
+star
+
+import "Prompt.qtr"
+import "CommandProcessor.qtr"
+import "Config.qtr"
+import "UserSession.qtr"   # Assume user/session system from before
+
+# ==== Core REPL Runner ====
+
+# Tracks REPL state and command history
+var repl_history as List[string] = []
+var is_running as bool = true
+
+# Initialize and run the REPL event loop
+func run_repl() {
+    # Load default configuration settings (themes, prompts, keybindings, etc.)
+    Config.load_defaults()
+    call log("info", "REPL started with default configuration.")
+
+    # Display welcome message
+    call print("Welcome to QuarterLang REPL! Type 'help' for commands, 'exit' to quit.")
+
+    loop is_running {
+        # Display the prompt (could be dynamic based on session/user)
+        Prompt.display()
+
+        # Async read user input line; blocks until input is given
+        val cmd_line: string = ask()
+
+        # Record command in history
+        repl_history.push(cmd_line)
+
+        # Process the command asynchronously
+        try {
+            CommandProcessor.route(cmd_line)
+        } catch err {
+            call print("[ERROR] {err}")
+            call log("error", "REPL command error: {err}")
+        }
+    }
+
+    # When loop ends, shutdown cleanup
+    call print("Goodbye from QuarterLang REPL!")
+    call log("info", "REPL session ended.")
+}
+
+# ==== Prompt Module (Prompt.qtr) ====
+
+# Displays the prompt, which can be customized dynamically
+func Prompt.display() {
+    # Example: show username and current prompt symbol
+    val user: string = "guest"
+    val prompt_sym: string = Config.get("prompt_symbol", "⭑")
+    call print("{user}@QuarterLang {prompt_sym} ", no_newline=true)
+}
+
+# ==== Command Processor Module (CommandProcessor.qtr) ====
+
+# Holds registered commands: command name → handler function
+var commands as Map[string, fn(string[])] = {}
+
+# Registers a new command with its handler function
+func CommandProcessor.register(cmd_name: string, handler: fn(string[])) {
+    commands[cmd_name] = handler
+    call log("info", "Command '{cmd_name}' registered.")
+}
+
+# Parses command line into tokens (split by spaces, handles quotes, etc.)
+func CommandProcessor.parse(cmd_line: string) as string[] {
+    # Basic split by space; extend for quoted args if needed
+    return split(cmd_line, " ")
+}
+
+# Routes a raw command line string to its handler
+func CommandProcessor.route(cmd_line: string) {
+    val tokens: string[] = CommandProcessor.parse(cmd_line)
+    when len(tokens) == 0 {
+        return  # empty input
+    }
+    val cmd_name: string = tokens[0]
+    val args: string[] = tokens[1:]
+
+    when commands.contains(cmd_name) {
+        # Call the registered handler with args
+        commands[cmd_name](args)
+    } else {
+        call print("Unknown command '{cmd_name}'. Type 'help' for list.")
+    }
+}
+
+# ==== Config Module (Config.qtr) ====
+
+var config_map as Map[string, primative] = {}
+
+# Load default configs
+func Config.load_defaults() {
+    config_map["prompt_symbol"] = "⭑"
+    config_map["theme"] = "dark"
+    config_map["max_history"] = 100
+    call log("info", "Default configuration loaded.")
+}
+
+# Get config by key, return default if missing
+func Config.get(key: string, default_val: primative) as primative {
+    when config_map.contains(key) {
+        return config_map[key]
+    } else {
+        return default_val
+    }
+}
+
+# Set config key-value
+func Config.set(key: string, value: primative) {
+    config_map[key] = value
+    call log("info", "Config '{key}' set to '{value}'.")
+}
+
+# ==== Builtin Commands Registration ====
+
+func register_builtin_commands() {
+    # Help command prints available commands
+    CommandProcessor.register("help", fn(args: string[]) {
+        call print("Available commands:")
+        for key in commands.keys() {
+            call print("- {key}")
+        }
+    })
+
+    # Exit command to quit REPL
+    CommandProcessor.register("exit", fn(args: string[]) {
+        call print("Exiting REPL...")
+        is_running = false
+    })
+
+    # Echo command repeats input
+    CommandProcessor.register("echo", fn(args: string[]) {
+        val output = join(args, " ")
+        call print(output)
+    })
+
+    # History command prints last commands
+    CommandProcessor.register("history", fn(args: string[]) {
+        val max_len: int = Config.get("max_history", 100)
+        val start_idx = max(0, len(repl_history) - max_len)
+        for i in range(start_idx, len(repl_history)) {
+            call print("{i + 1}: {repl_history[i]}")
+        }
+    })
+
+    # User session info
+    CommandProcessor.register("user", fn(args: string[]) {
+        when len(args) == 0 {
+            call print("Usage: user <login|logout|list> [username]")
+            return
+        }
+        val subcmd = args[0]
+        when subcmd {
+            "login" {
+                when len(args) < 2 {
+                    call print("Usage: user login <username>")
+                    return
+                }
+                call UserSession.login(args[1])
+            }
+            "logout" {
+                when len(args) < 2 {
+                    call print("Usage: user logout <username>")
+                    return
+                }
+                call UserSession.logout(args[1])
+            }
+            "list" {
+                call UserSession.list_users()
+            }
+            else {
+                call print("Unknown user subcommand '{subcmd}'")
+            }
+        }
+    })
+}
+
+# ==== REPL Initialization ====
+
+func initialize_repl() {
+    register_builtin_commands()
+    call log("info", "Builtin commands registered.")
+}
+
+# ==== Main Entry Point ====
+
+func main() {
+    initialize_repl()
+    run_repl()
+}
+
+end
+
+star
+
+# Displays the REPL prompt with optional user and theme context
+
+func display() {
+    # Retrieve user from session if available, else default
+    val user: string = "guest"
+    # Attempt to get prompt symbol from config (fall back to default)
+    val prompt_sym: string = Config.get("prompt_symbol", "⭑")
+    val theme: string = Config.get("theme", "dark")
+
+    # Compose prompt string with theme/color coding (simplified)
+    val prompt_str: string = when theme == "dark": "{user}@QLang {prompt_sym} " else: "{user}@QLang {prompt_sym} "
+
+    # Print without newline, so input is on same line
+    call print(prompt_str, no_newline=true)
+}
+
+end
+
+star
+
+# Map of commands: string → function accepting string[] args
+var commands as Map[string, fn(string[])] = {}
+
+# Register a new command with a handler function
+func register(cmd_name: string, handler: fn(string[])) {
+    commands[cmd_name] = handler
+    call log("info", "Registered command '{cmd_name}'.")
+}
+
+# Simple tokenizer/split for command line input (space separated)
+func parse(cmd_line: string) as string[] {
+    # This can be enhanced to support quoted strings later
+    return split(cmd_line, " ")
+}
+
+# Routes a command line string to the appropriate handler
+func route(cmd_line: string) {
+    val tokens: string[] = parse(cmd_line)
+    if len(tokens) == 0 {
+        return  # empty input, no command
+    }
+    val cmd_name: string = tokens[0]
+    val args: string[] = tokens[1..]  # from index 1 to end
+
+    when commands.contains(cmd_name) {
+        commands[cmd_name](args)
+    } else {
+        call print("Unknown command '{cmd_name}'. Type 'help' for a list.")
+    }
+}
+
+end
+
+star
+
+var config_map as Map[string, primative] = {}
+
+# Load default config values
+func load_defaults() {
+    config_map["prompt_symbol"] = "⭑"
+    config_map["theme"] = "dark"
+    config_map["max_history"] = 100
+    call log("info", "Configuration defaults loaded.")
+}
+
+# Get config value with fallback default
+func get(key: string, default_val: primative) as primative {
+    when config_map.contains(key) {
+        return config_map[key]
+    } else {
+        return default_val
+    }
+}
+
+# Set config key-value
+func set(key: string, value: primative) {
+    config_map[key] = value
+    call log("info", "Config '{key}' set to '{value}'.")
+}
+
+end
+
+star
+
+var users as List[string] = []
+var session_map as Map[string, Map[string, primative]] = {}  # username → config map
+
+# Generate a dummy UID for session signature
+func generate_uid() as int {
+    # Simple pseudo random based on timestamp (mock)
+    return now() % 100000
+}
+
+# Convert int UID to symbolic DG string (mock)
+func to_dg(uid: int) as string {
+    # Simple hex string for demonstration
+    return format("{:X}", uid)
+}
+
+# Login user: add to users list and initialize session config
+func login(username: string) {
+    when users.contains(username) {
+        call print("User '{username}' already logged in.")
+        return
+    }
+    users.push(username)
+    session_map[username] = {
+        "theme": "galactic",
+        "prompt": "⭑",
+        "dg_sig": to_dg(generate_uid())
+    }
+    call print("🔓 Welcome, {username}!")
+    call log("info", "User '{username}' logged in.")
+}
+
+# Logout user: remove from users list and session map
+func logout(username: string) {
+    when users.contains(username) {
+        users.remove(username)
+        session_map.remove(username)
+        call print("🔒 Goodbye, {username}!")
+        call log("info", "User '{username}' logged out.")
+    } else {
+        call print("User '{username}' is not logged in.")
+    }
+}
+
+# List all logged-in users
+func list_users() {
+    when len(users) == 0 {
+        call print("No users currently logged in.")
+        return
+    }
+    call print("Logged in users:")
+    for user in users {
+        call print("- {user}")
+    }
+}
+
+# Retrieve session config for user and key (returns empty string if missing)
+func session_get_config(username: string, key: string) as string {
+    when session_map.contains(username) and session_map[username].contains(key) {
+        return session_map[username][key] as string
+    } else {
+        return ""
+    }
+}
+
+end
+
