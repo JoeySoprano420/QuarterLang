@@ -1,0 +1,64 @@
+star
+import "PluginSystem.qtr"
+import "PluginSettings.qtr"
+import "LibrarySystem.qtr"
+plugin load "libqtr_sdl.so"
+
+struct Node:
+  name as string
+  deps as string[]
+  x as int
+  y as int
+
+var nodes as Node[] = []
+
+procedure layout_graph():
+  nodes = []
+  var angle as dg: 0
+  val centerX as int: 400
+  val centerY as int: 300
+  val radius as int: 200
+  val count as int: LibrarySystem.libs.keys().len()
+  val idx as int = 0
+  for name in LibrarySystem.libs.keys():
+    val rad as float = 2 * 3.14159 * idx / count
+    val x as int: centerX + to_int(cos(rad) * radius)
+    val y as int: centerY + to_int(sin(rad) * radius)
+    val deps as string[] = plugin_dependencies.get(name) ?: []
+    nodes.push(Node.new(name, deps, x, y))
+    idx = idx + 1
+  end for
+
+procedure draw():
+  SDL.clear(0, 0, 0, 255)
+  for node in nodes:
+    for dep in node.deps:
+      val target as Node? = nodes.find(fn n -> n.name == dep)
+      when target != null:
+        SDL.draw_line(node.x, node.y, target.x, target.y, 255, 255, 0)
+      end when
+    end for
+  end for
+  for node in nodes:
+    val is_loaded as int = plugin_state.contains(node.name) ? 1 : 0
+    SDL.draw_circle(node.x, node.y, 30, is_loaded ? (0,255,0) : (100,100,100))
+    SDL.draw_text(node.name, node.x - 20, node.y - 40, 255,255,255)
+  end for
+  SDL.present()
+end procedure
+
+procedure run_inspector():
+  call layout_graph()
+  SDL.init_window("Plugin Inspector", 800, 600)
+  while true:
+    SDL.poll_events(fn e:
+      when e.type == SDL.QUIT:
+        return
+    )
+    call draw()
+    SDL.delay(16)
+  end while
+  SDL.shutdown()
+end procedure
+
+end
