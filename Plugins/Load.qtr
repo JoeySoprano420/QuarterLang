@@ -1,0 +1,10 @@
+star
+import "LibrarySystem.qtr"
+
+func plugin_register(name: string, mod: Module):
+    LibrarySystem.register(name, mod)
+end
+
+func plugin_load(name: string):
+    return LibrarySystem.get(name)
+end
