@@ -14,3 +14,250 @@ module LibrarySystem:
   end define
 end module
 end
+
+star
+module LibrarySystem:
+  # 🧠 Atomic map for lock-free access (thread-safe concurrent reads)
+  var libs as AtomicMap = AtomicMap.create()  # name -> Module
+  var metadata as Map = {}  # name -> Map[info: string, checksum: primative]
+  var rollback as Map = {}  # name -> Module (last good version)
+
+  # 🔐 Internal: Calculate checksum for module verification
+  define checksum(mod as Module) as primative:
+    return Hash.sha256(mod.to_string())
+  end define
+
+  # 🧪 Register a module with optional metadata
+  define register(name as primative, mod as Module, info as optional string = "", track_backup as optional bool = true):
+    if track_backup and libs.contains(name):
+      rollback[name] = libs[name]  # Save last version
+    end if
+
+    libs[name] = mod
+    metadata[name] = {
+      "info": info,
+      "checksum": checksum(mod),
+      "timestamp": Time.now()
+    }
+    CodexLogger.log("📚 Library Registered: " + name)
+  end define
+
+  # 🔄 Patch module (hot-swap with rollback support)
+  define hot_patch(name as primative, mod as Module):
+    if libs.contains(name) is false:
+      ErrorHandler.error(404, "Module not found for hot-patch: " + name)
+    end if
+
+    rollback[name] = libs[name]
+    libs[name] = mod
+    metadata[name]["checksum"] = checksum(mod)
+    metadata[name]["timestamp"] = Time.now()
+    CodexLogger.log("♻️ Patched: " + name)
+  end define
+
+  # 🔁 Roll back to previous version if available
+  define revert(name as primative):
+    if rollback.contains(name) is false:
+      ErrorHandler.warn("⚠️ No rollback version found for " + name)
+      return
+    end if
+    libs[name] = rollback[name]
+    CodexLogger.log("↩️ Rolled back: " + name)
+  end define
+
+  # 🔍 Live debug CLI and Codex Scroll overlay
+  define inspect():
+    print("\n📘 Library Registry Overview:")
+    for (k, v) in libs:
+      print("  • " + k + " ✅ Checksum: " + metadata[k]["checksum"])
+    end for
+    print("🏛 Total Modules: " + libs.size().to_string())
+  end define
+
+  # 📦 Fetch a module (with error and integrity check)
+  define get(name as primative) as Module:
+    when libs.contains(name) is false:
+      ErrorHandler.error(404, "Library not found: " + name)
+    end when
+
+    let mod = libs[name]
+    let check = checksum(mod)
+    when check != metadata[name]["checksum"]:
+      ErrorHandler.warn("⚠️ Module checksum mismatch for " + name)
+    end when
+
+    return mod
+  end define
+
+  # 🌐 Load module remotely from URL (if remote loader supported)
+  define load_remote(name as primative, url as primative):
+    let mod_src = RemoteLoader.fetch(url)
+    let mod = Compiler.compile(mod_src)
+    register(name, mod, "Loaded from " + url)
+    CodexLogger.log("🌍 Remote module loaded: " + name)
+  end define
+
+  # 💾 Save/restore Codex Scroll state
+  define save_state(path as primative):
+    File.write(path, Serialize.json(libs))
+    CodexLogger.log("💾 Saved library state to " + path)
+  end define
+
+  define load_state(path as primative):
+    let libdata = File.read(path)
+    let loaded = Deserialize.json(libdata)
+    for (k, v) in loaded:
+      register(k, v)
+    end for
+    CodexLogger.log("🔄 Loaded library state from " + path)
+  end define
+
+end module
+end
+
+star
+module UltimateLibrarySystem:
+
+  import Thread
+  import Memory
+  import Time
+  import GC
+  import CLI
+  import Inspector
+  import CodexUI
+  import ErrorHandler
+
+  # Thread-safe, high-speed concurrent map for modules
+  var libs as ConcurrentMap = ConcurrentMap.create()   # name: string → Module
+  var lastLoaded as Map = {}                           # name → timestamp
+
+  define register(name as primative, mod as Module):
+    if libs.has(name):
+      ErrorHandler.warn("Overwriting module: " + name)
+    end if
+    libs[name] = mod
+    lastLoaded[name] = Time.now()
+  end define
+
+  define get(name as primative) as Module:
+    when libs.has(name) is false:
+      ErrorHandler.error(404, "Library not found: " + name)
+    end when
+    return libs[name]
+  end define
+
+  define reload(name as primative):
+    var mod = get(name)
+    if mod.reload is defined:
+      mod.reload()
+      lastLoaded[name] = Time.now()
+    else:
+      ErrorHandler.error(501, "Module does not support reload: " + name)
+    end if
+  end define
+
+  define stats() as Map:
+    return {
+      "total": libs.size(),
+      "lastLoaded": lastLoaded,
+      "memory": Memory.stats(),
+      "gc": GC.currentState()
+    }
+  end define
+
+  define inspect() as Void:
+    Inspector.open(libs)
+  end define
+
+  define snapshot(path as primative):
+    var data = {
+      "libs": libs.serialize(),
+      "lastLoaded": lastLoaded
+    }
+    File.writeJSON(path, data)
+  end define
+
+  define restore(path as primative):
+    var data = File.readJSON(path)
+    libs = ConcurrentMap.deserialize(data["libs"])
+    lastLoaded = data["lastLoaded"]
+  end define
+
+end module
+end
+
+module MemoryInspector:
+  import CodexUI
+  import GC
+  import CLI
+
+  define open(state as any):
+    CLI.print("=== Memory Inspector ===")
+    CLI.print("Live Modules: " + state.size())
+    CLI.print("GC Status: " + GC.status())
+
+    CodexUI.render({
+      "title": "Memory & Library State",
+      "charts": [
+        GC.heatmap(),
+        GC.leakMap(),
+        GC.cycleTimeline()
+      ],
+      "logs": GC.eventLog(20)
+    })
+  end define
+end module
+end
+
+module REPLSaver:
+  define save(path as primative, context as Map):
+    File.writeJSON(path, context)
+  end define
+
+  define load(path as primative) as Map:
+    return File.readJSON(path)
+  end define
+end module
+end
+
+module LibrarySystemTest:
+  import UltimateLibrarySystem
+  import Time
+
+  define run():
+    var mod as Module = Module.create("Demo", {})
+    for i in range(0, 10000):
+      UltimateLibrarySystem.register("demo_" + i.toString(), mod)
+    end for
+
+    var t1 = Time.now()
+    for i in range(0, 10000):
+      UltimateLibrarySystem.get("demo_" + i.toString())
+    end for
+    var t2 = Time.now()
+
+    CLI.print("Access time: " + (t2 - t1).toString() + "ms")
+    CLI.print("Stats: " + UltimateLibrarySystem.stats().toString())
+  end define
+end module
+end
+
+module GCVisualOverlay:
+  define launch():
+    var overlay = {
+      "scroll": CodexUI.scrollFrame({
+        "title": "GC Codex Panel",
+        "sections": [
+          {"label": "Live Objects", "value": GC.liveCount()},
+          {"label": "Heatmap", "graphic": GC.heatmap()},
+          {"label": "Leaks", "graphic": GC.leakMap()},
+          {"label": "Cycle Chart", "graphic": GC.timeline()}
+        ]
+      }),
+      "footer": GC.lastSweepSummary()
+    }
+    CodexUI.display(overlay)
+  end define
+end module
+end
+
