@@ -1,0 +1,15 @@
+# Plugin runtime settings storage
+var settings_map as Map = {}
+
+func default_for(name: string):
+    return {
+        "enabled": true,
+        "log_level": "info",
+        "auto_reload": false
+    }
+
+func get(name: string, key: string):
+    return settings_map[name][key]
+
+func set(name: string, key: string, val: any):
+    settings_map[name][key] = val
