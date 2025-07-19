@@ -1,0 +1,29 @@
+star
+import "PluginSystem.qtr"
+plugin load "libqtr_webgl.js"
+
+var canvas = WebGLCanvas.new("inspector", 800, 600)
+var shader = WebGLShader.load(vertex_src, fragment_src)
+
+procedure init_graph():
+  # same layout logic as SDL version
+end procedure
+
+procedure draw_web():
+  canvas.clear(0,0,0,1)
+  shader.use()
+  for node in nodes:
+    shader.draw_circle(node.x, node.y, 30, plugin_state.contains(node.name) ? (0,1,0) : (0.4,0.4,0.4))
+    shader.draw_line_graph_edges(nodes)
+    shader.draw_text(node.name, node.x - 20, node.y - 40, 1,1,1)
+  end for
+end procedure
+
+procedure run_web_inspector():
+  call init_graph()
+  canvas.on_frame(fn:
+    call draw_web()
+  )
+end procedure
+
+end
