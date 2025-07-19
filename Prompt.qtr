@@ -1,0 +1,8 @@
+star
+import "Config.qtr"
+func display():
+    val theme = Config.get("theme")
+    val glyph = Config.get("prompt_symbol")
+    val color = Config.get_color(theme)
+    call print("{color} {glyph} QuarterLang > ")
+end
