@@ -26,3 +26,257 @@ call factorial(5)
 call input()
 
 end
+
+star
+
+# ==== Core Standard Library Loader & Bootstrap ====
+
+# Load foundational modules with fallback error trapping
+
+func safe_import(module_name: string) {
+    try {
+        import module_name
+        call print("Module '{module_name}' loaded successfully.")
+    } catch e {
+        call print("Warning: Failed to load module '{module_name}': {e}")
+    }
+}
+
+# Core modules (mandatory)
+safe_import("io.qtr")
+safe_import("math.qtr")
+safe_import("recursion.qtr")
+safe_import("compare.qtr")
+safe_import("util.qtr")
+
+# Extended utility modules (optional)
+safe_import("string.qtr")
+safe_import("datetime.qtr")
+safe_import("async.qtr")
+safe_import("error.qtr")
+safe_import("symbolic.qtr")
+safe_import("profiling.qtr")
+safe_import("collections.qtr")
+safe_import("filesystem.qtr")
+
+# Version and Environment Info
+var stdlib_version: string = "QuarterLang StdLib v1.5.3"
+var runtime_env: string = get_env("QUARTERLANG_RUNTIME") or "local"
+call print("Initializing QuarterLang Standard Library Loader")
+call print("Version: {stdlib_version}")
+call print("Runtime environment: {runtime_env}")
+
+# Verbose mode toggle
+var verbose: bool = true
+
+func logv(msg: string) {
+    when verbose:
+        call print("[Verbose] {msg}")
+}
+
+# ==== Comprehensive Utility Function Suite ====
+
+# Math Wrappers with input validation and error handling
+
+func add(x: int, y: int) -> int {
+    return x + y
+}
+
+func mul(x: int, y: int) -> int {
+    return x * y
+}
+
+func sub(x: int, y: int) -> int {
+    return x - y
+}
+
+func div(x: int, y: int) -> float {
+    when y == 0:
+        call print("Error: Division by zero.")
+        return 0.0
+    else:
+        return float(x) / float(y)
+}
+
+func mod(x: int, y: int) -> int {
+    when y == 0:
+        call print("Error: Modulus by zero.")
+        return 0
+    else:
+        return x % y
+}
+
+func pow(base: int, exponent: int) -> int {
+    when exponent < 0:
+        call print("Warning: Negative exponents not supported in integer pow.")
+        return 0
+    else:
+        val result: int = 1
+        var i = 0
+        loop i < exponent {
+            result = result * base
+            i = i + 1
+        }
+        return result
+}
+
+func min(x: int, y: int) -> int {
+    when x < y:
+        return x
+    else:
+        return y
+}
+
+func max(x: int, y: int) -> int {
+    when x > y:
+        return x
+    else:
+        return y
+}
+
+func abs(x: int) -> int {
+    when x < 0:
+        return -x
+    else:
+        return x
+}
+
+func clamp(x: int, low: int, high: int) -> int {
+    when x < low:
+        return low
+    elif x > high:
+        return high
+    else:
+        return x
+}
+
+func is_even(x: int) -> bool {
+    return (x % 2) == 0
+}
+
+# Recursive factorial with memoization
+
+var factorial_cache: map[int, int] = {}
+
+func factorial(n: int) -> int {
+    when n < 0:
+        call print("Error: Factorial undefined for negative numbers.")
+        return 0
+    when n == 0 or n == 1:
+        return 1
+    when factorial_cache.contains(n):
+        return factorial_cache[n]
+    else:
+        val result: int = n * factorial(n - 1)
+        factorial_cache[n] = result
+        return result
+}
+
+# Equality and comparison utilities (imported from compare.qtr)
+func compare(x: int, y: int) {
+    when x > y:
+        call print("{x} is greater than {y}")
+    elif x < y:
+        call print("{x} is less than {y}")
+    else:
+        call print("{x} is equal to {y}")
+}
+
+# String utilities example (if string.qtr loaded)
+
+func str_reverse(s: string) -> string {
+    var result = ""
+    var i = len(s) - 1
+    loop i >= 0 {
+        result = result + s[i]
+        i = i - 1
+    }
+    return result
+}
+
+# Asynchronous example stub (if async.qtr loaded)
+
+func async_delay(ms: int, callback: fn) {
+    # Simulate async delay and invoke callback
+    call print("Async delay of {ms} ms starting...")
+    # Would hook into event loop or timer in real implementation
+    call callback()
+}
+
+# Input utility with validation
+
+func input(prompt: string = ">> ") -> string {
+    call print(prompt)
+    val user_input: string = read_line()
+    return user_input
+}
+
+# Readline wrapper (from io.qtr)
+func read_line() -> string {
+    # Placeholder: In real QuarterLang, this would block until input
+    # Simulated input for demonstration:
+    return "demo input"
+}
+
+# Plugin system registration
+
+var plugins: map[string, map] = {}
+
+func register_plugin(name: string, metadata: map) {
+    plugins[name] = metadata
+    logv("Plugin '{name}' registered with metadata: {metadata}")
+}
+
+func list_plugins() {
+    call print("Registered plugins:")
+    for key in plugins {
+        call print(" - {key}: {plugins[key]}")
+    }
+}
+
+# Comprehensive example test runner
+
+func run_standard_tests() {
+    call print("Running Standard Library Tests...")
+    # Arithmetic
+    assert add(4, 5) == 9
+    assert mul(7, 6) == 42
+    assert sub(10, 4) == 6
+    assert div(20, 4) == 5.0
+    assert mod(17, 3) == 2
+    assert pow(2, 8) == 256
+    assert min(3, 9) == 3
+    assert max(3, 9) == 9
+    assert abs(-10) == 10
+    assert clamp(15, 5, 10) == 10
+    assert is_even(4) == true
+    assert is_even(7) == false
+    assert factorial(5) == 120
+    call print("All tests passed successfully.")
+}
+
+# Initialize and run demo usage
+
+func demo_usage() {
+    call print("=== Demo QuarterLang StdLib Usage ===")
+    call print("Add 4 + 9 =", add(4, 9))
+    call print("Mul 2 * 3 =", mul(2, 3))
+    call print("Sub 10 - 4 =", sub(10, 4))
+    call print("Div 20 / 5 =", div(20, 5))
+    call print("Mod 13 % 5 =", mod(13, 5))
+    call print("Pow 3 ^ 4 =", pow(3, 4))
+    call print("Min of 7 and 12 =", min(7, 12))
+    call print("Max of 7 and 12 =", max(7, 12))
+    call print("Abs of -7 =", abs(-7))
+    call print("Clamp 15 to [5,10] =", clamp(15, 5, 10))
+    call print("Is 6 even?", is_even(6))
+    call print("Factorial of 5 =", factorial(5))
+    call print("Reverse string 'QuarterLang' =", str_reverse("QuarterLang"))
+}
+
+# Start point
+
+call demo_usage()
+call run_standard_tests()
+
+end
