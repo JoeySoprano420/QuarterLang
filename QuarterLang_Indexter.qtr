@@ -10,3 +10,1336 @@ module Indexter:
   end define
 end module
 end
+
+star
+module Indexter:
+
+  # Symbol data structure
+  class Symbol:
+    val name: string
+    val node: Node          # AST node declaring this symbol
+    val scope_level: int    # nesting depth
+    val symbol_type: string # e.g. "variable", "function", "class"
+    val data_type: string   # static type annotation if any
+    val declared_line: int
+    val declared_column: int
+
+    init(name: string, node: Node, scope_level: int, symbol_type: string, data_type: string, declared_line: int, declared_column: int):
+      self.name = name
+      self.node = node
+      self.scope_level = scope_level
+      self.symbol_type = symbol_type
+      self.data_type = data_type
+      self.declared_line = declared_line
+      self.declared_column = declared_column
+    end init
+  end class
+
+  # SymbolTable supports nested scopes and shadowing
+  class SymbolTable:
+    var symbols: Map[string, List[Symbol]] = {}     # name -> stack of symbols (for shadowing)
+    var parent: SymbolTable? = null                  # enclosing scope table
+    var level: int = 0                               # scope depth, 0 = global
+
+    init(parent: SymbolTable? = null):
+      self.parent = parent
+      self.level = when parent is null: 0 else: parent.level + 1
+    end init
+
+    # Add a symbol to this scope; returns error on conflict
+    func add(name: string, symbol: Symbol):
+      if symbols.contains(name):
+        # Check if same scope level - duplicate symbol error
+        val existing_stack = symbols[name]
+        if existing_stack.length > 0 and existing_stack[-1].scope_level == self.level:
+          ErrorHandler.error(409, "Symbol '{name}' redeclared in the same scope at line {symbol.declared_line}, column {symbol.declared_column}")
+          stop
+        end if
+        existing_stack.push(symbol)
+      else:
+        symbols[name] = [symbol]
+      end if
+    end func
+
+    # Lookup symbol by name; resolves up the parent chain; returns null if not found
+    func lookup(name: string) as Symbol?:
+      if symbols.contains(name) and symbols[name].length > 0:
+        return symbols[name][-1]  # top of stack: current scope symbol
+      elif parent is not null:
+        return parent.lookup(name)
+      else:
+        return null
+      end if
+    end func
+
+    # Remove symbol from current scope (pop shadowing)
+    func remove(name: string):
+      if symbols.contains(name):
+        val stack = symbols[name]
+        if stack.length > 0 and stack[-1].scope_level == self.level:
+          stack.pop()
+          if stack.length == 0:
+            symbols.remove(name)
+          end if
+        else:
+          ErrorHandler.error(400, "Cannot remove symbol '{name}'; not found in current scope")
+        end if
+      else:
+        ErrorHandler.error(404, "Cannot remove symbol '{name}'; symbol not found")
+      end if
+    end func
+
+  end class
+
+
+  # Recursively index symbols in the AST with scope tracking
+  define index_symbols(ast as AST) as SymbolTable:
+    # Create global symbol table
+    val global_table = SymbolTable.new(null)
+
+    # Internal recursive function to walk AST nodes and index symbols
+    func walk(node: Node, current_table: SymbolTable):
+      match node.type:
+        "Program":
+          for child in node.children:
+            walk(child, current_table)
+          end for
+
+        "Block":
+          # Create new nested scope for block
+          val nested_table = SymbolTable.new(current_table)
+          for stmt in node.children:
+            walk(stmt, nested_table)
+          end for
+
+        "VarDecl", "ConstDecl":
+          # Extract name, type info, location
+          val name = node.name
+          val sym_type = "variable"
+          val data_type = when node.data_type is not null: node.data_type else: "unknown"
+          val sym = Symbol.new(name, node, current_table.level, sym_type, data_type, node.line, node.column)
+          current_table.add(name, sym)
+
+        "FuncDecl":
+          # Add function symbol to current scope
+          val name = node.name
+          val sym_type = "function"
+          val data_type = when node.return_type is not null: node.return_type else: "void"
+          val sym = Symbol.new(name, node, current_table.level, sym_type, data_type, node.line, node.column)
+          current_table.add(name, sym)
+
+          # Create nested scope for function body parameters + locals
+          val nested_table = SymbolTable.new(current_table)
+
+          # Add function parameters as variables in nested scope
+          for param in node.params:
+            val p_name = param.name
+            val p_type = when param.data_type is not null: param.data_type else: "unknown"
+            val p_sym = Symbol.new(p_name, param, nested_table.level, "parameter", p_type, param.line, param.column)
+            nested_table.add(p_name, p_sym)
+          end for
+
+          # Walk function body in nested scope
+          walk(node.body, nested_table)
+
+        "ClassDecl":
+          # Class symbol in current scope
+          val name = node.name
+          val sym_type = "class"
+          val data_type = "class"
+          val sym = Symbol.new(name, node, current_table.level, sym_type, data_type, node.line, node.column)
+          current_table.add(name, sym)
+
+          # Class scope for members
+          val nested_table = SymbolTable.new(current_table)
+
+          for member in node.members:
+            walk(member, nested_table)
+          end for
+
+        else:
+          # For other node types, recursively walk children if any
+          if node.children is not null:
+            for child in node.children:
+              walk(child, current_table)
+            end for
+          end if
+      end match
+    end func
+
+    # Start recursive indexing from AST root
+    walk(ast.root, global_table)
+
+    return global_table
+  end define
+
+end module
+end
+
+star
+module Indexter:
+
+  # Symbol structure with type info and usage tracking
+  class Symbol:
+    val name: string
+    val node: Node               # AST node declaring symbol
+    val scope_level: int         # depth in nested scopes
+    val symbol_type: string      # variable, function, class, parameter, etc.
+    val data_type: Type?         # resolved static type info (nullable)
+    val declared_line: int
+    val declared_column: int
+    var used: bool = false       # usage flag for unused detection
+
+    init(name: string, node: Node, scope_level: int, symbol_type: string, data_type: Type?, declared_line: int, declared_column: int):
+      self.name = name
+      self.node = node
+      self.scope_level = scope_level
+      self.symbol_type = symbol_type
+      self.data_type = data_type
+      self.declared_line = declared_line
+      self.declared_column = declared_column
+      self.used = false
+    end init
+  end class
+
+  # SymbolTable supporting nested scopes, shadowing, usage tracking
+  class SymbolTable:
+    var symbols: Map[string, List[Symbol]] = {}
+    var parent: SymbolTable? = null
+    var level: int = 0
+
+    init(parent: SymbolTable? = null):
+      self.parent = parent
+      self.level = when parent is null: 0 else: parent.level + 1
+    end init
+
+    # Add symbol, error on redeclaration in same scope
+    func add(name: string, symbol: Symbol):
+      if symbols.contains(name):
+        val stack = symbols[name]
+        if stack.length > 0 and stack[-1].scope_level == self.level:
+          ErrorHandler.error(409, "Symbol '{name}' redeclared in same scope at {symbol.declared_line}:{symbol.declared_column}")
+          stop
+        end if
+        stack.push(symbol)
+      else:
+        symbols[name] = [symbol]
+      end if
+    end func
+
+    # Lookup symbol recursively up scope chain
+    func lookup(name: string) as Symbol?:
+      if symbols.contains(name) and symbols[name].length > 0:
+        val sym = symbols[name][-1]
+        sym.used = true  # mark usage
+        return sym
+      elif parent is not null:
+        return parent.lookup(name)
+      else:
+        return null
+      end if
+    end func
+
+    # Remove symbol from current scope (pop shadowing)
+    func remove(name: string):
+      if symbols.contains(name):
+        val stack = symbols[name]
+        if stack.length > 0 and stack[-1].scope_level == self.level:
+          stack.pop()
+          if stack.length == 0:
+            symbols.remove(name)
+          end if
+        else:
+          ErrorHandler.error(400, "Cannot remove symbol '{name}'; not found in current scope")
+        end if
+      else:
+        ErrorHandler.error(404, "Cannot remove symbol '{name}'; symbol not found")
+      end if
+    end func
+
+    # Serialize symbol table to JSON-like nested dictionary
+    func serialize() as Map:
+      var out: Map = {}
+      for name in symbols.keys():
+        val stack = symbols[name]
+        val serialized_stack = []
+        for sym in stack:
+          serialized_stack.push({
+            "name": sym.name,
+            "type": sym.symbol_type,
+            "data_type": when sym.data_type is null: "unknown" else: sym.data_type.to_string(),
+            "scope_level": sym.scope_level,
+            "declared_at": "{sym.declared_line}:{sym.declared_column}",
+            "used": sym.used
+          })
+        end for
+        out[name] = serialized_stack
+      end for
+
+      if parent is not null:
+        out["_parent"] = parent.serialize()
+      end if
+
+      out["_level"] = level
+
+      return out
+    end func
+
+    # Visualize symbol table (console tree UI)
+    func visualize(indent: int = 0):
+      val prefix = "  " * indent
+      call print("{prefix}Scope Level {level}:")
+      for name in symbols.keys():
+        val stack = symbols[name]
+        call print("{prefix}  Symbol '{name}' (shadow count: {stack.length}):")
+        for sym in stack:
+          val used_flag = when sym.used: "✔" else: "✘"
+          call print("{prefix}    - {sym.symbol_type} : {when sym.data_type is null: 'unknown' else: sym.data_type.to_string()} Declared at {sym.declared_line}:{sym.declared_column} Used: {used_flag}")
+        end for
+      end for
+
+      if parent is not null:
+        call print("{prefix}Parent Scope:")
+        parent.visualize(indent + 1)
+      end if
+    end func
+  end class
+
+  # TypeChecker integration
+  module TypeChecker:
+    # Very basic type checker - recursive walk + symbol type validation
+    define check_symbols(ast: AST, sym_table: SymbolTable):
+      func check_node(node: Node, table: SymbolTable):
+        match node.type:
+          "VarDecl", "ConstDecl":
+            val sym = table.lookup(node.name)
+            if sym is null:
+              ErrorHandler.error(500, "Symbol '{node.name}' not found during type check")
+              stop
+            end if
+
+            # Type inference example: if initializer present, check type compatibility
+            if node.initializer is not null:
+              val init_type = infer_type(node.initializer, table)
+              if not type_compatible(init_type, sym.data_type):
+                ErrorHandler.error(400, "Type mismatch for variable '{node.name}': expected {sym.data_type}, got {init_type}")
+              end if
+            end if
+
+          "FuncDecl":
+            val sym = table.lookup(node.name)
+            if sym is null:
+              ErrorHandler.error(500, "Function symbol '{node.name}' not found during type check")
+              stop
+            end if
+
+            # Check parameters and body recursively
+            val nested_table = SymbolTable.new(table)
+            for param in node.params:
+              val p_sym = nested_table.lookup(param.name)
+              if p_sym is null:
+                ErrorHandler.error(500, "Parameter symbol '{param.name}' not found")
+                stop
+              end if
+            end for
+            check_node(node.body, nested_table)
+
+          else:
+            # Recursively check child nodes
+            if node.children is not null:
+              for child in node.children:
+                check_node(child, table)
+              end for
+            end if
+        end match
+      end func
+
+      check_node(ast.root, sym_table)
+    end define
+
+    # Helper type inference stub (expandable)
+    define infer_type(expr: Node, table: SymbolTable) as Type:
+      match expr.type:
+        "LiteralInt": return Type.INT
+        "LiteralFloat": return Type.FLOAT
+        "Identifier":
+          val sym = table.lookup(expr.name)
+          return when sym is null: Type.UNKNOWN else: sym.data_type
+        else:
+          return Type.UNKNOWN
+      end match
+    end define
+
+    # Check if two types are compatible
+    define type_compatible(a: Type, b: Type) as bool:
+      return a == b or b == Type.UNKNOWN
+    end define
+
+  end module
+
+
+  # Main index_symbols method
+  define index_symbols(ast as AST) as SymbolTable:
+    val global_table = SymbolTable.new(null)
+
+    func walk(node: Node, current_table: SymbolTable):
+      match node.type:
+        "Program":
+          for child in node.children:
+            walk(child, current_table)
+          end for
+
+        "Block":
+          val nested_table = SymbolTable.new(current_table)
+          for stmt in node.children:
+            walk(stmt, nested_table)
+          end for
+
+        "VarDecl", "ConstDecl":
+          val name = node.name
+          val data_type = when node.data_type is not null: node.data_type else: null
+          val sym = Symbol.new(name, node, current_table.level, "variable", data_type, node.line, node.column)
+          current_table.add(name, sym)
+
+        "FuncDecl":
+          val name = node.name
+          val data_type = when node.return_type is not null: node.return_type else: null
+          val sym = Symbol.new(name, node, current_table.level, "function", data_type, node.line, node.column)
+          current_table.add(name, sym)
+
+          val nested_table = SymbolTable.new(current_table)
+          for param in node.params:
+            val p_data_type = when param.data_type is not null: param.data_type else: null
+            val p_sym = Symbol.new(param.name, param, nested_table.level, "parameter", p_data_type, param.line, param.column)
+            nested_table.add(param.name, p_sym)
+          end for
+          walk(node.body, nested_table)
+
+        "ClassDecl":
+          val name = node.name
+          val sym = Symbol.new(name, node, current_table.level, "class", null, node.line, node.column)
+          current_table.add(name, sym)
+
+          val nested_table = SymbolTable.new(current_table)
+          for member in node.members:
+            walk(member, nested_table)
+          end for
+
+        else:
+          if node.children is not null:
+            for child in node.children:
+              walk(child, current_table)
+            end for
+          end if
+      end match
+    end func
+
+    walk(ast.root, global_table)
+
+    # After indexing, run type checker
+    TypeChecker.check_symbols(ast, global_table)
+
+    return global_table
+  end define
+
+
+end module
+end
+
+star
+module IndexterUltimate:
+
+  # SourcePosition holds precise line/col mapping for error reporting & source maps
+  class SourcePosition:
+    val line: int
+    val column: int
+    val file: string
+
+    init(line: int, column: int, file: string):
+      self.line = line
+      self.column = column
+      self.file = file
+    end init
+
+    func to_string() as string:
+      return "{file}:{line}:{column}"
+    end func
+  end class
+
+
+  # Type representations (expandable)
+  class Type:
+    val name: string  # e.g., "int", "List<T>", "MyInterface"
+
+    # For generics: type parameters (e.g., T in List<T>)
+    var generics: List[Type] = []
+
+    init(name: string, generics: List[Type] = []):
+      self.name = name
+      self.generics = generics
+    end init
+
+    # Stringify with generics
+    func to_string() as string:
+      if generics.length == 0:
+        return name
+      end if
+      val gen_str = generics.map(t => t.to_string()).join(", ")
+      return "{name}<{gen_str}>"
+    end func
+
+    # Basic equality check supporting generics
+    func equals(other: Type) as bool:
+      if self.name != other.name:
+        return false
+      end if
+      if self.generics.length != other.generics.length:
+        return false
+      end if
+      for i in 0 to generics.length - 1:
+        if not generics[i].equals(other.generics[i]):
+          return false
+        end if
+      end for
+      return true
+    end func
+  end class
+
+
+  # Symbol enriched with SourcePosition and Type info
+  class Symbol:
+    val name: string
+    val node: Node
+    val scope_level: int
+    val symbol_type: string     # var, func, param, interface, generic param, etc
+    val data_type: Type?
+    val declared_pos: SourcePosition
+    var used: bool = false      # for dead code detection
+    var is_generic_param: bool = false  # special flag for generics
+
+    init(name: string, node: Node, scope_level: int, symbol_type: string, data_type: Type?, declared_pos: SourcePosition, is_generic_param: bool = false):
+      self.name = name
+      self.node = node
+      self.scope_level = scope_level
+      self.symbol_type = symbol_type
+      self.data_type = data_type
+      self.declared_pos = declared_pos
+      self.used = false
+      self.is_generic_param = is_generic_param
+    end init
+  end class
+
+
+  # Symbol table with nested scope, shadowing, and generics support
+  class SymbolTable:
+    var symbols: Map[string, List[Symbol]] = {}
+    var parent: SymbolTable? = null
+    var level: int = 0
+    var generics_map: Map[string, Type] = {}   # for generic param resolution
+
+    init(parent: SymbolTable? = null):
+      self.parent = parent
+      self.level = when parent is null: 0 else: parent.level + 1
+      self.generics_map = when parent is null: {} else: Map.copy(parent.generics_map)
+    end init
+
+    # Add symbol to current scope, check redeclaration
+    func add(name: string, sym: Symbol):
+      if symbols.contains(name):
+        val stack = symbols[name]
+        if stack.length > 0 and stack[-1].scope_level == self.level:
+          ErrorHandler.error(409, "Symbol '{name}' redeclared in same scope at {sym.declared_pos.to_string()}")
+          stop
+        end if
+        stack.push(sym)
+      else:
+        symbols[name] = [sym]
+      end if
+    end func
+
+    # Lookup symbol with generic param resolution and usage tracking
+    func lookup(name: string) as Symbol?:
+      if symbols.contains(name) and symbols[name].length > 0:
+        val sym = symbols[name][-1]
+        sym.used = true
+        return sym
+      elif parent is not null:
+        return parent.lookup(name)
+      else:
+        return null
+      end if
+    end func
+
+    # Resolve generic parameter substitution
+    func resolve_generic(name: string) as Type?:
+      if generics_map.contains(name):
+        return generics_map[name]
+      elif parent is not null:
+        return parent.resolve_generic(name)
+      else:
+        return null
+      end if
+    end func
+
+    # Remove symbol from current scope
+    func remove(name: string):
+      if symbols.contains(name):
+        val stack = symbols[name]
+        if stack.length > 0 and stack[-1].scope_level == self.level:
+          stack.pop()
+          if stack.length == 0:
+            symbols.remove(name)
+          end if
+        else:
+          ErrorHandler.error(400, "Cannot remove symbol '{name}'; not found in current scope")
+        end if
+      else:
+        ErrorHandler.error(404, "Cannot remove symbol '{name}'; symbol not found")
+      end if
+    end func
+
+    # Serialize table including generics_map
+    func serialize() as Map:
+      var out: Map = {}
+      for name in symbols.keys():
+        val stack = symbols[name]
+        val serial_stack = []
+        for sym in stack:
+          serial_stack.push({
+            "name": sym.name,
+            "symbol_type": sym.symbol_type,
+            "data_type": when sym.data_type is null: "unknown" else: sym.data_type.to_string(),
+            "scope_level": sym.scope_level,
+            "declared_at": sym.declared_pos.to_string(),
+            "used": sym.used,
+            "is_generic_param": sym.is_generic_param
+          })
+        end for
+        out[name] = serial_stack
+      end for
+
+      out["_generics_map"] = generics_map.map((k,v) => [k, v.to_string()])
+      if parent is not null:
+        out["_parent"] = parent.serialize()
+      end if
+      out["_level"] = level
+      return out
+    end func
+
+    # Visualize with dead code warnings (✘ unused)
+    func visualize(indent: int = 0):
+      val prefix = "  " * indent
+      call print("{prefix}Scope Level {level}:")
+      for name in symbols.keys():
+        val stack = symbols[name]
+        call print("{prefix}  Symbol '{name}' (shadow count: {stack.length}):")
+        for sym in stack:
+          val used_flag = when sym.used: "✔" else: "✘"
+          val generic_flag = when sym.is_generic_param: "(GenericParam)" else: ""
+          call print("{prefix}    - {sym.symbol_type} {generic_flag} : {when sym.data_type is null: 'unknown' else: sym.data_type.to_string()} Declared at {sym.declared_pos.to_string()} Used: {used_flag}")
+        end for
+      end for
+
+      if parent is not null:
+        call print("{prefix}Parent Scope:")
+        parent.visualize(indent + 1)
+      end if
+    end func
+
+  end class
+
+
+  # Extended TypeChecker with generics, interfaces, and inference
+  module TypeChecker:
+
+    # Check symbol table and AST consistency, including generics and interfaces
+    define check_symbols(ast: AST, sym_table: SymbolTable):
+      func check_node(node: Node, table: SymbolTable):
+        match node.type:
+          "Program":
+            for child in node.children:
+              check_node(child, table)
+            end for
+
+          "Block":
+            val nested_table = SymbolTable.new(table)
+            for stmt in node.children:
+              check_node(stmt, nested_table)
+            end for
+
+          "VarDecl", "ConstDecl":
+            val sym = table.lookup(node.name)
+            if sym is null:
+              ErrorHandler.error(500, "Symbol '{node.name}' not found in type check at {node.line}:{node.column}")
+              stop
+            end if
+
+            # Infer type if unknown
+            if sym.data_type is null and node.initializer is not null:
+              sym.data_type = infer_type(node.initializer, table)
+            end if
+
+            # Check initializer type compatibility
+            if node.initializer is not null:
+              val init_type = infer_type(node.initializer, table)
+              if not type_compatible(init_type, sym.data_type):
+                ErrorHandler.error(400, "Type mismatch for variable '{node.name}': expected {sym.data_type.to_string()}, got {init_type.to_string()} at {node.line}:{node.column}")
+              end if
+            end if
+
+          "FuncDecl":
+            val sym = table.lookup(node.name)
+            if sym is null:
+              ErrorHandler.error(500, "Function symbol '{node.name}' not found at {node.line}:{node.column}")
+              stop
+            end if
+
+            # Handle generics
+            val nested_table = SymbolTable.new(table)
+            for gen_param in node.generic_params:
+              val gen_type = Type.new(gen_param.name)
+              nested_table.generics_map[gen_param.name] = gen_type
+              val gen_sym = Symbol.new(gen_param.name, gen_param, nested_table.level, "generic_param", gen_type, SourcePosition.new(gen_param.line, gen_param.column, gen_param.file), true)
+              nested_table.add(gen_param.name, gen_sym)
+            end for
+
+            # Add params as symbols
+            for param in node.params:
+              val p_type = when param.data_type is not null: param.data_type else: null
+              val p_sym = Symbol.new(param.name, param, nested_table.level, "parameter", p_type, SourcePosition.new(param.line, param.column, param.file))
+              nested_table.add(param.name, p_sym)
+            end for
+
+            # Recursively check function body
+            check_node(node.body, nested_table)
+
+          "InterfaceDecl":
+            # Register interface symbol
+            val sym = table.lookup(node.name)
+            if sym is null:
+              ErrorHandler.error(500, "Interface '{node.name}' not found at {node.line}:{node.column}")
+              stop
+            end if
+            # Interface method checking omitted for brevity
+
+          else:
+            # Recursively check children nodes
+            if node.children is not null:
+              for child in node.children:
+                check_node(child, table)
+              end for
+            end if
+        end match
+      end func
+
+      check_node(ast.root, sym_table)
+
+      # Post-check: warn about unused symbols
+      def warn_unused_symbols(table: SymbolTable):
+        for name in table.symbols.keys():
+          val stack = table.symbols[name]
+          for sym in stack:
+            if not sym.used and not sym.is_generic_param:
+              call print("⚠️ Warning: Symbol '{sym.name}' declared at {sym.declared_pos.to_string()} is never used.")
+            end if
+          end for
+        end for
+        if table.parent is not null:
+          warn_unused_symbols(table.parent)
+        end if
+      end def
+
+      warn_unused_symbols(sym_table)
+
+    end define
+
+    # Infer type of an expression node (expand with more rules)
+    define infer_type(expr: Node, table: SymbolTable) as Type:
+      match expr.type:
+        "LiteralInt": return Type.new("int")
+        "LiteralFloat": return Type.new("float")
+        "LiteralString": return Type.new("string")
+        "Identifier":
+          val sym = table.lookup(expr.name)
+          if sym is not null and sym.data_type is not null:
+            # Resolve generic params substitution if any
+            if sym.data_type.generics.length > 0:
+              val resolved_generics = []
+              for gen_type in sym.data_type.generics:
+                if gen_type.name in table.generics_map:
+                  resolved_generics.push(table.generics_map[gen_type.name])
+                else:
+                  resolved_generics.push(gen_type)
+                end if
+              end for
+              return Type.new(sym.data_type.name, resolved_generics)
+            end if
+            return sym.data_type
+          else:
+            return Type.new("unknown")
+          end if
+
+        # Function calls, binary ops, etc, omitted for brevity, but expand here...
+
+        else:
+          return Type.new("unknown")
+      end match
+    end define
+
+    # Check compatibility between types including generics
+    define type_compatible(a: Type, b: Type) as bool:
+      if b.name == "unknown":
+        return true
+      end if
+      if a.equals(b):
+        return true
+      end if
+      # Interface or inheritance checks could go here
+      return false
+    end define
+
+  end module
+
+
+  # Connect with SourceMap for errors and tooling
+  class SourceMap:
+    var file_map: Map[int, string] = {}  # line → file
+
+    init():
+      # Could load mappings from compilation/debug info
+      file_map = {}
+    end init
+
+    func get_location(line: int) as string:
+      if file_map.contains(line):
+        return file_map[line]
+      else:
+        return "<unknown>"
+      end if
+    end func
+
+    # Enhance error reporting with source map info
+    func enrich_error(msg: string, pos: SourcePosition) as string:
+      val file = pos.file
+      val loc_str = pos.to_string()
+      return "{msg} at {loc_str}"
+    end func
+  end class
+
+
+  # Codex-style GUI visualization skeleton
+  module CodexGUI:
+    # Render symbol table serialized JSON as interactive scroll
+    define render_symbol_table(json: Map):
+      # Pseudo-code UI rendering logic:
+      # Each symbol as expandable/collapsible node,
+      # shows type, usage, declaration position,
+      # color-coding unused symbols, generics, scope depth
+      
+      call print("=== Codex Symbol Table Viewer ===")
+      func render_node(name: string, entries: List[Map], indent: int = 0):
+        val prefix = "  " * indent
+        call print("{prefix}{name} (instances: {entries.length})")
+        for sym in entries:
+          val used_flag = when sym["used"]: "✔" else: "✘"
+          val generic_flag = when sym["is_generic_param"]: "(GenericParam)" else: ""
+          call print("{prefix}  - {sym['symbol_type']} {generic_flag} : {sym['data_type']} Declared at {sym['declared_at']} Used: {used_flag}")
+        end for
+      end func
+
+      for key in json.keys():
+        when key.starts_with("_"): continue end when
+        render_node(key, json[key])
+      end for
+    end define
+  end module
+
+
+  # VM integration for symbol metadata retention & introspection
+  module VMIntegration:
+    var global_symbol_table: SymbolTable? = null
+
+    # Store symbol table on VM start
+    define store_symbol_table(sym_table: SymbolTable):
+      global_symbol_table = sym_table
+    end define
+
+    # Query symbol info at runtime by name
+    define query_symbol(name: string) as Symbol?:
+      if global_symbol_table is null:
+        return null
+      end if
+      return global_symbol_table.lookup(name)
+    end define
+
+    # Introspect all symbols currently marked used/unused (for debugging or IDE integration)
+    define list_symbols(used_only: bool = false) as List[Symbol]:
+      var result: List[Symbol] = []
+      func walk_table(table: SymbolTable):
+        for name in table.symbols.keys():
+          for sym in table.symbols[name]:
+            if not used_only or sym.used:
+              result.push(sym)
+            end if
+          end for
+        end for
+        if table.parent is not null:
+          walk_table(table.parent)
+        end if
+      end func
+      if global_symbol_table is not null:
+        walk_table(global_symbol_table)
+      end if
+      return result
+    end define
+
+  end module
+
+
+
+  # Main symbol indexing function tying all together
+  define index_symbols(ast as AST) as SymbolTable:
+    val global_table = SymbolTable.new(null)
+
+    func walk(node: Node, current_table: SymbolTable):
+      match node.type:
+        "Program":
+          for child in node.children:
+            walk(child, current_table)
+          end for
+
+        "Block":
+          val nested_table = SymbolTable.new(current_table)
+          for stmt in node.children:
+            walk(stmt, nested_table)
+          end for
+
+        "VarDecl", "ConstDecl":
+          val name = node.name
+          val pos = SourcePosition.new(node.line, node.column, node.file)
+          val data_type = when node.data_type is not null: node.data_type else: null
+          val sym = Symbol.new(name, node, current_table.level, "variable", data_type, pos)
+          current_table.add(name, sym)
+
+        "FuncDecl":
+          val name = node.name
+          val pos = SourcePosition.new(node.line, node.column, node.file)
+          val data_type = when node.return_type is not null: node.return_type else: null
+          val sym = Symbol.new(name, node, current_table.level, "function", data_type, pos)
+          current_table.add(name, sym)
+
+          val nested_table = SymbolTable.new(current_table)
+          for gen_param in node.generic_params:
+            val gen_type = Type.new(gen_param.name)
+            nested_table.generics_map[gen_param.name] = gen_type
+            val gen_sym = Symbol.new(gen_param.name, gen_param, nested_table.level, "generic_param", gen_type, SourcePosition.new(gen_param.line, gen_param.column, gen_param.file), true)
+            nested_table.add(gen_param.name, gen_sym)
+          end for
+
+          for param in node.params:
+            val p_type = when param.data_type is not null: param.data_type else: null
+            val p_sym = Symbol.new(param.name, param, nested_table.level, "parameter", p_type, SourcePosition.new(param.line, param.column, param.file))
+            nested_table.add(param.name, p_sym)
+          end for
+
+          walk(node.body, nested_table)
+
+        "InterfaceDecl":
+          val name = node.name
+          val pos = SourcePosition.new(node.line, node.column, node.file)
+          val sym = Symbol.new(name, node, current_table.level, "interface", null, pos)
+          current_table.add(name, sym)
+          # Additional interface member handling omitted for brevity
+
+        else:
+          if node.children is not null:
+            for child in node.children:
+              walk(child, current_table)
+            end for
+          end if
+      end match
+    end func
+
+    walk(ast.root, global_table)
+
+    # Run type checking with generics & inference
+    TypeChecker.check_symbols(ast, global_table)
+
+    # Store symbol table in VM for introspection
+    VMIntegration.store_symbol_table(global_table)
+
+    return global_table
+  end define
+
+end module
+
+star
+module IDEIntegration:
+
+  # Hover tooltip info for symbol under cursor
+  define get_hover_tooltip(symbol: Symbol) as string:
+    val type_str = when symbol.data_type is null: "unknown" else: symbol.data_type.to_string()
+    val pos_str = symbol.declared_pos.to_string()
+    return "Symbol: {symbol.name}\nType: {type_str}\nDeclared at: {pos_str}\nKind: {symbol.symbol_type}"
+  end define
+
+
+  # Error reporter enhanced with source mapping
+  define report_error(code: int, msg: string, pos: SourcePosition):
+    val loc = pos.to_string()
+    call say("Error {code} at {loc}: {msg}")
+    # Additional IDE integration:
+    # Could send JSON to IDE host for inline error annotation
+  end define
+
+
+  # Example of IDE querying symbol info at a position (e.g., hover)
+  define query_symbol_at_position(sym_table: SymbolTable, line: int, column: int) as Symbol?:
+    # Naive linear search; real IDE would use interval trees or source maps
+    for name in sym_table.symbols.keys():
+      for sym in sym_table.symbols[name]:
+        val dpos = sym.declared_pos
+        if dpos.line == line and abs(dpos.column - column) <= 3:
+          return sym
+        end if
+      end for
+    end for
+    if sym_table.parent is not null:
+      return query_symbol_at_position(sym_table.parent, line, column)
+    end if
+    return null
+  end define
+
+end module
+
+
+
+module InterfaceTypeChecker:
+
+  # Verify interface method signatures are implemented correctly with generics
+  define check_interface_implementation(interface_sym: Symbol, impl_sym: Symbol, sym_table: SymbolTable):
+
+    # Assume interface node has .methods: List[Node] with method declarations
+    val iface_methods = interface_sym.node.methods
+    val impl_methods = impl_sym.node.methods
+
+    # Map impl methods by name for quick lookup
+    var impl_map: Map[string, Node] = {}
+    for m in impl_methods:
+      impl_map[m.name] = m
+    end for
+
+    for imethod in iface_methods:
+      if not impl_map.contains(imethod.name):
+        ErrorHandler.error(400, "Class '{impl_sym.name}' missing interface method '{imethod.name}' declared at {imethod.line}:{imethod.column}")
+        continue
+      end if
+      val impl_method = impl_map[imethod.name]
+
+      # Check signatures (params count & types)
+      if imethod.params.length != impl_method.params.length:
+        ErrorHandler.error(400, "Method '{imethod.name}' parameter count mismatch between interface and implementation at {imethod.line}:{imethod.column}")
+        continue
+      end if
+
+      # Check param types & return types (expand with generics handling)
+      for i in 0 to imethod.params.length - 1:
+        val iface_param_type = TypeChecker.infer_type(imethod.params[i], sym_table)
+        val impl_param_type = TypeChecker.infer_type(impl_method.params[i], sym_table)
+        if not TypeChecker.type_compatible(impl_param_type, iface_param_type):
+          ErrorHandler.error(400, "Parameter {i+1} type mismatch in method '{imethod.name}' implementation: expected {iface_param_type.to_string()}, got {impl_param_type.to_string()} at {impl_method.line}:{impl_method.column}")
+        end if
+      end for
+
+      val iface_ret_type = when imethod.return_type is not null: imethod.return_type else: Type.new("void")
+      val impl_ret_type = when impl_method.return_type is not null: impl_method.return_type else: Type.new("void")
+
+      if not TypeChecker.type_compatible(impl_ret_type, iface_ret_type):
+        ErrorHandler.error(400, "Return type mismatch in method '{imethod.name}' implementation: expected {iface_ret_type.to_string()}, got {impl_ret_type.to_string()} at {impl_method.line}:{impl_method.column}")
+      end if
+    end for
+
+  end define
+
+  # Enhanced generics constraint checking (simplified example)
+  define check_generic_constraints(node: Node, sym_table: SymbolTable):
+    for gen_param in node.generic_params:
+      # Assume gen_param.constraints: List[Type]
+      for constraint in gen_param.constraints:
+        # Verify that any uses satisfy constraints (complex logic omitted)
+        # For example, verify type implements interface constraint
+      end for
+    end for
+  end define
+
+end module
+
+
+
+module VMRuntimeIntrospection:
+
+  # Assume VM has stack frames with scopes and variables
+  var vm_stack_frames: List[Map[string, primative]] = []
+
+  # Watch variables by symbol name
+  define watch_variable(name: string) as primative?:
+    # Search from top stack frame down
+    for frame in vm_stack_frames.reverse():
+      if frame.contains(name):
+        return frame[name]
+      end if
+    end for
+    return null
+  end define
+
+  # Inspect function scopes and variables
+  define list_current_scope_vars() as Map[string, primative]:
+    if vm_stack_frames.length == 0:
+      return {}
+    end if
+    return vm_stack_frames[-1]
+  end define
+
+  # Hook: Called by VM on function entry
+  define vm_push_frame():
+    vm_stack_frames.push({})
+  end define
+
+  # Hook: Called by VM on function exit
+  define vm_pop_frame():
+    if vm_stack_frames.length > 0:
+      vm_stack_frames.pop()
+    end if
+  end define
+
+  # Hook: Called by VM when variable assigned
+  define vm_assign_variable(name: string, value: primative):
+    if vm_stack_frames.length == 0:
+      ErrorHandler.error(500, "VM assign variable without active frame")
+      stop
+    end if
+    vm_stack_frames[-1][name] = value
+  end define
+
+  # Debug: print all variables in all frames
+  define debug_print_all_vars():
+    call print("=== VM Stack Frames Variables ===")
+    for i in 0 to vm_stack_frames.length - 1:
+      call print("Frame {i}:")
+      for k,v in vm_stack_frames[i].items():
+        call print("  {k} = {v}")
+      end for
+    end for
+  end define
+
+end module
+
+star
+module DebugUI:
+
+  var watches as Map[string, primative] = {}
+  var call_stack as List[CallFrame] = []
+
+  # A CallFrame holds function name and local vars snapshot
+  type CallFrame = {
+    fn_name: string,
+    locals: Map[string, primative],
+    line: int,
+    source_file: string
+  }
+
+  # Update watches with current VM frame
+  define update_watches(frame: CallFrame):
+    for (name, value) in frame.locals.items():
+      watches[name] = value
+    end for
+  end define
+
+  # Push a new frame onto call stack
+  define push_frame(fn_name: string, locals: Map[string, primative], line: int, source_file: string):
+    call_stack.push(CallFrame{
+      fn_name: fn_name,
+      locals: locals,
+      line: line,
+      source_file: source_file
+    })
+    update_watches(call_stack[-1])
+    render()
+  end define
+
+  # Pop top frame
+  define pop_frame():
+    if call_stack.length > 0:
+      call_stack.pop()
+    end if
+    if call_stack.length > 0:
+      update_watches(call_stack[-1])
+    else:
+      watches = {}
+    end if
+    render()
+  end define
+
+  # Render the debugging UI (console version)
+  define render():
+    call clear_screen()
+    call print("===== Debugger UI =====")
+    call print("Call Stack (most recent last):")
+    for i in 0 to call_stack.length - 1:
+      val frame = call_stack[i]
+      call print("  {i}: {frame.fn_name} @ {frame.source_file}:{frame.line}")
+    end for
+    call print("\nWatches:")
+    for (var_name, val) in watches.items():
+      call print("  {var_name} = {val}")
+    end for
+    call print("=======================")
+  end define
+
+  # Clear screen utility (depends on host)
+  define clear_screen():
+    # Platform specific clear; stub here
+    call print("\033c")  # ANSI clear screen for terminals
+  end define
+
+end module
+end
+
+star
+module GenericsSystem:
+
+  # Type representation with generics and higher-kinded support
+  type Type = {
+    name: string,
+    params: List[Type],      # Generic params, can be types or type constructors
+    kind: Kind,              # * = star, *->* = higher kind, etc.
+    constraints: List[Constraint]  # e.g., type class constraints
+  }
+
+  type Kind = "Star" | "Arrow"
+
+  # Example: Maybe<T> = Type{name="Maybe", params=[T], kind=Arrow}
+  # Higher kind example: Functor<F<_>> = ...
+
+  # Constraint is a type class interface that types must satisfy
+  type Constraint = {
+    class_name: string,
+    methods: List[string]    # Required method names for the class
+  }
+
+  # Check if a Type satisfies a Constraint
+  define check_constraint(t: Type, c: Constraint) as bool:
+    # Walk type's methods/signatures and verify they implement c.methods
+    val implemented_methods = TypeChecker.get_methods(t)
+    for method in c.methods:
+      if not implemented_methods.contains(method):
+        return false
+      end if
+    end for
+    return true
+  end define
+
+  # Perform full type inference for generics and higher kinds
+  define infer_type(node: Node, env: Env) as Type:
+    # Complex unification algorithm here (stub)
+    # Support higher-kinded variables, constraints, and inference chains
+    return Type.new("inferred", [], "Star", [])
+  end define
+
+end module
+end
+
+star
+module LSPIntegration:
+
+  # Example: Handle "textDocument/hover" request
+  define on_hover_request(params: Map) as Map:
+    val uri = params["textDocument"]["uri"]
+    val position = params["position"]
+    val line = position["line"]
+    val character = position["character"]
+
+    val symbol = IDEIntegration.query_symbol_at_position(global_symbol_table, line, character)
+    if symbol is null:
+      return {"contents": ""}
+    end if
+
+    val hover_text = IDEIntegration.get_hover_tooltip(symbol)
+    return {
+      "contents": hover_text
+    }
+  end define
+
+  # Example: Handle "textDocument/publishDiagnostics"
+  define publish_diagnostics(uri: string, diagnostics: List):
+    # This would push diagnostic info to client
+    # For demo, just print
+    call print("Publishing diagnostics for {uri}:")
+    for diag in diagnostics:
+      call print("  Line {diag.line}: {diag.message}")
+    end for
+  end define
+
+  # Full server loop (simplified)
+  define server_loop():
+    loop true:
+      val request = LSP.read_request() # blocking read from client
+      when request.method == "textDocument/hover":
+        val response = on_hover_request(request.params)
+        LSP.send_response(request.id, response)
+      # ... handle more LSP requests
+      end when
+    end loop
+  end define
+
+end module
+end
+
+star
+module REPLDemo:
+
+  # Initialize global state
+  var global_symbol_table: SymbolTable = SymbolTable.new()
+  var global_env: Env = Env.new()
+
+  # Mock VM hooks to update DebugUI
+  define vm_enter_function(name: string, locals: Map[string, primative], line: int, file: string):
+    DebugUI.push_frame(name, locals, line, file)
+  end define
+
+  define vm_exit_function():
+    DebugUI.pop_frame()
+  end define
+
+  define vm_assign_var(name: string, value: primative):
+    DebugUI.watches[name] = value
+  end define
+
+  define run_sample_session():
+    # User inputs code that defines a function and variables
+    call vm_enter_function("main", {}, 1, "session.qtr")
+    call vm_assign_var("x", 10)
+    call vm_assign_var("y", 20)
+    call DebugUI.render()
+
+    # Hover example
+    val sym = IDEIntegration.query_symbol_at_position(global_symbol_table, 1, 3)  # Simulated position
+    if sym is not null:
+      call say("Hover info: " + IDEIntegration.get_hover_tooltip(sym))
+    end if
+
+    # Introduce an error
+    IDEIntegration.report_error(400, "Type mismatch for 'y'", SourcePosition{line=2, column=5})
+
+    # Function call simulation
+    call vm_enter_function("add", {"a": 10, "b": 20}, 5, "session.qtr")
+    call vm_assign_var("result", 30)
+    call DebugUI.render()
+
+    call vm_exit_function()
+    call vm_exit_function()
+  end define
+
+end module
+end
+
