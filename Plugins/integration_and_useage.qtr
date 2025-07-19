@@ -1,3 +1,5 @@
+star
+
 import "PluginInspectorSDL.qtr"
 import "PluginInspectorWeb.qtr"
 
@@ -7,3 +9,5 @@ func main():
 end
 
 call main()
+
+end
