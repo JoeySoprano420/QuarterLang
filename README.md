@@ -1,3 +1,5 @@
+* Oficial name is QUARTER  
+
 ## QuarterLang: ##
 
 ---
