@@ -1,0 +1,15 @@
+star
+module ANSI:
+  func white() as primative: return "\u001b[37m" end
+  func blue() as primative: return "\u001b[34m" end
+  func reset() as primative: return "\u001b[0m" end
+
+  func hex_to_ansi(hex as primative) as primative:
+    # Convert #rrggbb to ANSI 24-bit color
+    val r = hex.slice(1, 3).to_int(16)
+    val g = hex.slice(3, 5).to_int(16)
+    val b = hex.slice(5, 7).to_int(16)
+    return "\u001b[38;2;{r};{g};{b}m"
+  end func
+end module
+end
