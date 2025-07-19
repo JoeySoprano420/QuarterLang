@@ -1,0 +1,12 @@
+star
+func show_version():
+    val dg: dg = 1XY4
+    val gradient = dg_color_gradient(from_dg(dg))
+    call print("Capsule DG Version [{gradient}]: {dg}")
+end
+
+func dg_color_gradient(v: int) as string:
+    when v < 12: return "#AA12FF"
+    when v < 144: return "#FFD700"
+    else: return "#FF5555"
+end
