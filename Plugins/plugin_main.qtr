@@ -1,3 +1,5 @@
+star
+
 import "PluginSystem.qtr"
 import "PluginDashboard.qtr"
 import "PluginRepoSync.qtr"
@@ -27,3 +29,5 @@ loop:
     else:
         mod = plugin_load("EchoPlugin")
         mod.call("on_input", line)
+
+end
