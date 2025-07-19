@@ -13,3 +13,15 @@ func get(name: string, key: string):
 
 func set(name: string, key: string, val: any):
     settings_map[name][key] = val
+
+var plugin_settings as Map = {}  # name → map of settings
+
+func plugin_set_setting(name: string, key: string, value):
+    if not plugin_settings.contains(name):
+        plugin_settings[name] = {}
+    plugin_settings[name][key] = value
+
+func plugin_get_setting(name: string, key: string):
+    if plugin_settings.contains(name):
+        return plugin_settings[name].get(key)
+    return null
