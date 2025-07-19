@@ -62,3 +62,123 @@ procedure run_inspector():
 end procedure
 
 end
+
+star
+import "PluginSystem.qtr"
+import "PluginSettings.qtr"
+plugin load "libqtr_sdl.so"
+
+# ---- Data Structures ----
+struct Node:
+  name as string
+  deps as string[]
+  x as int
+  y as int
+  radius as int
+  load_time as int
+
+var nodes as Node[] = []
+var camera as { x:int, y:int, zoom:float } = { x:0, y:0, zoom:1.0 }
+var theme as string = "dark"  # or "light"
+var selected as string? = null
+
+# ---- Layout & Metrics ----
+procedure layout_graph():
+  nodes = []
+  val libs = LibrarySystem.libs.keys()
+  val count as int = libs.len()
+  val idx as int = 0
+  for name in libs:
+    val angle = idx * 6.28318 / count
+    val radius = 200
+    val px = to_int(cos(angle) * radius)
+    val py = to_int(sin(angle) * radius)
+    val lt = PluginMetrics.get_load_time(name) ?: 0
+    nodes.push(Node.new(name, plugin_dependencies.get(name) ?: [], px, py, 30, lt))
+    idx++
+  end for
+
+# ---- Drawing Helpers ----
+fn screen_xy(x as int, cam as {x:int,y:int,zoom:float}) -> (int,int):
+  return (to_int(x * cam.zoom + cam.x), to_int(y * cam.zoom + cam.y))
+end fn
+
+procedure draw():
+  SDL.clear_theme(theme)
+
+  # Draw edges
+  for n in nodes:
+    for d in n.deps:
+      val t = nodes.find(fn m -> m.name == d)
+      when t != null:
+        val (x1,y1) = screen_xy(n.x, camera)
+        val (x2,y2) = screen_xy(t.y, camera)  # note swapped
+        SDL.draw_line(x1,y1, x2,y2, 180,180,180)
+      end when
+    end for
+  end for
+
+  # Draw nodes
+  for n in nodes:
+    val (sx,sy) = screen_xy(n.x, camera)
+    val is_sel = (selected == n.name)
+    val color = is_sel ? (255,255,0)
+                  : PluginSystem.is_loaded(n.name) ? (0,200,0) : (200,0,0)
+    SDL.draw_circle(sx, sy, to_int(n.radius * camera.zoom), color...)
+    SDL.draw_text(n.name, sx - 20, sy - 10, 255,255,255)
+    SDL.draw_text("{n.load_time}ms", sx - 20, sy + 10, 255,255,0)
+  end for
+
+  SDL.present()
+end procedure
+
+# ---- Interaction & Input ----
+procedure handle_events():
+  SDL.poll_events(fn e:
+    when e.type == SDL.QUIT:
+      return true
+    elif e.type == SDL.MOUSE_DOWN:
+      var mx, my = e.x, e.y
+      for n in nodes:
+        val (sx,sy) = screen_xy(n.x, camera)
+        if (mx - sx)^2 + (my - sy)^2 < (n.radius * camera.zoom)^2:
+          selected = n.name
+          PluginSettings.show(n.name)
+          break
+        end if
+      end for
+    elif e.type == SDL.KEY_DOWN:
+      when e.key == "PLUS": camera.zoom *= 1.1 end when
+      when e.key == "MINUS": camera.zoom /= 1.1 end when
+      when e.key == "ARROW_LEFT": camera.x += 20 end when
+      when e.key == "ARROW_RIGHT": camera.x -= 20 end when
+      when e.key == "ARROW_UP": camera.y += 20 end when
+      when e.key == "ARROW_DOWN": camera.y -= 20 end when
+      when e.key == "T": theme = (theme == "dark") ? "light" : "dark" end when
+      when e.key == "I" and selected != null:
+        PluginStore.install(selected)
+      end when
+      when e.key == "U" and selected != null:
+        PluginSystem.unload(selected!)
+      end when
+    end when
+  )
+  return false
+end procedure
+
+# ---- Main Loop ----
+procedure run_inspector():
+  call layout_graph()
+  SDL.init_window("Plugin Inspector", 1024, 768)
+  while true:
+    when handle_events():
+      break
+    end when
+    call draw()
+    SDL.delay(16)
+  end while
+  SDL.shutdown()
+end procedure
+
+end
+
