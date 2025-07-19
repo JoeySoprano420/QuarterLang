@@ -16,3 +16,161 @@ module AST:
   end class
 end module
 end
+
+module AST:
+
+  import SymbolTable
+  import TypeChecker
+  import SourceMap
+  import Diagnostics
+
+  # === Core AST Representation === #
+  class AST:
+    var nodes as List<Node>
+    var source_map as SourceMap
+    var metadata as Dict<primative, primative>
+
+    define constructor(n as List<Node>, sm as SourceMap = SourceMap.empty(), meta as Dict<primative, primative> = {}):
+      nodes = n
+      source_map = sm
+      metadata = meta
+    end define
+
+    define walk(visitor as Callable<Node, void>):
+      for node in nodes:
+        node.walk(visitor)
+      end for
+    end define
+
+    define transform(fn as Callable<Node, Node>) as AST:
+      var new_nodes = []
+      for node in nodes:
+        new_nodes.push(node.transform(fn))
+      end for
+      return AST(new_nodes, source_map, metadata)
+    end define
+
+    define to_source() as primative:
+      var result = ""
+      for node in nodes:
+        result += node.to_source() + "\n"
+      end for
+      return result
+    end define
+
+    define serialize() as primative:
+      return __json_encode({ "nodes": nodes, "meta": metadata })
+    end define
+  end class
+
+  # === AST Node Class === #
+  class Node:
+    var type as primative
+    var children as List<Node>
+    var token as primative
+    var tag as primative
+    var position as Position
+    var scope as SymbolTable.Scope = null
+    var annotations as Dict<primative, primative> = {}
+
+    define constructor(t as primative, c as List<Node> = [], tok as primative = "", pos as Position = Position.unknown(), tag as primative = "", ann as Dict<primative, primative> = {}):
+      type = t
+      children = c
+      token = tok
+      tag = tag
+      position = pos
+      annotations = ann
+
+    define walk(visitor as Callable<Node, void>):
+      visitor(self)
+      for child in children:
+        child.walk(visitor)
+      end for
+    end define
+
+    define transform(fn as Callable<Node, Node>) as Node:
+      var new_self = fn(self)
+      var new_children = []
+      for child in new_self.children:
+        new_children.push(child.transform(fn))
+      end for
+      return Node(new_self.type, new_children, new_self.token, new_self.position, new_self.tag, new_self.annotations)
+    end define
+
+    define find(predicate as Callable<Node, bool>) as List<Node>:
+      var results = []
+      self.walk(lambda (n):
+        if predicate(n): results.push(n)
+      )
+      return results
+    end define
+
+    define to_source(indent as int = 0) as primative:
+      var pad = "  " * indent
+      var src = pad + type
+      if token != "":
+        src += " " + token
+      end if
+      if children.size > 0:
+        src += ":\n"
+        for child in children:
+          src += child.to_source(indent + 1) + "\n"
+        end for
+      end if
+      return src.strip()
+    end define
+
+    define annotate(key as primative, value as primative):
+      annotations[key] = value
+    end define
+
+    define get_annotation(key as primative) as primative:
+      if key in annotations: return annotations[key]
+      else: return null
+    end define
+  end class
+
+  # === Position Helper === #
+  class Position:
+    var line as int
+    var column as int
+    var file as primative
+
+    define constructor(ln as int, col as int, f as primative = ""):
+      line = ln
+      column = col
+      file = f
+
+    define to_string() as primative:
+      return file + ":" + __str(line) + ":" + __str(column)
+
+    static define unknown() as Position:
+      return Position(-1, -1, "?")
+  end class
+
+  # === Utility Module === #
+  module ASTUtils:
+    define dump(ast as AST):
+      for node in ast.nodes:
+        __log(node.to_source())
+      end for
+    end define
+
+    define validate(ast as AST) as List<Diagnostics.Diagnostic>:
+      var diagnostics = []
+      ast.walk(lambda (node):
+        if node.type == "invalid":
+          diagnostics.push(Diagnostics.Diagnostic("Invalid node", node.position))
+      )
+      return diagnostics
+    end define
+
+    define attach_scope(ast as AST, global_scope as SymbolTable.Scope):
+      ast.walk(lambda (node):
+        node.scope = global_scope.resolve_scope_for(node)
+      )
+    end define
+  end module
+
+end module
+end
