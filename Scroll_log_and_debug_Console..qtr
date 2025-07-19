@@ -13,3 +13,84 @@ func show_console():
 
 end
 
+star
+
+import "Time.qtr"
+import "Config.qtr"
+import "Color.qtr"
+
+var log_entries = []
+var log_levels = ["DEBUG", "INFO", "WARN", "ERROR", "CRITICAL"]
+var max_log_size = 512  # Expandable rotating log cap
+
+record LogEntry:
+    timestamp: string
+    level: string
+    message: string
+    context: string
+end
+
+func log(msg: string, level: string = "INFO", context: string = "System"):
+    if not settings["enable_logging"]: return
+    if not contains(log_levels, level): level = "INFO"
+
+    val timestamp = get_time_stamp()
+    val entry = LogEntry(timestamp, level, msg, context)
+
+    append log_entries, entry
+    if len(log_entries) > max_log_size:
+        slice log_entries, len(log_entries) - max_log_size, len(log_entries)
+
+    call render_log_entry(entry)
+
+func render_log_entry(e: LogEntry):
+    val clr = get_color_for_level(e.level)
+    val glyph = Config.get("prompt_symbol")
+    call print("{clr}[{e.timestamp}] [{e.level}] {glyph} {e.context} → {e.message}")
+
+func show_console(filter: string = "ALL"):
+    val glyph = Config.get("prompt_symbol")
+    call print("\n🔹 {glyph} Console Log Viewer 🔹")
+    call print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    for entry in log_entries:
+        if filter == "ALL" or entry.level == filter:
+            call render_log_entry(entry)
+    call print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+func get_color_for_level(level: string) as string:
+    match level:
+        case "DEBUG": return "#8888AA"
+        case "INFO": return "#22CC22"
+        case "WARN": return "#FFAA00"
+        case "ERROR": return "#FF4444"
+        case "CRITICAL": return "#FF2222"
+        default: return "#CCCCCC"
+
+func get_time_stamp() as string:
+    val now = Time.now()
+    return Time.format(now, "%Y-%m-%d %H:%M:%S")
+
+# Advanced toggles
+func enable_logging(): settings["enable_logging"] = true
+func disable_logging(): settings["enable_logging"] = false
+func set_max_log_size(sz: int): max_log_size = sz
+
+# Experimental: JSON export
+func export_logs_json(path: string):
+    val data = []
+    for entry in log_entries:
+        append data, {
+            "timestamp": entry.timestamp,
+            "level": entry.level,
+            "message": entry.message,
+            "context": entry.context
+        }
+    call write_json(path, data)
+
+# Experimental: Search logs
+func search_logs(term: string):
+    for entry in log_entries:
+        if contains(entry.message, term) or contains(entry.context, term):
+            call render_log_entry(entry)
+
+end
