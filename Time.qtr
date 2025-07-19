@@ -1,0 +1,11 @@
+star
+module Time:
+  func now() as primative:
+    return system.time()
+  end func
+
+  func format(t as primative, fmt as primative) as primative:
+    return system.time_format(t, fmt)
+  end func
+end module
+end
