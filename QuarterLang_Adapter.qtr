@@ -5,3 +5,109 @@ module Adapter:
   end define
 end module
 end
+
+star
+module Adapter:
+
+  # Internal helper module for diagnostics and traceability
+  module IRTracer:
+    define trace(label as primative, data as any) as void:
+      if __debug_enabled():
+        __log("[IR-TRACE][" + label + "]: " + __to_string(data))
+      end if
+    end define
+  end module
+
+  # Structural analysis for AST node type classification
+  module NodeClassifier:
+    define classify(node as ASTNode) as primative:
+      match node.kind:
+        case "FunctionDecl": return "IR_FUNC"
+        case "VarDecl": return "IR_VAR"
+        case "Assignment": return "IR_ASSIGN"
+        case "BinaryExpr": return "IR_EXPR"
+        case "CallExpr": return "IR_CALL"
+        case "IfStatement": return "IR_BRANCH"
+        case "WhileLoop": return "IR_LOOP"
+        case _: return "IR_UNKNOWN"
+      end match
+    end define
+  end module
+
+  # Main adaptation engine
+  define adapt_to_ir(ast as AST) as List<IR>:
+    var irs as List<IR> = []
+    var nodes as List<ASTNode> = ast.flatten()
+
+    for node in nodes:
+      var node_type as primative = NodeClassifier.classify(node)
+      IRTracer.trace("node_type", node_type)
+      
+      var ir as IR = __adapt_node_to_ir(node, node_type)
+      if ir != null:
+        irs.push(ir)
+        IRTracer.trace("ir_generated", ir)
+      else:
+        IRTracer.trace("ir_skipped", node)
+      end if
+    end for
+
+    return irs
+  end define
+
+  # Node-wise adaptation dispatcher
+  define __adapt_node_to_ir(node as ASTNode, node_type as primative) as IR:
+    match node_type:
+      case "IR_FUNC":
+        return IRFactory.from_function(node)
+      case "IR_VAR":
+        return IRFactory.from_variable(node)
+      case "IR_ASSIGN":
+        return IRFactory.from_assignment(node)
+      case "IR_EXPR":
+        return IRFactory.from_expression(node)
+      case "IR_CALL":
+        return IRFactory.from_call(node)
+      case "IR_BRANCH":
+        return IRFactory.from_if(node)
+      case "IR_LOOP":
+        return IRFactory.from_loop(node)
+      case _:
+        return null
+    end match
+  end define
+
+  # Sub-factory module responsible for IR construction from various node types
+  module IRFactory:
+    define from_function(node as ASTNode) as IR:
+      return IR.create("Function", node.name, node.params, node.body)
+    end define
+
+    define from_variable(node as ASTNode) as IR:
+      return IR.create("Variable", node.name, node.type, node.initializer)
+    end define
+
+    define from_assignment(node as ASTNode) as IR:
+      return IR.create("Assignment", node.target, node.value)
+    end define
+
+    define from_expression(node as ASTNode) as IR:
+      return IR.create("Expression", node.operator, node.left, node.right)
+    end define
+
+    define from_call(node as ASTNode) as IR:
+      return IR.create("Call", node.callee, node.args)
+    end define
+
+    define from_if(node as ASTNode) as IR:
+      return IR.create("If", node.condition, node.then_branch, node.else_branch)
+    end define
+
+    define from_loop(node as ASTNode) as IR:
+      return IR.create("Loop", node.condition, node.body)
+    end define
+  end module
+
+end module
+end
+
