@@ -1,0 +1,12 @@
+star
+import "Prompt.qtr"
+import "CommandProcessor.qtr"
+import "Config.qtr"
+
+func run_repl():
+    Config.load_defaults()
+    loop true:
+        Prompt.display()
+        val cmd: string = ask()
+        CommandProcessor.route(cmd)
+end
