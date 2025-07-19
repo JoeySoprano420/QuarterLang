@@ -1,3 +1,5 @@
+star
+
 global current_theme = "dark"
 
 func get_color(key: string): string:
@@ -19,3 +21,5 @@ const light_palette = {
     "highlight": "#0066cc",
     "text": "#111111"
 }
+
+end
