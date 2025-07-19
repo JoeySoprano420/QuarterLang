@@ -1,0 +1,77 @@
+star
+
+const DG_CHANNELS = ["stable", "beta", "dev"]
+const DG_THEMES = ["galactic", "sunburst", "corelight"]
+
+var settings as Map = {
+    "version_code": "1XY4",
+    "channel": "stable",
+    "theme": "galactic",
+    "features": ["zoom", "pan", "shader-fx", "remote-fetch"],
+    "compat_level": 144
+}
+
+func show_version_ui():
+    val dg = settings["version_code"]
+    val compat = settings["compat_level"]
+    val channel = settings["channel"]
+    val gradient = dg_color_gradient(compat)
+    val arch = detect_arch()
+    val flags = join(settings["features"], ", ")
+
+    // UI Render Hook
+    call render_version_panel({
+        "version": dg,
+        "color": gradient,
+        "channel": channel,
+        "architecture": arch,
+        "compat": compat,
+        "flags": flags
+    })
+
+    // Log output
+    call debug_log("CapsuleDG Version <{gradient}> {dg} [{channel}]")
+    call debug_log("Arch: {arch}, Compat Level: {compat}, Flags: {flags}")
+end
+
+func dg_color_gradient(level: int) as string:
+    when level < 12: return "#1E1EFF" // core-stable
+    when level < 144: return "#FFD700" // golden-active
+    when level <= 512: return "#FF7755" // near-edge
+    else: return "#FF22AA" // unstable-dg
+end
+
+func detect_arch() as string:
+    // Simulated arch detection — actual platform call injected during compile
+    when __platform__ == "win64": return "x86-64"
+    when __platform__ == "linux": return "amd64-linux"
+    when __platform__ == "web": return "wasm-vm"
+    else: return "unknown"
+
+func render_version_panel(data: Map):
+    // Render to SDL/GTK/WebGL depending on backend
+    match frontend_backend():
+        case "SDL":
+            call sdl_render_panel(data)
+        case "WebGL":
+            call webgl_render_overlay(data)
+        case "GTK":
+            call gtk_display_properties(data)
+        default:
+            call print("Unsupported UI backend.")
+end
+
+func frontend_backend() as string:
+    return __frontend__  // platform-supplied env variable
+
+func join(arr: List, sep: string) as string:
+    var out = ""
+    for i in range(len(arr)):
+        out += arr[i]
+        if i < len(arr) - 1: out += sep
+    return out
+
+func debug_log(msg: string):
+    call scroll_log_append(msg)
+    call console_print(msg)
+
