@@ -1,3 +1,5 @@
+star
+
 import "SDL.qtr"
 import "WebGL.qtr"
 import "GTK.qtr"
@@ -21,4 +23,6 @@ func handle_input(event):
                 GraphRenderer.click_node(event.x, event.y)
         end
     end
+end
+
 end
