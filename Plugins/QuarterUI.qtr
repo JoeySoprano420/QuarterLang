@@ -1,0 +1,16 @@
+star
+import "UIElements.qtr"
+import "PluginManager.qtr"
+import "DGDebugger.qtr"
+
+func show_inspector():
+  let panel = UIElements.create_panel("Inspector")
+  PluginManager.list_all().each(plugin => {
+    panel.add_slider(plugin.name, plugin.memory_use, range: (0, plugin.max_memory))
+    panel.add_toggle(plugin.name, plugin.loaded)
+  })
+  UIElements.display(panel)
+
+func toggle_console():
+  let console = UIElements.scroll_log(DGDebugger.get_recent_logs())
+  UIElements.display(console)
