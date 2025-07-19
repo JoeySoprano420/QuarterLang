@@ -1,0 +1,12 @@
+star
+import "DGDebugger.qtr"
+import "Introspection.qtr"
+import "ErrorHandler.qtr"
+
+func route(cmd: string):
+    when cmd == "exit": stop
+    elif cmd == "version": DGDebugger.show_version()
+    elif cmd == "ast": Introspection.parse_ast()
+    elif cmd == "highlight": Introspection.highlight_source()
+    else: ErrorHandler.warn("Unknown command: {cmd}")
+end
