@@ -1,3 +1,5 @@
+star
+
 # Plugin runtime settings storage
 var settings_map as Map = {}
 
@@ -25,3 +27,5 @@ func plugin_get_setting(name: string, key: string):
     if plugin_settings.contains(name):
         return plugin_settings[name].get(key)
     return null
+
+end
