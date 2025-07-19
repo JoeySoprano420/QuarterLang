@@ -1,0 +1,278 @@
+star
+module ExpressionParser:
+
+  define parse_expression(cur as Cursor, prec as primative = 0) as Node:
+    # Parse prefix (initial expression or unary op)
+    var tok as Token = cur.next()
+    val prefix_fn as fun = get_prefix_parse_fn(tok.type)
+    when prefix_fn == null:
+      ErrorHandler.error(101, "No prefix parser for token: " + tok.value)
+    end when
+
+    var left as Node = prefix_fn(tok, cur)
+
+    # Parse infix based on precedence
+    while not cur.eof() and prec < get_precedence(cur.peek().type):
+      tok = cur.next()
+      val infix_fn as fun = get_infix_parse_fn(tok.type)
+      when infix_fn == null:
+        ErrorHandler.error(102, "No infix parser for token: " + tok.value)
+      end when
+
+      left = infix_fn(left, tok, cur)
+    end while
+
+    return left
+  end define
+
+  # ========== PREFIX PARSERS ==========
+
+  define parse_literal(tok as Token, cur as Cursor) as Node:
+    return Node.new("Literal", tok.value)
+  end define
+
+  define parse_identifier(tok as Token, cur as Cursor) as Node:
+    return Node.new("Identifier", tok.value)
+  end define
+
+  define parse_group(tok as Token, cur as Cursor) as Node:
+    val expr as Node = parse_expression(cur)
+    cur.expect("RPAREN")  # Consume ')'
+    return expr
+  end define
+
+  define parse_prefix_operator(tok as Token, cur as Cursor) as Node:
+    val right as Node = parse_expression(cur, get_precedence(tok.type))
+    return Node.new("UnaryOp", tok.value, right)
+  end define
+
+  # ========== INFIX PARSERS ==========
+
+  define parse_binary_operator(left as Node, tok as Token, cur as Cursor) as Node:
+    val precedence as primative = get_precedence(tok.type)
+    val right as Node = parse_expression(cur, precedence)
+    return Node.new("BinaryOp", tok.value, left, right)
+  end define
+
+  # ========== PREC TABLE ==========
+
+  define get_precedence(type as primative) as primative:
+    match type:
+      case "PLUS": return 10
+      case "MINUS": return 10
+      case "STAR": return 20
+      case "SLASH": return 20
+      case "PERCENT": return 20
+      case "CARET": return 30
+      case "LPAREN": return 40  # Function calls (not yet handled)
+      else: return 0
+    end match
+  end define
+
+  # ========== PARSE FUNCTION REGISTRY ==========
+
+  define get_prefix_parse_fn(type as primative) as fun:
+    match type:
+      case "NUMBER": return parse_literal
+      case "IDENT": return parse_identifier
+      case "LPAREN": return parse_group
+      case "PLUS": return parse_prefix_operator
+      case "MINUS": return parse_prefix_operator
+      else: return null
+    end match
+  end define
+
+  define get_infix_parse_fn(type as primative) as fun:
+    match type:
+      case "PLUS": return parse_binary_operator
+      case "MINUS": return parse_binary_operator
+      case "STAR": return parse_binary_operator
+      case "SLASH": return parse_binary_operator
+      case "PERCENT": return parse_binary_operator
+      case "CARET": return parse_binary_operator
+      else: return null
+    end match
+  end define
+
+end module
+end
+
+star
+module ExpressionParser:
+
+  val precedence_table as Dict<String, Int> = {
+    "=": 1,
+    "+": 10,
+    "-": 10,
+    "*": 20,
+    "/": 20,
+    "%": 20,
+    "^": 30
+  }
+
+  val associativity_table as Dict<String, String> = {
+    "=": "right",
+    "+": "left",
+    "-": "left",
+    "*": "left",
+    "/": "left",
+    "%": "left",
+    "^": "right"
+  }
+
+  define parse_expression(cur as Cursor, prec as Int = 0) as Node:
+    var left as Node = parse_prefix(cur)
+
+    while not cur.eof():
+      val tok as Token = cur.peek()
+      val tok_prec as Int = precedence_of(tok.type)
+      if tok_prec < prec:
+        break
+      end if
+
+      cur.next()  # consume operator
+      val next_prec as Int = if associativity_of(tok.type) == "left" then tok_prec + 1 else tok_prec
+      val right as Node = parse_expression(cur, next_prec)
+      left = Node.binary(tok.type, left, right)
+    end while
+
+    return left
+  end define
+
+  define parse_prefix(cur as Cursor) as Node:
+    val tok as Token = cur.next()
+
+    when tok.type == "NUMBER":
+      return Node.number(tok.value)
+
+    when tok.type == "IDENT":
+      var node as Node = Node.identifier(tok.value)
+      if cur.peek().type == "LPAREN":
+        return parse_call(cur, node)
+      else:
+        return node
+      end if
+
+    when tok.type == "LPAREN":
+      val expr as Node = parse_expression(cur)
+      cur.expect("RPAREN")
+      return expr
+
+    ErrorHandler.error(101, "Unexpected token in prefix: " + tok.value)
+  end define
+
+  define parse_call(cur as Cursor, callee as Node) as Node:
+    cur.expect("LPAREN")
+    var args as List<Node> = []
+
+    if cur.peek().type != "RPAREN":
+      loop
+        args.push(parse_expression(cur))
+        if cur.peek().type != "COMMA":
+          break
+        end if
+        cur.next()  # consume COMMA
+      end loop
+    end if
+
+    cur.expect("RPAREN")
+    return Node.call(callee, args)
+  end define
+
+  define precedence_of(op as String) as Int:
+    return precedence_table.get(op, -1)
+  end define
+
+  define associativity_of(op as String) as String:
+    return associativity_table.get(op, "left")
+  end define
+
+end module
+end
+
+star
+module Node:
+
+  type NodeKind:
+    NUMBER
+    IDENT
+    BINARY
+    CALL
+    GROUP
+    UNARY
+  end type
+
+  type Node:
+    kind as NodeKind
+    value as primative
+    left as Node
+    right as Node
+    name as string
+    args as List<Node>
+  end type
+
+  define number(value as primative) as Node:
+    return Node {
+      kind: NodeKind.NUMBER
+      value: value
+    }
+  end define
+
+  define ident(name as string) as Node:
+    return Node {
+      kind: NodeKind.IDENT
+      name: name
+    }
+  end define
+
+  define binary(op as string, left as Node, right as Node) as Node:
+    return Node {
+      kind: NodeKind.BINARY
+      value: op
+      left: left
+      right: right
+    }
+  end define
+
+  define unary(op as string, expr as Node) as Node:
+    return Node {
+      kind: NodeKind.UNARY
+      value: op
+      right: expr
+    }
+  end define
+
+  define call(callee as Node, args as List<Node>) as Node:
+    return Node {
+      kind: NodeKind.CALL
+      left: callee
+      args: args
+    }
+  end define
+
+  define group(expr as Node) as Node:
+    return Node {
+      kind: NodeKind.GROUP
+      left: expr
+    }
+  end define
+
+  define to_string(n as Node) as string:
+    when n.kind == NodeKind.NUMBER: return "Num(" + n.value + ")" end when
+    when n.kind == NodeKind.IDENT: return "Id(" + n.name + ")" end when
+    when n.kind == NodeKind.BINARY: return "(" + to_string(n.left) + " " + n.value + " " + to_string(n.right) + ")" end when
+    when n.kind == NodeKind.UNARY: return "(" + n.value + to_string(n.right) + ")" end when
+    when n.kind == NodeKind.GROUP: return "(group " + to_string(n.left) + ")" end when
+    when n.kind == NodeKind.CALL:
+      var args_str as string = ""
+      for a in n.args:
+        args_str += to_string(a) + ", "
+      end for
+      return "Call(" + to_string(n.left) + "(" + args_str.trim(", ") + "))"
+    end when
+    return "<unknown-node>"
+  end define
+
+end module
+end
+
