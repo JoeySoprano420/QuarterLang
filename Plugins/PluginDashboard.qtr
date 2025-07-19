@@ -1,3 +1,5 @@
+star
+
 func plugin_dashboard_render():
     print("=== Plugin Dashboard ===")
     for name in plugin_meta.keys():
@@ -16,3 +18,5 @@ func plugin_toggle(name: string):
     else:
         call plugin_load(name)
         print("Loaded plugin {name}")
+
+end
