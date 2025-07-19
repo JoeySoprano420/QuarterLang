@@ -1,0 +1,9 @@
+import "PluginInspectorSDL.qtr"
+import "PluginInspectorWeb.qtr"
+
+func main():
+  spawn run_inspector()
+  spawn run_web_inspector()
+end
+
+call main()
