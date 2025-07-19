@@ -23,3 +23,131 @@ const light_palette = {
 }
 
 end
+
+star
+
+global current_theme: string = "dark"
+global theme_registry: map = {}
+global theme_metadata: map = {}
+global theme_overrides: map = {}
+
+func init_theme_system():
+    register_theme("dark", dark_palette, {
+        "origin": "VACU.System",
+        "mood": "nocturne",
+        "contrast": "high"
+    })
+
+    register_theme("light", light_palette, {
+        "origin": "VACU.System",
+        "mood": "diurnal",
+        "contrast": "low"
+    })
+
+    register_theme("twilight", twilight_palette, {
+        "origin": "MetaWorld.Render",
+        "mood": "ambient",
+        "contrast": "mid"
+    })
+
+    current_theme = detect_system_theme()
+end
+
+func register_theme(name: string, palette: map, meta: map):
+    theme_registry[name] = palette
+    theme_metadata[name] = meta
+end
+
+func detect_system_theme(): string:
+    if system_time().hour > 20 or system_time().hour < 6:
+        return "dark"
+    else:
+        return "light"
+end
+
+func get_color(key: string): string:
+    val palette = resolve_theme_palette(current_theme)
+    if key in palette:
+        return palette[key]
+    elif "fallback" in palette:
+        return palette["fallback"]
+    else:
+        return "#FF00FF"  // Error color magenta flare
+end
+
+func resolve_theme_palette(theme: string): map:
+    if theme in theme_registry:
+        return merge_overrides(theme_registry[theme], theme_overrides.get(theme, {}))
+    else:
+        return theme_registry["dark"]
+end
+
+func merge_overrides(base: map, overrides: map): map:
+    val out = {}
+    for k in base:
+        out[k] = base[k]
+    for k in overrides:
+        out[k] = overrides[k]
+    return out
+end
+
+func set_theme(theme_name: string):
+    if theme_name in theme_registry:
+        animate_theme_transition(current_theme, theme_name)
+        current_theme = theme_name
+        log("Switched to theme: " + theme_name)
+    else:
+        log("Invalid theme requested: " + theme_name)
+end
+
+func animate_theme_transition(from_theme: string, to_theme: string):
+    val steps = 10
+    for i in range(0, steps):
+        wait(0.02)
+        emit "theme_blend_step" with {
+            "from": from_theme,
+            "to": to_theme,
+            "progress": i / steps
+        }
+    emit "theme_switched" with to_theme
+end
+
+const dark_palette = {
+    "background": "#1e1e1e",
+    "highlight": "#00ffcc",
+    "text": "#e0e0e0",
+    "accent": "#ff0055",
+    "panel": "#2e2e2e",
+    "fallback": "#444444"
+}
+
+const light_palette = {
+    "background": "#ffffff",
+    "highlight": "#0066cc",
+    "text": "#111111",
+    "accent": "#cc3300",
+    "panel": "#f2f2f2",
+    "fallback": "#cccccc"
+}
+
+const twilight_palette = {
+    "background": "#2d2a55",
+    "highlight": "#f92672",
+    "text": "#f8f8f2",
+    "accent": "#66d9ef",
+    "panel": "#3b3a62",
+    "fallback": "#44475a"
+}
+
+func get_theme_metadata(theme: string): map:
+    return theme_metadata.get(theme, {})
+end
+
+func override_theme_color(theme: string, key: string, value: string):
+    if theme not in theme_overrides:
+        theme_overrides[theme] = {}
+    theme_overrides[theme][key] = value
+    log("Overridden [" + key + "] in theme '" + theme + "' to " + value)
+end
+
+end
