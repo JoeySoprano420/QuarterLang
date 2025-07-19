@@ -16,3 +16,436 @@ module MemoryHandler:
   end define
 end module
 end
+
+star
+module MemoryHandler:
+
+  # Simulated memory space
+  let HEAP as map<pointer, record> = {}
+  let MARKS as map<pointer, bool> = {}
+  let ROOTS as list<pointer> = []
+
+  # Pointer counter (simple simulated address)
+  let POINTER_COUNTER as primative = 1000
+
+  # Debug log toggle
+  let DEBUG_GC as bool = true
+
+  # === Allocate memory ===
+  define allocate(size as primative) as pointer:
+    let ptr as pointer = POINTER_COUNTER
+    POINTER_COUNTER = POINTER_COUNTER + 1
+
+    HEAP[ptr] = {
+      "size": size,
+      "data": make_list(size, null),
+      "marked": false
+    }
+
+    return ptr
+  end define
+
+  # === Free memory manually ===
+  define free(ptr as pointer):
+    if HEAP contains ptr:
+      delete HEAP[ptr]
+      delete MARKS[ptr]
+    end if
+  end define
+
+  # === Mark phase ===
+  define mark(ptr as pointer):
+    if MARKS[ptr] == true:
+      return
+    end if
+
+    MARKS[ptr] = true
+    HEAP[ptr]["marked"] = true
+
+    # Recursively mark nested pointers in the simulated heap
+    for val in HEAP[ptr]["data"]:
+      if type_of(val) == "pointer" and HEAP contains val:
+        call mark(val)
+      end if
+    end for
+  end define
+
+  # === Sweep phase ===
+  define sweep_unmarked():
+    for ptr in HEAP keys:
+      if not HEAP[ptr]["marked"]:
+        if DEBUG_GC:
+          print("GC Freeing unmarked pointer:", ptr)
+        end if
+        call free(ptr)
+      else:
+        HEAP[ptr]["marked"] = false  # Unmark for next GC cycle
+      end if
+    end for
+    MARKS = {}
+  end define
+
+  # === Mark all root references (globals, stack refs, etc.) ===
+  define mark_all_roots():
+    for root_ptr in ROOTS:
+      if HEAP contains root_ptr:
+        call mark(root_ptr)
+      end if
+    end for
+  end define
+
+  # === Trigger full garbage collection cycle ===
+  define gc_collect():
+    if DEBUG_GC:
+      print("=== GC COLLECT BEGIN ===")
+    end if
+
+    call mark_all_roots()
+    call sweep_unmarked()
+
+    if DEBUG_GC:
+      print("=== GC COLLECT END ===")
+    end if
+  end define
+
+  # === Register a root reference manually ===
+  define register_root(ptr as pointer):
+    if not ROOTS contains ptr:
+      push ROOTS, ptr
+    end if
+  end define
+
+  # === Unregister a root reference ===
+  define unregister_root(ptr as pointer):
+    if ROOTS contains ptr:
+      ROOTS = filter(ROOTS, (x) -> x != ptr)
+    end if
+  end define
+
+  # === Inspect current memory layout ===
+  define inspect_heap():
+    print("---- HEAP DUMP ----")
+    for ptr in HEAP keys:
+      print("[", ptr, "] =", HEAP[ptr])
+    end for
+  end define
+
+  # === Utility to write data ===
+  define write(ptr as pointer, offset as primative, value):
+    HEAP[ptr]["data"][offset] = value
+  end define
+
+  # === Utility to read data ===
+  define read(ptr as pointer, offset as primative) as any:
+    return HEAP[ptr]["data"][offset]
+  end define
+
+end module
+end
+
+star
+module MemoryHandler:
+
+  # ---🧬 Type Definitions---
+  struct PointerInfo:
+    address as pointer
+    type_tag as string
+    size as primative
+    is_freed as bool
+  end struct
+
+  struct GCStats:
+    total_allocated as primative
+    total_freed as primative
+    live_objects as primative
+    gc_cycles as primative
+    gc_time_ms as primative
+  end struct
+
+  let registry as map of pointer → PointerInfo
+  let stats as GCStats = GCStats(0, 0, 0, 0, 0)
+
+  # ---🧠 Safe Allocation---
+  define allocate_safe(size as primative, type_tag as string) as pointer:
+    val ptr as pointer = __sys_alloc(size)
+    registry[ptr] = PointerInfo(ptr, type_tag, size, false)
+    stats.total_allocated += size
+    stats.live_objects += 1
+    return ptr
+  end define
+
+  define free_safe(ptr as pointer):
+    if not registry.has(ptr):
+      panic("Attempted to free unknown pointer: " + ptr.to_string())
+    end if
+    if registry[ptr].is_freed:
+      panic("Double free detected on pointer: " + ptr.to_string())
+    end if
+    __sys_free(ptr)
+    stats.total_freed += registry[ptr].size
+    registry[ptr].is_freed = true
+    stats.live_objects -= 1
+  end define
+
+  # ---♻️ Garbage Collection---
+  define gc_collect():
+    val start_time = __sys_time_ms()
+    call mark_all_roots()
+    call sweep_unmarked()
+    val end_time = __sys_time_ms()
+    stats.gc_time_ms += (end_time - start_time)
+    stats.gc_cycles += 1
+  end define
+
+  define mark_all_roots():
+    # Placeholder: traverse VM stack and global scope
+    for each ptr in registry:
+      if not registry[ptr].is_freed:
+        call mark(ptr)
+      end if
+    end for
+  end define
+
+  define mark(ptr as pointer):
+    # Could mark recursively if heap has references
+    # In advanced: integrate with ref-count or tracer
+    registry[ptr].marked = true
+  end define
+
+  define sweep_unmarked():
+    for each ptr in registry:
+      if not registry[ptr].marked and not registry[ptr].is_freed:
+        __sys_free(ptr)
+        registry[ptr].is_freed = true
+        stats.total_freed += registry[ptr].size
+        stats.live_objects -= 1
+      end if
+      registry[ptr].marked = false
+    end for
+  end define
+
+  # ---📊 Runtime Memory Stats---
+  define print_stats():
+    print("==== MemoryHandler Stats ====")
+    print("Allocated: ", stats.total_allocated)
+    print("Freed: ", stats.total_freed)
+    print("Live: ", stats.live_objects)
+    print("GC Cycles: ", stats.gc_cycles)
+    print("GC Time (ms): ", stats.gc_time_ms)
+    print("=============================")
+  end define
+
+  # ---🧪 GC Tuning Hooks (Optional AI/Heuristics)---
+  let gc_threshold as primative = 1024 * 1024 * 32 # 32 MB default
+
+  define tune_gc_threshold(new_threshold as primative):
+    gc_threshold = new_threshold
+  end define
+
+  define maybe_trigger_gc():
+    val live_bytes = stats.total_allocated - stats.total_freed
+    if live_bytes >= gc_threshold:
+      call gc_collect()
+    end if
+  end define
+
+end module
+end
+
+star
+module MemoryHandler:
+
+  # Internal pointer metadata
+  struct PointerInfo:
+    ptr: pointer
+    size: primative
+    type_tag: string
+    mark: bool
+    region_id: primative
+  end struct
+
+  var heap_table as map[pointer, PointerInfo]
+  var region_counter as primative = 0
+
+  define allocate_safe(size as primative, type_tag as string) as pointer:
+    val ptr as pointer = __sys_alloc(size)
+    val info = PointerInfo(ptr, size, type_tag, false, region_counter)
+    heap_table[ptr] = info
+    call maybe_trigger_gc()
+    return ptr
+  end define
+
+  define free_safe(ptr as pointer):
+    if heap_table.contains(ptr):
+      __sys_free(ptr)
+      heap_table.remove(ptr)
+    else:
+      raise "Double free or invalid pointer"
+    end if
+  end define
+
+  define region_begin() as primative:
+    region_counter += 1
+    return region_counter
+  end define
+
+  define region_free(id as primative):
+    for each (k, v) in heap_table:
+      if v.region_id == id:
+        __sys_free(k)
+        heap_table.remove(k)
+      end if
+    end for
+  end define
+
+  define maybe_trigger_gc():
+    if heap_table.size() > 10000 or heap_pressure_ratio() > 0.8:
+      call gc_collect()
+    end if
+  end define
+
+  define heap_pressure_ratio() as float:
+    val used = heap_table.size()
+    val limit = 65536  # hypothetically configurable
+    return used / limit
+  end define
+
+  define gc_collect():
+    call mark_all_roots()
+    call sweep_unmarked()
+  end define
+
+  define mark_all_roots():
+    for each root in VM.stack_roots():
+      call mark_recursive(root)
+    end for
+    for each global in VM.global_roots():
+      call mark_recursive(global)
+    end for
+  end define
+
+  define mark_recursive(ptr as pointer):
+    if not heap_table.contains(ptr): return
+    val info = heap_table[ptr]
+    if info.mark: return
+    heap_table[ptr].mark = true
+    for each child in __extract_children(ptr):  # traverse object graph
+      call mark_recursive(child)
+    end for
+  end define
+
+  define sweep_unmarked():
+    for each (k, v) in heap_table:
+      if not v.mark:
+        __sys_free(k)
+        heap_table.remove(k)
+      else:
+        heap_table[k].mark = false  # unmark for next cycle
+      end if
+    end for
+  end define
+
+  define stats() as map[string, primative]:
+    val stats = map[string, primative]()
+    stats["total_ptrs"] = heap_table.size()
+    stats["regions"] = region_counter
+    stats["avg_size"] = if heap_table.size() > 0 then
+      heap_table.values().map(x -> x.size).sum() / heap_table.size()
+    else
+      0
+    end if
+    return stats
+  end define
+
+end module
+end
+
+module VM:
+
+  define allocate_object(size as primative, type_tag as string) as pointer:
+    return MemoryHandler.allocate_safe(size, type_tag)
+  end define
+
+  define deallocate_object(ptr as pointer):
+    MemoryHandler.free_safe(ptr)
+  end define
+
+  define stack_roots() as list[pointer]:
+    # Trace current stack frame pointers
+    return current_frame.active_pointers()
+  end define
+
+  define global_roots() as list[pointer]:
+    return global_scope.references()
+  end define
+
+end module
+
+module TypeChecker:
+
+  define verify_dereference(ptr as pointer, expected_type as string):
+    if not MemoryHandler.heap_table.contains(ptr):
+      raise "Unsafe dereference: invalid pointer"
+    val info = MemoryHandler.heap_table[ptr]
+    if info.type_tag != expected_type:
+      raise "Type mismatch on dereference: expected " + expected_type + ", got " + info.type_tag
+    end if
+  end define
+
+  define analyze_unsafe_usage(ast_node):
+    # Static analysis pass - warn or error if unsafe pointer flow
+    if ast_node.contains(raw_pointer_op_without_check):
+      warn "Potential unsafe pointer usage at " + ast_node.location()
+    end if
+  end define
+
+end module
+
+module Optimizer:
+
+  define inject_memory_profile(fn as FunctionIR):
+    for each instr in fn.instructions:
+      if instr.type == "alloc" or instr.type == "call MemoryHandler.allocate_safe":
+        instr.insert_before("profiler.bump_alloc_counter()")
+      end if
+    end for
+  end define
+
+  define optimize_hot_paths_based_on_gc():
+    for each hot_fn in profiler.hot_functions():
+      if profiler.gc_pressure_score(hot_fn) > 0.7:
+        call inline_memory_reduction_strategies(hot_fn)
+      end if
+    end for
+  end define
+
+end module
+
+module Profiler:
+
+  var alloc_counters as map[string, primative]
+  var leak_snapshot as map[pointer, PointerInfo]
+
+  define bump_alloc_counter():
+    val fn = current_function_name()
+    alloc_counters[fn] = alloc_counters.get(fn, 0) + 1
+  end define
+
+  define gc_pressure_score(fn_name as string) as float:
+    return alloc_counters.get(fn_name, 0) / 10000.0  # heuristic
+  end define
+
+  define take_snapshot():
+    leak_snapshot = MemoryHandler.heap_table.copy()
+  end define
+
+  define report_leaks():
+    for each (k, v) in leak_snapshot:
+      if MemoryHandler.heap_table.contains(k):
+        print("Leak detected at ptr=", k, " type=", v.type_tag)
+      end if
+    end for
+  end define
+
+end module
+
