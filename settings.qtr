@@ -1,0 +1,36 @@
+star
+var settings as Map = {}
+
+func load_defaults():
+    settings["theme"] = "galactic"
+    settings["prompt_symbol"] = "⭑"
+    settings["enable_logging"] = true
+    settings["ui_scale"] = 1.0
+    settings["frontend"] = "SDL"
+
+func set(key: string, val: primative):
+    settings[key] = val
+    if key == "theme":
+        apply_theme_to_all_ui()
+    if key == "frontend":
+        reload_ui_renderer()
+
+func get(key: string) as primative:
+    return settings[key]
+
+func get_color(theme: string) as string:
+    when theme == "galactic": return "#AA12FF"
+    elif theme == "sunburst": return "#FFD700"
+    elif theme == "crimson": return "#FF5555"
+    else: return "#FFFFFF"
+
+func apply_theme_to_all_ui():
+    call sdl_ui::update_theme(settings["theme"])
+    call gtk_ui::update_theme(settings["theme"])
+    call webgl_ui::update_theme(settings["theme"])
+
+func reload_ui_renderer():
+    call shutdown_current_renderer()
+    when settings["frontend"] == "SDL": sdl_ui::init()
+    elif settings["frontend"] == "GTK": gtk_ui::init()
+    elif settings["frontend"] == "WebGL": webgl_ui::init()
