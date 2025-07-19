@@ -1,0 +1,48 @@
+star
+import "Config.qtr"
+import "Utils.qtr"
+import "ANSI.qtr"
+import "Time.qtr"
+
+module Display:
+  static var cached_prompt as primative = ""
+  static var last_theme as primative = ""
+  static var last_render_time as primative = 0
+
+  func display_prompt(force_refresh as bool = false):
+    val current_time = Time.now()
+    val theme = Config.get("theme") or "default"
+    val glyph = Config.get("prompt_symbol") or "❖"
+    val color = Config.get_color(theme) or ANSI.white()
+
+    if not force_refresh and theme == last_theme and (current_time - last_render_time < 1):
+      call print(cached_prompt)
+      return
+    end
+
+    val timestamp = Time.format(current_time, "HH:mm:ss")
+    val uptime = Utils.get_uptime()
+    val user = Utils.get_env("USER") or "anonymous"
+    val hostname = Utils.get_env("HOST") or "localhost"
+
+    val banner = "[{timestamp}] {user}@{hostname} (uptime: {uptime})"
+    val prompt = "{color} {glyph} QuarterLang > "
+
+    val full_prompt = banner + "\n" + prompt
+
+    last_theme = theme
+    last_render_time = current_time
+    cached_prompt = full_prompt
+
+    call print(full_prompt)
+  end func
+
+  func soft_display():
+    call display_prompt(force_refresh = false)
+  end func
+
+  func hard_refresh():
+    call display_prompt(force_refresh = true)
+  end func
+end module
+end
