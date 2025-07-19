@@ -1,3 +1,5 @@
+star
+
 func plugin_generate_manifest(name: string, version: string, desc: string, deps: List):
     return {
         "name": name,
@@ -5,3 +7,5 @@ func plugin_generate_manifest(name: string, version: string, desc: string, deps:
         "description": desc,
         "dependencies": deps
     }
+
+end
