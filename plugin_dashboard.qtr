@@ -1,0 +1,39 @@
+star
+import "DGDebugger.qtr"
+import "Introspection.qtr"
+import "ErrorHandler.qtr"
+import "PluginStoreFetcher.qtr"
+import "QuarterUI.qtr"
+import "GraphRenderer.qtr"
+import "EventHandler.qtr"
+import "PluginManager.qtr"
+
+let dispatcher = map[
+  "exit"        => stop,
+  "version"     => DGDebugger.show_version,
+  "ast"         => Introspection.parse_ast,
+  "highlight"   => Introspection.highlight_source,
+  "fetch_store" => PluginStoreFetcher.pull_remote,
+  "install"     => PluginStoreFetcher.install_manifest,
+  "log"         => DGDebugger.dump_log,
+  "graph"       => GraphRenderer.render_full_graph,
+  "zoom_in"     => GraphRenderer.zoom(+1),
+  "zoom_out"    => GraphRenderer.zoom(-1),
+  "pan_left"    => GraphRenderer.pan(x:-10),
+  "pan_right"   => GraphRenderer.pan(x:+10),
+  "pan_up"      => GraphRenderer.pan(y:-10),
+  "pan_down"    => GraphRenderer.pan(y:+10),
+  "inspect"     => QuarterUI.show_inspector,
+  "console"     => QuarterUI.toggle_console,
+  "reload"      => PluginManager.reload_all,
+  "update_all"  => PluginStoreFetcher.update_all,
+  "unload"      => PluginManager.unload_selected,
+  "load"        => PluginManager.load_selected
+]
+
+func route(cmd: string):
+  if cmd in dispatcher:
+    dispatcher[cmd]()
+  else:
+    ErrorHandler.warn("Unknown command: {cmd}")
+end
