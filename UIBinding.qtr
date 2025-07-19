@@ -1,0 +1,24 @@
+import "SDL.qtr"
+import "WebGL.qtr"
+import "GTK.qtr"
+import "CoreDispatcher.qtr"
+
+global ui_mode = "SDL"  # Can be "GTK" or "WebGL"
+
+func initialize_ui():
+    match ui_mode:
+        "SDL" => SDL.init_ui()
+        "WebGL" => WebGL.init_canvas()
+        "GTK" => GTK.init_window()
+    end
+end
+
+func handle_input(event):
+    match event.kind:
+        "key" => enqueue(event.key)
+        "mouse" =>
+            if event.button == "left":
+                GraphRenderer.click_node(event.x, event.y)
+        end
+    end
+end
