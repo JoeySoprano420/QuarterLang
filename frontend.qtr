@@ -1,3 +1,5 @@
+star
+
 import "settings.qtr"
 import "sdl_ui.qtr"
 import "webgl_ui.qtr"
@@ -14,4 +16,5 @@ func route_ui(name: string):
     elif name == "webgl": WebGLUI.launch(settings)
     elif name == "gtk": GTKUI.launch(settings)
     else: raise("Unknown frontend: {name}")
+
 end
