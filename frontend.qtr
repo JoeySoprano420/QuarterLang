@@ -1,0 +1,17 @@
+import "settings.qtr"
+import "sdl_ui.qtr"
+import "webgl_ui.qtr"
+import "gtk_ui.qtr"
+
+var active_frontend as string = "sdl"
+
+func init_ui():
+    load_defaults()
+    route_ui(active_frontend)
+
+func route_ui(name: string):
+    when name == "sdl": SDLUI.launch(settings)
+    elif name == "webgl": WebGLUI.launch(settings)
+    elif name == "gtk": GTKUI.launch(settings)
+    else: raise("Unknown frontend: {name}")
+end
