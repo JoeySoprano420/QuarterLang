@@ -5,3 +5,101 @@ module Binder:
   end define
 end module
 end
+
+star
+
+module Binder:
+
+  struct BindingContext:
+    var current_scope as SymbolTable
+    var parent as optional<BindingContext>
+    var errors as List<BindingError>
+  end struct
+
+  struct BindingError:
+    var message as string
+    var location as optional<SourceLocation>
+  end struct
+
+  define bind(ast as AST, table as SymbolTable) as AST:
+    var ctx as BindingContext = BindingContext(table, none, [])
+    return bind_node(ast, ctx)
+  end define
+
+  define bind_node(node as AST, ctx as BindingContext) as AST:
+    match node.kind:
+      case "Program":
+        for stmt in node.statements:
+          bind_node(stmt, ctx)
+        end for
+        return node
+
+      case "FunctionDecl":
+        # Register function symbol
+        ctx.current_scope.define(node.name, node)
+        # Create new scope for function body
+        var func_scope = SymbolTable(ctx.current_scope)
+        var func_ctx = BindingContext(func_scope, some(ctx), [])
+        for param in node.params:
+          func_scope.define(param.name, param)
+        end for
+        node.body = bind_node(node.body, func_ctx)
+        return node
+
+      case "Block":
+        var block_scope = SymbolTable(ctx.current_scope)
+        var block_ctx = BindingContext(block_scope, some(ctx), [])
+        for stmt in node.statements:
+          bind_node(stmt, block_ctx)
+        end for
+        return node
+
+      case "Let":
+        if ctx.current_scope.contains(node.name):
+          ctx.errors.push(BindingError("Variable already defined: " + node.name, node.location))
+        else:
+          ctx.current_scope.define(node.name, node)
+        end if
+        node.value = bind_node(node.value, ctx)
+        return node
+
+      case "Identifier":
+        if not ctx.current_scope.resolve(node.name):
+          ctx.errors.push(BindingError("Unresolved identifier: " + node.name, node.location))
+        end if
+        return node
+
+      case "Call":
+        node.target = bind_node(node.target, ctx)
+        for arg in node.arguments:
+          bind_node(arg, ctx)
+        end for
+        return node
+
+      case "If":
+        node.condition = bind_node(node.condition, ctx)
+        node.then_branch = bind_node(node.then_branch, ctx)
+        if node.else_branch is not none:
+          node.else_branch = bind_node(node.else_branch, ctx)
+        end if
+        return node
+
+      case "While":
+        node.condition = bind_node(node.condition, ctx)
+        node.body = bind_node(node.body, ctx)
+        return node
+
+      case "BinaryOp":
+        node.left = bind_node(node.left, ctx)
+        node.right = bind_node(node.right, ctx)
+        return node
+
+      default:
+        return node
+    end match
+  end define
+
+end module
+
+end
+
