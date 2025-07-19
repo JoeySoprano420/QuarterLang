@@ -1,0 +1,40 @@
+star
+import Nodes
+
+module Interpreter:
+
+  define eval(node as Node, env as Map<primative, number> = {}) as number:
+    when node is Nodes.NumberNode: return node.value end when
+
+    when node is Nodes.IdentifierNode:
+      if env.contains(node.name): return env[node.name]
+      else: error("Undefined variable: " + node.name)
+      end if
+    end when
+
+    when node is Nodes.BinaryNode:
+      val left = eval(node.left, env)
+      val right = eval(node.right, env)
+      when node.op == "+": return left + right end when
+      when node.op == "-": return left - right end when
+      when node.op == "*": return left * right end when
+      when node.op == "/": return left / right end when
+      error("Unsupported operator: " + node.op)
+    end when
+
+    when node is Nodes.CallNode:
+      val callee = eval(node.callee, env)
+      val args = node.args.map(fn a => eval(a, env))
+      # Stub for now
+      return args[0]  # placeholder
+    end when
+
+    when node is Nodes.GroupNode:
+      return eval(node.expr, env)
+    end when
+
+    error("Unhandled AST node: " + node.repr())
+  end define
+
+end module
+end
