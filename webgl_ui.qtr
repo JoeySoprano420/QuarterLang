@@ -1,0 +1,23 @@
+module WebGLUI
+
+import "QuarterUI.qtr"
+import "WebEvents.qtr"
+import "GLRenderer.qtr"
+
+func launch(config: Map):
+    GLRenderer.init_canvas("quarter-ui")
+
+    WebEvents.on_scroll(fn(delta):
+        if delta > 0: QuarterUI.zoom_out()
+        else: QuarterUI.zoom_in()
+    end)
+
+    WebEvents.on_drag(fn(dx, dy):
+        QuarterUI.pan([dx, dy])
+    end)
+
+    loop forever:
+        GLRenderer.clear()
+        QuarterUI.draw(config)
+        GLRenderer.flush()
+end
