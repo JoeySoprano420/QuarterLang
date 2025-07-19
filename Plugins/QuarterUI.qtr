@@ -1,4 +1,5 @@
 star
+
 import "UIElements.qtr"
 import "PluginManager.qtr"
 import "DGDebugger.qtr"
@@ -14,3 +15,5 @@ func show_inspector():
 func toggle_console():
   let console = UIElements.scroll_log(DGDebugger.get_recent_logs())
   UIElements.display(console)
+
+end
