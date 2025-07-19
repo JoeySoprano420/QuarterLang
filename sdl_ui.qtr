@@ -21,3 +21,17 @@ func launch(config: Map):
         RenderLib.refresh()
     end
 end
+
+star
+func init():
+    SDL.init()
+    SDL.create_window("QuarterCapsule [SDL2]", 1280, 720)
+    update_theme(settings["theme"])
+    enable_zoom_pan_controls()
+
+func update_theme(theme: string):
+    SDL.set_bg_color(get_color(theme))
+
+func enable_zoom_pan_controls():
+    SDL.bind_mousewheel(zoom_in_out)
+    SDL.bind_drag(pan_view)
