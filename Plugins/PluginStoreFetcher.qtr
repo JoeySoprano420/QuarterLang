@@ -1,3 +1,5 @@
+star
+
 module PluginStoreFetcher
 
 import "Net.qtr"
@@ -10,4 +12,6 @@ func sync_plugins():
     foreach plugin in manifest:
         load_plugin(plugin["url"])
     end
+end
+
 end
