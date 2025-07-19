@@ -1,0 +1,23 @@
+module GTKUI
+
+import "QuarterUI.qtr"
+import "GTKBindings.qtr"
+
+func launch(config: Map):
+    GTKBindings.init("QuarterLang GTK UI")
+
+    GTKBindings.on_scroll(fn(delta):
+        if delta < 0: QuarterUI.zoom_out()
+        else: QuarterUI.zoom_in()
+    end)
+
+    GTKBindings.on_drag(fn(dx, dy):
+        QuarterUI.pan([dx, dy])
+    end)
+
+    GTKBindings.on_draw(fn():
+        QuarterUI.draw(config)
+    end)
+
+    GTKBindings.run_loop()
+end
