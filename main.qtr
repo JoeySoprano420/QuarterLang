@@ -11,3 +11,124 @@ func main():
         handle_input(event)
 
 end
+
+import "CoreDispatcher.qtr"
+import "UIBinding.qtr"
+import "Logger.qtr"
+import "Profiler.qtr"
+import "Settings.qtr"
+import "Thread.qtr"
+import "EventBus.qtr"
+import "System.qtr"
+import "ErrorHandler.qtr"
+
+const MAX_EVENT_BACKLOG = 1024
+var ui_initialized = false
+var shutdown_requested = false
+
+func main():
+    try:
+        log.info("🚀 Star Runtime initializing...")
+        Profiler.begin("boot")
+
+        Settings.load("config/star.cfg")
+        initialize_ui()
+        ui_initialized = true
+
+        spawn dispatch_loop()
+        spawn telemetry_monitor()
+        spawn watchdog()
+
+        EventBus.register("shutdown", shutdown_sequence)
+
+        log.info("✅ Initialization complete.")
+        Profiler.end("boot")
+
+        while not shutdown_requested:
+            let event = get_ui_event()
+            if event != null:
+                handle_input(event)
+            else:
+                sleep(2)  // avoid CPU starvation on idle loop
+
+    catch err:
+        log.error("💥 Fatal error in main loop: {err}")
+        ErrorHandler.handle(err)
+        shutdown_sequence()
+end func
+
+func initialize_ui():
+    log.info("🧬 Initializing UI layer...")
+    UIBinding.load_theme("themes/default.ui")
+    UIBinding.init_renderer()
+    log.info("🎨 UI renderer initialized.")
+end func
+
+func dispatch_loop():
+    log.info("📡 Dispatch loop engaged.")
+    while not shutdown_requested:
+        let task = CoreDispatcher.next_task()
+        if task != null:
+            try:
+                task.run()
+            catch err:
+                log.warn("⚠️ Dispatch error: {err}")
+                ErrorHandler.defer(err)
+        else:
+            sleep(1)
+end func
+
+func telemetry_monitor():
+    log.info("📊 Telemetry monitor engaged.")
+    var count = 0
+    while not shutdown_requested:
+        sleep(5000)
+        let stats = Profiler.snapshot()
+        Logger.debug("📈 Dispatch stats [tick {count}]: {stats}")
+        count += 1
+end func
+
+func watchdog():
+    log.info("🛡️ Watchdog monitor armed.")
+    var previous_state = System.hash_state()
+    while not shutdown_requested:
+        sleep(10000)
+        let current_state = System.hash_state()
+        if current_state != previous_state:
+            Logger.info("🔍 State change detected.")
+            previous_state = current_state
+        else:
+            Logger.debug("🔁 No changes in state.")
+end func
+
+func handle_input(event: primative):
+    try:
+        if event.type == "keypress":
+            UIBinding.route_key(event.key)
+        elif event.type == "click":
+            UIBinding.route_click(event.x, event.y)
+        elif event.type == "command":
+            CoreDispatcher.enqueue(event.command)
+        elif event.type == "quit":
+            log.info("🛑 Quit signal received.")
+            shutdown_sequence()
+        else:
+            log.warn("🌀 Unhandled event: {event}")
+    catch err:
+        log.error("🚨 Input handler error: {err}")
+        ErrorHandler.defer(err)
+end func
+
+func shutdown_sequence():
+    if shutdown_requested: return
+    shutdown_requested = true
+    log.info("💤 Executing shutdown sequence...")
+    EventBus.emit("shutdown:start")
+
+    Profiler.dump("logs/profiler.log")
+    Logger.save("logs/runtime.log")
+
+    CoreDispatcher.flush()
+    UIBinding.cleanup()
+    System.exit()
+end func
