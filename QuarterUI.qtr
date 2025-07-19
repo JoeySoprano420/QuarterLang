@@ -1,0 +1,34 @@
+module QuarterUI
+
+import "PluginStoreFetcher.qtr"
+import "ScrollLog.qtr"
+import "ColorUtils.qtr"
+
+var zoom_level = 1.0
+var pan_offset = [0.0, 0.0]
+
+func draw(config: Map):
+    theme = config["theme"]
+    color = get_color(theme)
+
+    draw_inspector(color)
+    draw_scroll_log()
+    draw_debug_console()
+end
+
+func zoom_in(): zoom_level *= 1.1
+func zoom_out(): zoom_level *= 0.9
+func pan(delta): pan_offset[0] += delta[0]; pan_offset[1] += delta[1]
+
+func draw_inspector(color):
+    draw_panel("Settings Inspector", 10, 10, 200, 300, color)
+    draw_slider("Zoom", zoom_level, 0.1, 5.0, fn(val): zoom_level = val end)
+    draw_dropdown("Theme", ["galactic", "sunburst", "default"], config["theme"], fn(t): config["theme"] = t end)
+end
+
+func draw_scroll_log():
+    ScrollLog.render_bottom()
+
+func draw_debug_console():
+    DebugConsole.render()
+end
