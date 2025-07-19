@@ -7,3 +7,177 @@ module Composer:
   end define
 end module
 end
+
+star
+
+# Composer: Ultra-Optimized IR List Flattener with Hooks, Caching, Filtering, Deduplication, Parallelism, Statistics, Lineage & DG Annotation
+
+module Composer:
+
+  # ── Internal Registry & Cache ──────────────────────────────────────────
+  var composition_cache      as Map = {}      # ast_hash → List<IR>
+  var before_hooks          as List<fn> = [] # hook(ctx, irs)
+  var after_hooks           as List<fn> = [] # hook(ctx, irs)
+  var stats_registry        as Map = {}      # run_id → Stats
+
+  # ── Core Compose Function ─────────────────────────────────────────────
+  define compose(list_of_irs as List<List<IR>>, opts as Map = {}) as List<IR>:
+    # Compute AST fingerprint for caching
+    val fingerprint as string = opts.get("fingerprint", generate_fingerprint(list_of_irs))
+    when composition_cache.contains(fingerprint):
+      return composition_cache[fingerprint]
+    end when
+
+    # Prepare context
+    val ctx as ComposeContext = ComposeContext.new(
+      id          = generate_uuid(),
+      phase       = "compose",
+      fingerprint = fingerprint,
+      options     = opts
+    )
+    # Invoke before-compose hooks
+    for hook in before_hooks: hook(ctx, list_of_irs) end for
+
+    # Flatten IR lists with optional parallelism
+    var out as List<IR> = []
+    if opts.get("parallel", 0) == 1:
+      out = parallel_compose(list_of_irs, ctx)
+    else:
+      for segment in list_of_irs:
+        out = out + segment
+      end for
+    end when
+
+    # Deduplicate if requested
+    if opts.get("dedupe", 0) == 1:
+      out = deduplicate(out)
+    end when
+
+    # Filter by phase tag if provided
+    val phase_filter as string = opts.get("phase", "")
+    when phase_filter != "":
+      out = filter_by_phase(out, phase_filter)
+    end when
+
+    # Annotate with lineage & DG if requested
+    if opts.get("annotate_lineage", 0) == 1:
+      out = annotate_lineage(out, ctx)
+    end when
+    if opts.get("annotate_dg", 0) == 1:
+      out = annotate_dg(out, opts.get("dg_base", 12))
+    end when
+
+    # Cache result
+    composition_cache[fingerprint] = out
+
+    # Invoke after-compose hooks
+    for hook in after_hooks: hook(ctx, out) end for
+
+    # Record stats
+    stats_registry[ctx.id] = collect_stats(out, ctx)
+
+    return out
+  end define
+
+
+  # ── Helper: Parallel Flattening ────────────────────────────────────────
+  define parallel_compose(list_of_lists as List<List<IR>>, ctx as ComposeContext) as List<IR>:
+    val thread_pool_size as int = ctx.options.get("threads", 4)
+    return ThreadPool.map(thread_pool_size, fn segment:
+      return segment
+    end fn).flatten()
+  end define
+
+
+  # ── Helper: Deduplication ──────────────────────────────────────────────
+  define deduplicate(irs as List<IR>) as List<IR>:
+    var seen as Set<string> = {}
+    var unique as List<IR> = []
+    for ir in irs:
+      val key as string = ir.signature()
+      when not seen.contains(key):
+        seen.add(key)
+        unique.push(ir)
+      end when
+    end for
+    return unique
+  end define
+
+
+  # ── Helper: Phase Filtering ────────────────────────────────────────────
+  define filter_by_phase(irs as List<IR>, phase as string) as List<IR>:
+    return irs.filter(fn ir: ir.context.phase == phase end fn)
+  end define
+
+
+  # ── Helper: Lineage Annotation ────────────────────────────────────────
+  define annotate_lineage(irs as List<IR>, ctx as ComposeContext) as List<IR>:
+    for ir in irs:
+      ir.context.parent_id = ctx.id
+      ir.context.lineage  = ctx.fingerprint
+    end for
+    return irs
+  end define
+
+
+  # ── Helper: DG Annotation ─────────────────────────────────────────────
+  define annotate_dg(irs as List<IR>, base as int) as List<IR>:
+    for ir in irs:
+      ir.context.dg_tag = to_dg(hash(ir.to_string()) % (base * base))
+    end for
+    return irs
+  end define
+
+
+  # ── Hooks Management ───────────────────────────────────────────────────
+  define register_before_hook(hook_fn as fn):
+    before_hooks.push(hook_fn)
+  end define
+
+  define register_after_hook(hook_fn as fn):
+    after_hooks.push(hook_fn)
+  end define
+
+
+  # ── Statistics Collection ──────────────────────────────────────────────
+  define collect_stats(irs as List<IR>, ctx as ComposeContext) as Map:
+    val counts  as Map = {}
+    for ir in irs:
+      val t as string = ir.type
+      counts[t] = counts.get(t, 0) + 1
+    end for
+    return {
+      "compose_id": ctx.id,
+      "node_count": irs.size,
+      "type_counts": counts,
+      "duration": ctx.end_time - ctx.start_time
+    }
+  end define
+
+  define get_stats(compose_id as string) as Map:
+    return stats_registry.get(compose_id, {})
+  end define
+
+
+  # ── Cache Control ──────────────────────────────────────────────────────
+  define clear_cache():
+    composition_cache.clear()
+  end define
+
+  define cache_entries() as List<string>:
+    return composition_cache.keys().to_list()
+  end define
+
+
+  # ── Utilities ──────────────────────────────────────────────────────────
+  define generate_fingerprint(list_of_irs as List<List<IR>>) as string:
+    return hash(list_of_irs.map(fn lst: lst.map(fn ir: ir.to_string()).join("|")).join("||") + "::" + now())
+  end define
+
+  define generate_uuid() as string:
+    return to_hex(rand64()) + "-" + to_hex(rand64())
+  end define
+
+end module
+
+end
