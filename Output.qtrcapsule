@@ -73,3 +73,22 @@ func run_repl() {
 run_repl()
 end
 
+star
+plugin load "libqtrcapsule.so"
+
+define build_capsule():
+    val files = [
+        "REPL.qtr", "Prompt.qtr", "CommandProcessor.qtr",
+        "DGDebugger.qtr", "Introspection.qtr", "Config.qtr",
+        "Plugins/Load.qtr", "Plugins/ThemeManager.qtr"
+    ]
+    val src = ""
+    for f in files: src = src + read_file(f)
+    val meta = generate_dg_meta(src)
+    val asm = read_file("compiler.asm")
+    val capsule = compress("QTRC2.1" + asm + src + meta)
+    write_bytes("interactive_shell.qtrcapsule", capsule)
+end
+build_capsule()
+end
+
