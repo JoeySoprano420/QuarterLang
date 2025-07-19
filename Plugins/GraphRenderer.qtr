@@ -1,0 +1,17 @@
+star
+import "Graph.qtr"
+
+let zoom_level = 1
+let offset = (x:0, y:0)
+
+func render_full_graph():
+  Graph.draw_all(zoom_level, offset)
+
+func zoom(direction: int):
+  zoom_level += direction
+  render_full_graph()
+
+func pan(x: int = 0, y: int = 0):
+  offset.x += x
+  offset.y += y
+  render_full_graph()
