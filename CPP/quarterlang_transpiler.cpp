@@ -27134,3 +27134,127 @@ void main()
             return 0;
 		}
 
+
+        // capsule_runtime.cpp #include <iostream> #include <fstream> #include <sstream> #include <iomanip> #include <vector> #include <chrono> #include <filesystem> #include <map> #include <string> #include <openssl/sha.h> #include <openssl/evp.h> #include <openssl/pem.h> #include <openssl/err.h> struct CapsuleMetadata { std::string source_hash; std::string compiler_version; std::string build_timestamp; std::string execution_flags; std::string capsule_id; }; struct CapsuleFooter { std::string checksum; std::string signature; }; struct Capsule { CapsuleMetadata metadata; std::vector<uint8_t> bytecode; CapsuleFooter footer; }; std::string sha256(const std::vector<uint8_t>& data) { unsigned char hash[SHA256_DIGEST_LENGTH]; SHA256(&data[0], data.size(), hash); std::stringstream ss; for (int i = 0; i < SHA256_DIGEST_LENGTH; ++i) { ss << std::hex << std::setw(2) << std::setfill('0') << (int)hash[i]; } return ss.str(); } bool verify_signature(const std::vector<uint8_t>& data, const std::string& sig, const std::string& pubkey_path) { FILE* pubKeyFile = fopen(pubkey_path.c_str(), "r"); EVP_PKEY* pubKey = PEM_read_PUBKEY(pubKeyFile, nullptr, nullptr, nullptr); fclose(pubKeyFile); EVP_MD_CTX* ctx = EVP_MD_CTX_new(); EVP_DigestVerifyInit(ctx, nullptr, EVP_sha256(), nullptr, pubKey); EVP_DigestVerifyUpdate(ctx, &data[0], data.size()); bool valid = EVP_DigestVerifyFinal(ctx, (unsigned char*)sig.data(), sig.size()) == 1; EVP_MD_CTX_free(ctx); EVP_PKEY_free(pubKey); return valid; } void log_startup_diagnostics(const Capsule& capsule) { std::cout << "\n=== Capsule Startup Diagnostics ===" << std::endl; std::cout << "Startup Time: " << std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()) << std::endl; std::cout << "CPU Architecture: " << std::filesystem::current_path() << std::endl; std::cout << "Compiler Version: " << capsule.metadata.compiler_version << std::endl; std::cout << "Execution Flags: " << capsule.metadata.execution_flags << std::endl; std::cout << "Source Hash: " << capsule.metadata.source_hash << std::endl; std::cout << "Capsule ID: " << capsule.metadata.capsule_id << std::endl; std::cout << "Bytecode Size: " << capsule.bytecode.size() << " bytes" << std::endl; std::cout << "Checksum: " << capsule.footer.checksum << std::endl; std::cout << "Signature: [REDACTED]" << std::endl; std::cout << "===================================\n" << std::endl; } bool validate_capsule(const Capsule& capsule, const std::string& pubkey_path) { std::string actual_checksum = sha256(capsule.bytecode); if (actual_checksum != capsule.footer.checksum) { std::cerr << "[ERROR] Capsule checksum mismatch!" << std::endl; return false; } if (!verify_signature(capsule.bytecode, capsule.footer.signature, pubkey_path)) { std::cerr << "[ERROR] Capsule signature invalid!" << std::endl; return false; } return true; } int main(int argc, char* argv[]) { Capsule capsule; capsule.metadata = { "fake_hash_value", "QuarterLang 1.2.4", "2025-07-27T10:00:00Z", "debug,sandboxed", "QTR-00123" }; capsule.bytecode = std::vector<uint8_t>(1024, 0xAA); // mock bytecode capsule.footer = { sha256(capsule.bytecode), "<MOCK_SIGNATURE>" }; log_startup_diagnostics(capsule); if (!validate_capsule(capsule, "public_key.pem")) { std::cerr << "[FATAL] Capsule validation failed. Aborting.\n"; return 1; } std::cout << "[INFO] Capsule validated successfully. Dispatching...\n"; // Dispatch the bytecode to execution here (stub) return 0; } #include <iostream> #include <chrono> #include <windows.h> // Capsule metadata embedded into binary (simplified) struct CapsuleInfo { char capsule_id[8]; // e.g. "QTRCAP01" char source_hash[64]; // SHA256 of source uint64_t build_time; // Unix timestamp uint32_t debug_flags; // bitmask }; // Linker trick: place metadata in a known section __declspec(allocate(".capsule")) CapsuleInfo capsule_metadata = { "QTRCAP01", "cf04...a1d6", // truncated hash 1724160000ULL, // e.g. July 2024 0x03 // TRACE + METRICS enabled }; extern "C" CapsuleInfo* get_capsule_info() { return &capsule_metadata; } // C++ Diagnostic Stub int main(int argc, char* argv[]) { auto start = std::chrono::high_resolution_clock::now(); CapsuleInfo* info = get_capsule_info(); std::cout << "=== Capsule Diagnostics ===\n"; std::cout << "Capsule ID: " << info->capsule_id << "\n"; std::cout << "Source Hash: " << info->source_hash << "\n"; std::cout << "Build Time: " << info->build_time << "\n"; // Simulate trace and metrics if (info->debug_flags & 0x01) std::cout << "Trace Mode Enabled\n"; if (info->debug_flags & 0x02) std::cout << "Metrics Enabled\n"; auto end = std::chrono::high_resolution_clock::now(); auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start); std::cout << "Boot Time: " << duration.count() << " µs\n"; return 0; }
+
+        // === Capsule Runtime Extension ===
+// Symbolic Guards + REPL + Diagnostics + Metadata Embedding
+
+#include <iostream>
+#include <fstream>
+#include <map>
+#include <vector>
+#include <string>
+#include <sstream>
+#include <iomanip>
+#include <openssl/sha.h>
+#include <openssl/evp.h>
+#include <openssl/pem.h>
+#include <openssl/x509.h>
+#include <openssl/err.h>
+#include "cbor.h" // custom CBOR encoder/decoder header
+
+// === Symbolic Execution Tracer ===
+        namespace Symbolic {
+            struct TraceStep {
+                std::string uicl_token;
+                std::map<std::string, std::string> memory_snapshot;
+            };
+
+            std::vector<TraceStep> trace_log;
+
+            void simulate_path(const std::vector<std::string>& tokens) {
+                for (const auto& tok : tokens) {
+                    TraceStep step;
+                    step.uicl_token = tok;
+                    step.memory_snapshot["sim"] = "ok"; // simulate effect
+                    trace_log.push_back(step);
+                }
+            }
+
+            void dump_trace() {
+                for (auto& step : trace_log) {
+                    std::cout << "[TRACE] Token: " << step.uicl_token << "\n";
+                    for (auto& pair : step.memory_snapshot) {
+                        std::cout << "    " << pair.first << ": " << pair.second << "\n";
+                    }
+                }
+            }
+        }
+
+        // === REPL Debugger Layer ===
+        namespace REPLDebugger {
+            void start_repl() {
+                std::string input;
+                std::cout << "[REPL] Enter :trace, :mem, :exit\n";
+                while (true) {
+                    std::cout << "> ";
+                    std::getline(std::cin, input);
+                    if (input == ":exit") break;
+                    if (input == ":trace") Symbolic::dump_trace();
+                }
+            }
+        }
+
+        // === Plugin Registry with Audit ===
+        namespace PluginSystem {
+            struct PluginInfo {
+                std::string name;
+                std::string version;
+                std::string sha256;
+            };
+
+            std::map<std::string, PluginInfo> registry;
+
+            void register_plugin(const std::string& name, const std::string& version, const std::string& code) {
+                unsigned char hash[SHA256_DIGEST_LENGTH];
+                SHA256(reinterpret_cast<const unsigned char*>(code.c_str()), code.size(), hash);
+                std::stringstream ss;
+                for (int i = 0; i < SHA256_DIGEST_LENGTH; ++i)
+                    ss << std::hex << std::setw(2) << std::setfill('0') << (int)hash[i];
+                registry[name] = { name, version, ss.str() };
+                std::cout << "[PLUGIN REGISTERED] " << name << " v" << version << "\n";
+            }
+        }
+
+        // === Metadata Embedding with CBOR ===
+        namespace MetaEncoder {
+            void encode_metadata(const std::string& capsule_path) {
+                std::map<std::string, std::string> meta = {
+                    {"capsule_id", "cap-0491"},
+                    {"build", __DATE__},
+                    {"checksum", "sha256abc..."}
+                };
+                std::ofstream out(capsule_path + ".cbor", std::ios::binary);
+                cbor::encode_map(meta, out);
+            }
+        }
+
+        // === .ld Linker Script Snippet ===
+        const char* linker_script = R"LD(
+SECTIONS {
+    . = 0x10000;
+    .capsule_meta : { KEEP(*(.capsule_meta)) }
+    .bytecode      : { KEEP(*(.bytecode)) }
+    .sig           : { KEEP(*(.sig)) }
+}
+)LD";
+
+        // === Capsule Inspection Tool ===
+        namespace Inspector {
+            void patch_and_reload(const std::string& capsule_bin) {
+                std::cout << "[RELOAD] Scanning " << capsule_bin << " for patch signature...\n";
+                // Placeholder: simulate validation + hot reload
+                std::cout << "[PATCH] Capsule verified. Applying patch...\n";
+            }
+        }
+
+        int main() {
+            std::vector<std::string> path = { "load", "invoke", "yield", "exit" };
+            Symbolic::simulate_path(path);
+            PluginSystem::register_plugin("EchoPlugin", "1.0", "plugin code");
+            MetaEncoder::encode_metadata("plugin_capsule");
+            Inspector::patch_and_reload("plugin_capsule.bin");
+            REPLDebugger::start_repl();
+            return 0;
+        }
