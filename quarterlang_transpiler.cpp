@@ -1,0 +1,27136 @@
+// quarterlang_transpiler.cpp
+// Full pipeline: QuarterLang -> DCIL -> CFG -> AST -> UICL -> Portable Bytecode -> .exe
+
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <map>
+#include <memory>
+
+// ======== Step 1: QuarterLang Parser ========
+struct QLToken {
+    std::string type;
+    std::string value;
+};
+
+std::vector<QLToken> tokenizeQuarterLang(const std::string& code) {
+    // Tokenize QuarterLang (placeholder - proper lexer needed)
+    std::vector<QLToken> tokens;
+    // TODO: Implement real tokenizer
+    return tokens;
+}
+
+// ======== Step 2: DCIL Representation ========
+struct DCILInstruction {
+    std::string opcode;
+    std::vector<std::string> args;
+};
+
+std::vector<DCILInstruction> generateDCIL(const std::vector<QLToken>& tokens) {
+    std::vector<DCILInstruction> dcil;
+    // TODO: Translate tokens into DCIL instructions
+    return dcil;
+}
+
+// ======== Step 3: Context-Free Grammar Parser ========
+struct ASTNode {
+    std::string type;
+    std::string value;
+    std::vector<std::shared_ptr<ASTNode>> children;
+};
+
+std::shared_ptr<ASTNode> parseDCILToAST(const std::vector<DCILInstruction>& dcil) {
+    auto root = std::make_shared<ASTNode>();
+    root->type = "Program";
+    // TODO: Build AST from DCIL
+    return root;
+}
+
+// ======== Step 4: UICL Generator ========
+struct UICLOp {
+    std::string opcode;
+    std::vector<std::string> operands;
+};
+
+std::vector<UICLOp> convertASTToUICL(const std::shared_ptr<ASTNode>& ast) {
+    std::vector<UICLOp> uicl;
+    // TODO: Convert AST into UICL
+    return uicl;
+}
+
+// ======== Step 5: Portable Bytecode Generation ========
+struct Bytecode {
+    std::vector<uint8_t> code;
+};
+
+Bytecode compileUICLToBytecode(const std::vector<UICLOp>& uicl) {
+    Bytecode bc;
+    // TODO: Encode UICL into bytecode
+    return bc;
+}
+
+// ======== Step 6: x86-64 Executable Generation ========
+void generateExecutable(const Bytecode& bc, const std::string& output_path) {
+    std::ofstream out(output_path, std::ios::binary);
+    if (!out) {
+        std::cerr << "Failed to open output file." << std::endl;
+        return;
+    }
+    // TODO: Wrap bytecode in executable format (e.g., PE or ELF)
+    for (auto byte : bc.code)
+        out.put(static_cast<char>(byte));
+    out.close();
+}
+
+// ======== Entry Point ========
+int main(int argc, char** argv) {
+    if (argc < 3) {
+        std::cerr << "Usage: qtranspiler <input.ql> <output.exe>" << std::endl;
+        return 1;
+    }
+
+    std::ifstream input(argv[1]);
+    if (!input) {
+        std::cerr << "Failed to open QuarterLang source." << std::endl;
+        return 1;
+    }
+
+    std::string code((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
+    auto tokens = tokenizeQuarterLang(code);
+    auto dcil = generateDCIL(tokens);
+    auto ast = parseDCILToAST(dcil);
+    auto uicl = convertASTToUICL(ast);
+    auto bytecode = compileUICLToBytecode(uicl);
+    generateExecutable(bytecode, argv[2]);
+
+    std::cout << "Compilation complete: " << argv[2] << std::endl;
+    return 0;
+}
+
+// quarterlang_transpiler.cpp
+// Full pipeline: QuarterLang -> DCIL -> CFG -> AST -> UICL -> Portable Bytecode -> .exe
+
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <map>
+#include <memory>
+#include <regex>
+#include <cstdint>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
+
+// ======== Step 1: QuarterLang Lexer ========
+struct QLToken {
+    std::string type;
+    std::string value;
+};
+
+std::vector<QLToken> tokenizeQuarterLang(const std::string& code) {
+    std::vector<QLToken> tokens;
+    std::vector<std::pair<std::string, std::string>> patterns = {
+        {"FUNC", R"((\bfunc\b))"},
+        {"END", R"((\bend\b))"},
+        {"CALL", R"((\bcall\b))"},
+        {"VAL", R"((\bval\b))"},
+        {"RETURN", R"((\breturn\b))"},
+        {"IDENT", R"(([a-zA-Z_][a-zA-Z0-9_]*))"},
+        {"NUMBER", R"(([0-9]+))"},
+        {"SYMBOL", R"((\+|\-|\*|\/|==|!=|=|:|;|\(|\)|\{|\}|,))"}
+    };
+
+    std::regex ws(R"(\s+)");
+    size_t pos = 0;
+    while (pos < code.size()) {
+        if (std::regex_match(code.substr(pos, 1), ws)) {
+            ++pos;
+            continue;
+        }
+        bool matched = false;
+        for (const auto& pat : patterns) {
+            std::smatch m;
+            std::regex r(pat.second);
+            std::string sub = code.substr(pos);
+            if (std::regex_search(sub, m, r) && m.position() == 0) {
+                tokens.push_back(QLToken{pat.first, m.str(0)});
+                pos += m.length(0);
+                matched = true;
+                break;
+            }
+        }
+        if (!matched) pos++;
+    }
+    return tokens;
+}
+
+// ======== Step 2: DCIL Capsule-Aware Instructions ========
+struct DCILInstruction {
+    std::string opcode;
+    std::vector<std::string> args;
+    std::string capsuleSymbol; // e.g. ΔΞΩ⟁🜂
+};
+
+std::vector<DCILInstruction> generateDCIL(const std::vector<QLToken>& tokens) {
+    std::vector<DCILInstruction> dcil;
+    for (size_t i = 0; i < tokens.size(); ++i) {
+        if (tokens[i].type == "CALL") {
+            DCILInstruction instr;
+            instr.opcode = "CALL";
+            if (i + 1 < tokens.size()) instr.args.push_back(tokens[i + 1].value);
+            instr.capsuleSymbol = "Ω";
+            dcil.push_back(instr);
+        }
+    }
+    return dcil;
+}
+
+// ======== Step 3: AST via Context-Free Grammar ========
+struct ASTNode {
+    std::string type;
+    std::string value;
+    std::vector<std::shared_ptr<ASTNode>> children;
+};
+
+std::shared_ptr<ASTNode> parseDCILToAST(const std::vector<DCILInstruction>& dcil) {
+    auto root = std::make_shared<ASTNode>();
+    root->type = "Program";
+    for (auto& instr : dcil) {
+        auto node = std::make_shared<ASTNode>();
+        node->type = instr.opcode;
+        node->value = instr.args.empty() ? "" : instr.args[0];
+        root->children.push_back(node);
+    }
+    return root;
+}
+
+// ======== Step 4: UICL with Dodecagram Base-12 Eval ========
+struct UICLOp {
+    std::string opcode;
+    std::vector<std::string> operands;
+};
+
+int convertDG12(const std::string& dg) {
+    std::string digits = "0123456789AB";
+    int result = 0;
+    for (char c : dg) {
+        size_t pos = digits.find(c);
+        if (pos == std::string::npos) return -1;
+        result = result * 12 + static_cast<int>(pos);
+    }
+    return result;
+}
+
+std::vector<UICLOp> convertASTToUICL(const std::shared_ptr<ASTNode>& ast) {
+    std::vector<UICLOp> uicl;
+    for (auto& node : ast->children) {
+        UICLOp op;
+        op.opcode = node->type;
+        if (!node->value.empty()) {
+            if (node->value.find_first_not_of("0123456789AB") == std::string::npos) {
+                op.operands.push_back(std::to_string(convertDG12(node->value)));
+            } else {
+                op.operands.push_back(node->value);
+            }
+        }
+        uicl.push_back(op);
+    }
+    return uicl;
+}
+
+// ======== Step 5: Portable Bytecode Generation ========
+struct Bytecode {
+    std::vector<uint8_t> code;
+};
+
+Bytecode compileUICLToBytecode(const std::vector<UICLOp>& uicl) {
+    Bytecode bc;
+    for (const auto& op : uicl) {
+        bc.code.push_back(static_cast<uint8_t>(op.opcode[0]));
+        for (const auto& arg : op.operands) {
+            try {
+                uint8_t val = static_cast<uint8_t>(std::stoi(arg) % 256);
+                bc.code.push_back(val);
+            } catch (...) {
+                bc.code.push_back(0);
+            }
+        }
+    }
+    return bc;
+}
+
+// ======== Step 6: Generate Windows/Linux Executable ========
+void generateExecutable(const Bytecode& bc, const std::string& output_path) {
+    std::ofstream out(output_path, std::ios::binary);
+    if (!out) {
+        std::cerr << "Failed to open output file." << std::endl;
+        return;
+    }
+#ifdef _WIN32
+    out.write("MZ", 2);
+#else
+    out.write("\x7FELF", 4);
+#endif
+    for (auto byte : bc.code) out.put(static_cast<char>(byte));
+    out.close();
+}
+
+// ======== Entry Point ========
+int main(int argc, char** argv) {
+    if (argc < 3) {
+        std::cerr << "Usage: qtranspiler <input.ql> <output.exe>" << std::endl;
+        return 1;
+    }
+
+    std::ifstream input(argv[1]);
+    if (!input) {
+        std::cerr << "Failed to open QuarterLang source." << std::endl;
+        return 1;
+    }
+
+    std::string code((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
+    auto tokens = tokenizeQuarterLang(code);
+    auto dcil = generateDCIL(tokens);
+    auto ast = parseDCILToAST(dcil);
+    auto uicl = convertASTToUICL(ast);
+    auto bytecode = compileUICLToBytecode(uicl);
+    generateExecutable(bytecode, argv[2]);
+
+    std::cout << "Compilation complete: " << argv[2] << std::endl;
+    return 0;
+}
+
+// quarterlang_transpiler.cpp
+// Full pipeline: QuarterLang -> DCIL -> CFG -> AST -> UICL -> Portable Bytecode -> .exe
+
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <map>
+#include <memory>
+#include <regex>
+#include <cstdint>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
+
+bool DEBUG_MODE = false;
+
+// ======== Symbol Table for Scope Awareness ========
+std::map<std::string, std::string> symbolTable;
+
+// ======== Step 1: QuarterLang Lexer ========
+struct QLToken {
+    std::string type;
+    std::string value;
+};
+
+std::vector<QLToken> tokenizeQuarterLang(const std::string& code) {
+    std::vector<QLToken> tokens;
+    std::vector<std::pair<std::string, std::string>> patterns = {
+        {"FUNC", R"((\bfunc\b))"},
+        {"END", R"((\bend\b))"},
+        {"CALL", R"((\bcall\b))"},
+        {"VAL", R"((\bval\b))"},
+        {"RETURN", R"((\breturn\b))"},
+        {"IDENT", R"(([a-zA-Z_][a-zA-Z0-9_]*))"},
+        {"NUMBER", R"(([0-9]+))"},
+        {"SYMBOL", R"((\+|\-|\*|\/|==|!=|=|:|;|\(|\)|\{|\}|,))"}
+    };
+
+    std::regex ws(R"(\s+)");
+    size_t pos = 0;
+    while (pos < code.size()) {
+        if (std::regex_match(code.substr(pos, 1), ws)) {
+            ++pos;
+            continue;
+        }
+        bool matched = false;
+        for (const auto& pat : patterns) {
+            std::smatch m;
+            std::regex r(pat.second);
+            std::string sub = code.substr(pos);
+            if (std::regex_search(sub, m, r) && m.position() == 0) {
+                tokens.push_back(QLToken{ pat.first, m.str(0) });
+                pos += m.length(0);
+                matched = true;
+                break;
+            }
+        }
+        if (!matched) pos++;
+    }
+    if (DEBUG_MODE) {
+        std::cout << "Tokens:\n";
+        for (const auto& tok : tokens) std::cout << tok.type << ": " << tok.value << "\n";
+    }
+    return tokens;
+}
+
+// ======== Step 2: DCIL Capsule-Aware Instructions ========
+struct DCILInstruction {
+    std::string opcode;
+    std::vector<std::string> args;
+    std::string capsuleSymbol; // e.g. ΔΞΩ⟁🜂
+};
+
+std::vector<DCILInstruction> generateDCIL(const std::vector<QLToken>& tokens) {
+    std::vector<DCILInstruction> dcil;
+    for (size_t i = 0; i < tokens.size(); ++i) {
+        if (tokens[i].type == "CALL") {
+            DCILInstruction instr;
+            instr.opcode = "CALL";
+            if (i + 1 < tokens.size()) instr.args.push_back(tokens[i + 1].value);
+            instr.capsuleSymbol = "Ω"; // Ω = meta-call capsule
+            dcil.push_back(instr);
+        }
+    }
+    if (DEBUG_MODE) {
+        std::cout << "\nDCIL:\n";
+        for (const auto& d : dcil) std::cout << d.opcode << "(" << d.capsuleSymbol << ") " << (d.args.empty() ? "" : d.args[0]) << "\n";
+    }
+    return dcil;
+}
+
+// ======== Step 3: AST via Context-Free Grammar ========
+struct ASTNode {
+    std::string type;
+    std::string value;
+    std::vector<std::shared_ptr<ASTNode>> children;
+};
+
+std::shared_ptr<ASTNode> parseDCILToAST(const std::vector<DCILInstruction>& dcil) {
+    auto root = std::make_shared<ASTNode>();
+    root->type = "Program";
+    for (auto& instr : dcil) {
+        auto node = std::make_shared<ASTNode>();
+        node->type = instr.opcode;
+        node->value = instr.args.empty() ? "" : instr.args[0];
+        root->children.push_back(node);
+    }
+    if (DEBUG_MODE) {
+        std::cout << "\nAST:\n";
+        for (auto& child : root->children) std::cout << child->type << " -> " << child->value << "\n";
+    }
+    return root;
+}
+
+// ======== Step 4: UICL with Dodecagram Base-12 Eval and Type Check ========
+struct UICLOp {
+    std::string opcode;
+    std::vector<std::string> operands;
+};
+
+int convertDG12(const std::string& dg) {
+    std::string digits = "0123456789AB";
+    int result = 0;
+    for (char c : dg) {
+        size_t pos = digits.find(c);
+        if (pos == std::string::npos) return -1;
+        result = result * 12 + static_cast<int>(pos);
+    }
+    return result;
+}
+
+std::vector<UICLOp> convertASTToUICL(const std::shared_ptr<ASTNode>& ast) {
+    std::vector<UICLOp> uicl;
+    for (auto& node : ast->children) {
+        UICLOp op;
+        op.opcode = node->type;
+        if (!node->value.empty()) {
+            if (node->value.find_first_not_of("0123456789AB") == std::string::npos) {
+                op.operands.push_back(std::to_string(convertDG12(node->value)));
+            }
+            else {
+                if (symbolTable.find(node->value) != symbolTable.end()) {
+                    op.operands.push_back(symbolTable[node->value]);
+                }
+                else {
+                    op.operands.push_back(node->value);
+                }
+            }
+        }
+        uicl.push_back(op);
+    }
+    if (DEBUG_MODE) {
+        std::cout << "\nUICL:\n";
+        for (const auto& u : uicl) std::cout << u.opcode << " " << (u.operands.empty() ? "" : u.operands[0]) << "\n";
+    }
+    return uicl;
+}
+
+// ======== Step 5: Portable Bytecode Generation ========
+struct Bytecode {
+    std::vector<uint8_t> code;
+};
+
+Bytecode compileUICLToBytecode(const std::vector<UICLOp>& uicl) {
+    Bytecode bc;
+    for (const auto& op : uicl) {
+        bc.code.push_back(static_cast<uint8_t>(op.opcode[0]));
+        for (const auto& arg : op.operands) {
+            try {
+                uint8_t val = static_cast<uint8_t>(std::stoi(arg) % 256);
+                bc.code.push_back(val);
+            }
+            catch (...) {
+                bc.code.push_back(0);
+            }
+        }
+    }
+    return bc;
+}
+
+// ======== Step 6: Generate Windows/Linux Executable ========
+void generateExecutable(const Bytecode& bc, const std::string& output_path) {
+    std::ofstream out(output_path, std::ios::binary);
+    if (!out) {
+        std::cerr << "Failed to open output file." << std::endl;
+        return;
+    }
+#ifdef _WIN32
+    out.write("MZ", 2);
+#else
+    out.write("\x7FELF", 4);
+#endif
+    for (auto byte : bc.code) out.put(static_cast<char>(byte));
+    out.close();
+}
+
+// ======== Entry Point ========
+int main(int argc, char** argv) {
+    if (argc < 3) {
+        std::cerr << "Usage: qtranspiler <input.ql> <output.exe> [--debug]" << std::endl;
+        return 1;
+    }
+    if (argc >= 4 && std::string(argv[3]) == "--debug") {
+        DEBUG_MODE = true;
+    }
+
+    std::ifstream input(argv[1]);
+    if (!input) {
+        std::cerr << "Failed to open QuarterLang source." << std::endl;
+        return 1;
+    }
+
+    std::string code((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
+    auto tokens = tokenizeQuarterLang(code);
+    auto dcil = generateDCIL(tokens);
+    auto ast = parseDCILToAST(dcil);
+    auto uicl = convertASTToUICL(ast);
+    auto bytecode = compileUICLToBytecode(uicl);
+    generateExecutable(bytecode, argv[2]);
+
+    std::cout << "Compilation complete: " << argv[2] << std::endl;
+    return 0;
+}
+
+// quarterlang_transpiler.cpp
+// Full pipeline: QuarterLang -> DCIL -> CFG -> AST -> UICL -> Portable Bytecode -> .exe
+
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <map>
+#include <memory>
+#include <regex>
+#include <cstdint>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
+
+bool DEBUG_MODE = false;
+
+// ======== Capsule Legend ========
+std::map<std::string, std::string> capsuleLegend = {
+    {"Ω", "Meta-Call Capsule (cross-scope, dynamic context)"},
+    {"Ψ", "Recursive Capsule (re-entry loop support)"},
+    {"Δ", "Mathematical Capsule (arithmetic/transformative)"},
+    {"Ξ", "Logic Capsule (conditional/matching)"},
+    {"⟁", "Routing Capsule (signal/flow control)"},
+    {"🜂", "Alchemical Capsule (experimental/evolving ops)"}
+};
+
+// ======== REPL Mode ========
+void runREPL() {
+    std::cout << "QuarterLang REPL (type 'exit' to quit)\n";
+    std::string line;
+    while (true) {
+        std::cout << ">> ";
+        std::getline(std::cin, line);
+        if (line == "exit") break;
+
+        auto tokens = tokenizeQuarterLang(line);
+        auto dcil = generateDCIL(tokens);
+        auto ast = parseDCILToAST(dcil);
+        auto uicl = convertASTToUICL(ast);
+    }
+}
+
+// ======== Visual AST/UICL Graph Output (Graphviz DOT) ========
+void exportASTDot(const std::shared_ptr<ASTNode>& ast, const std::string& filename) {
+    std::ofstream dot(filename);
+    dot << "digraph AST {\n";
+    int id = 0;
+    std::function<void(const std::shared_ptr<ASTNode>&, int)> emit;
+    emit = [&](const std::shared_ptr<ASTNode>& node, int parentId) {
+        int currId = id++;
+        dot << "n" << currId << " [label=\"" << node->type << "(" << node->value << ")\"]\n";
+        if (parentId >= 0) {
+            dot << "n" << parentId << " -> n" << currId << "\n";
+        }
+        for (auto& child : node->children) {
+            emit(child, currId);
+        }
+        };
+    emit(ast, -1);
+    dot << "}\n";
+    dot.close();
+    if (DEBUG_MODE) std::cout << "AST graph exported to " << filename << "\n";
+}
+
+// ======== Symbol Table for Scope Awareness ========
+std::map<std::string, std::string> symbolTable;
+
+// [rest of existing code remains unchanged]
+
+// quarterlang_transpiler.cpp
+// Full pipeline: QuarterLang -> DCIL -> CFG -> AST -> UICL -> Portable Bytecode -> .exe
+
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <map>
+#include <memory>
+#include <regex>
+#include <cstdint>
+#include <sstream>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
+
+bool DEBUG_MODE = false;
+
+// ======== Capsule Legend ========
+std::map<std::string, std::string> capsuleLegend = {
+    {"Ω", "Meta-Call Capsule (cross-scope, dynamic context)"},
+    {"Ψ", "Recursive Capsule (re-entry loop support)"},
+    {"Δ", "Mathematical Capsule (arithmetic/transformative)"},
+    {"Ξ", "Logic Capsule (conditional/matching)"},
+    {"⟁", "Routing Capsule (signal/flow control)"},
+    {"🜂", "Alchemical Capsule (experimental/evolving ops)"}
+};
+
+// ======== Symbol Table for Scope Awareness ========
+std::map<std::string, std::string> symbolTable;
+
+// ======== UICL Interpreter for Capsule Execution ========
+void interpretUICL(const std::vector<UICLOp>& uicl) {
+    std::map<std::string, int> memory;
+    for (const auto& op : uicl) {
+        if (op.opcode == "CALL") {
+            std::string target = op.operands[0];
+            std::cout << "[CALL] Function: " << target << std::endl;
+        }
+        else if (op.opcode == "Δ") {
+            if (op.operands.size() >= 2) {
+                int a = std::stoi(op.operands[0]);
+                int b = std::stoi(op.operands[1]);
+                std::cout << "[Δ] Add: " << a + b << std::endl;
+            }
+        }
+        else if (op.opcode == "Ξ") {
+            if (op.operands.size() >= 2) {
+                std::cout << "[Ξ] Compare: " << op.operands[0] << " == " << op.operands[1] << " -> "
+                    << (op.operands[0] == op.operands[1] ? "true" : "false") << std::endl;
+            }
+        }
+        else {
+            std::cout << "[UICL] Unknown op: " << op.opcode << std::endl;
+        }
+    }
+}
+
+// ======== REPL Mode with Interpreter ========
+void runREPL() {
+    std::cout << "QuarterLang REPL (type 'exit' to quit)\n";
+    std::string line;
+    while (true) {
+        std::cout << ">> ";
+        std::getline(std::cin, line);
+        if (line == "exit") break;
+
+        auto tokens = tokenizeQuarterLang(line);
+        auto dcil = generateDCIL(tokens);
+        auto ast = parseDCILToAST(dcil);
+        auto uicl = convertASTToUICL(ast);
+        interpretUICL(uicl);
+    }
+}
+
+// ======== Visual AST/UICL Graph Output (Graphviz DOT) ========
+void exportASTDot(const std::shared_ptr<ASTNode>& ast, const std::string& filename) {
+    std::ofstream dot(filename);
+    dot << "digraph AST {\n";
+    int id = 0;
+    std::function<void(const std::shared_ptr<ASTNode>&, int)> emit;
+    emit = [&](const std::shared_ptr<ASTNode>& node, int parentId) {
+        int currId = id++;
+        dot << "n" << currId << " [label=\"" << node->type << "(" << node->value << ")\"]\n";
+        if (parentId >= 0) {
+            dot << "n" << parentId << " -> n" << currId << "\n";
+        }
+        for (auto& child : node->children) {
+            emit(child, currId);
+        }
+        };
+    emit(ast, -1);
+    dot << "}\n";
+    dot.close();
+    if (DEBUG_MODE) std::cout << "AST graph exported to " << filename << "\n";
+}
+
+// [rest of existing code remains unchanged]
+
+// quarterlang_transpiler.cpp
+// Full pipeline: QuarterLang -> DCIL -> CFG -> AST -> UICL -> Portable Bytecode -> .exe
+
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <map>
+#include <memory>
+#include <regex>
+#include <cstdint>
+#include <sstream>
+#include <cassert>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
+
+bool DEBUG_MODE = false;
+
+// ======== Capsule Legend ========
+std::map<std::string, std::string> capsuleLegend = {
+    {"Ω", "Meta-Call Capsule (cross-scope, dynamic context)"},
+    {"Ψ", "Recursive Capsule (re-entry loop support)"},
+    {"Δ", "Mathematical Capsule (arithmetic/transformative)"},
+    {"Ξ", "Logic Capsule (conditional/matching)"},
+    {"⟁", "Routing Capsule (signal/flow control)"},
+    {"🜂", "Alchemical Capsule (experimental/evolving ops)"}
+};
+
+// ======== Symbol Table for Scope Awareness ========
+std::map<std::string, std::string> symbolTable;
+
+// ======== UICL Interpreter with Register State and Capsule Folding ========
+void interpretUICL(const std::vector<UICLOp>& uicl) {
+    std::map<std::string, int> memory;
+    int ACC = 0;  // Accumulator register
+
+    for (const auto& op : uicl) {
+        if (op.opcode == "CALL") {
+            std::string target = op.operands[0];
+            std::cout << "[CALL] Function: " << target << std::endl;
+        }
+        else if (op.opcode == "Δ") {
+            if (op.operands.size() >= 2) {
+                int a = std::stoi(op.operands[0]);
+                int b = std::stoi(op.operands[1]);
+                ACC = a + b;
+                std::cout << "[Δ] Fold Add: " << a << " + " << b << " = " << ACC << std::endl;
+            }
+        }
+        else if (op.opcode == "Ψ") {
+            if (op.operands.size() >= 1) {
+                int depth = std::stoi(op.operands[0]);
+                int result = 1;
+                for (int i = 1; i <= depth; ++i) result *= i;
+                ACC = result;
+                std::cout << "[Ψ] Rec Fold Factorial(" << depth << ") = " << result << std::endl;
+            }
+        }
+        else if (op.opcode == "Ξ") {
+            if (op.operands.size() >= 2) {
+                bool result = op.operands[0] == op.operands[1];
+                std::cout << "[Ξ] Compare: " << op.operands[0] << " == " << op.operands[1] << " -> "
+                    << (result ? "true" : "false") << std::endl;
+            }
+        }
+        else {
+            std::cout << "[UICL] Unknown op: " << op.opcode << std::endl;
+        }
+    }
+    std::cout << "\n[REGISTER] ACC = " << ACC << "\n";
+}
+
+// ======== REPL Mode with Interpreter ========
+void runREPL() {
+    std::cout << "QuarterLang REPL (type 'exit' to quit)\n";
+    std::string line;
+    while (true) {
+        std::cout << ">> ";
+        std::getline(std::cin, line);
+        if (line == "exit") break;
+
+        auto tokens = tokenizeQuarterLang(line);
+        auto dcil = generateDCIL(tokens);
+        auto ast = parseDCILToAST(dcil);
+        auto uicl = convertASTToUICL(ast);
+        interpretUICL(uicl);
+    }
+}
+
+// ======== Visual AST/UICL Graph Output (Graphviz DOT) ========
+void exportASTDot(const std::shared_ptr<ASTNode>& ast, const std::string& filename) {
+    std::ofstream dot(filename);
+    dot << "digraph AST {\n";
+    int id = 0;
+    std::function<void(const std::shared_ptr<ASTNode>&, int)> emit;
+    emit = [&](const std::shared_ptr<ASTNode>& node, int parentId) {
+        int currId = id++;
+        dot << "n" << currId << " [label=\"" << node->type << "(" << node->value << ")\"]\n";
+        if (parentId >= 0) {
+            dot << "n" << parentId << " -> n" << currId << "\n";
+        }
+        for (auto& child : node->children) {
+            emit(child, currId);
+        }
+        };
+    emit(ast, -1);
+    dot << "}\n";
+    dot.close();
+    if (DEBUG_MODE) std::cout << "AST graph exported to " << filename << "\n";
+}
+
+// ======== Unit Test Suite for Capsules ========
+void runUnitTests() {
+    std::vector<UICLOp> test1 = { {"Δ", {"5", "7"}}, {"Ψ", {"4"}}, {"Ξ", {"apple", "apple"}}, {"Ξ", {"3", "4"}} };
+    std::cout << "\n[UNIT TEST] Running Capsule Tests...\n";
+    interpretUICL(test1);
+    std::cout << "[UNIT TEST] Complete.\n";
+}
+
+// [rest of existing code remains unchanged]
+
+// quarterlang_transpiler.cpp
+// Full pipeline: QuarterLang -> DCIL -> CFG -> AST -> UICL -> Portable Bytecode -> .exe
+
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <map>
+#include <memory>
+#include <regex>
+#include <cstdint>
+#include <sstream>
+#include <cassert>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
+
+bool DEBUG_MODE = false;
+
+// ======== Capsule Legend ========
+std::map<std::string, std::string> capsuleLegend = {
+    {"Ω", "Meta-Call Capsule (cross-scope, dynamic context)"},
+    {"Ψ", "Recursive Capsule (re-entry loop support)"},
+    {"Δ", "Mathematical Capsule (arithmetic/transformative)"},
+    {"Ξ", "Logic Capsule (conditional/matching)"},
+    {"⟁", "Routing Capsule (signal/flow control)"},
+    {"🜂", "Alchemical Capsule (experimental/evolving ops)"},
+    {"->", "Pipeline Compose Operator (symbolic fold chaining)"}
+};
+
+// ======== Symbol Table for Scope Awareness ========
+std::map<std::string, std::string> symbolTable;
+
+// ======== QuarterLang Pipeline Composer Parser ========
+std::vector<UICLOp> parsePipelineExpression(const std::string& expression) {
+    std::vector<UICLOp> pipeline;
+    std::istringstream ss(expression);
+    std::string token;
+    while (std::getline(ss, token, '>')) {
+        if (token.back() == '-') token.pop_back();
+        std::istringstream line(token);
+        std::string opcode;
+        line >> opcode;
+        std::string operand;
+        std::vector<std::string> operands;
+        while (line >> operand) operands.push_back(operand);
+        pipeline.push_back({ opcode, operands });
+    }
+    return pipeline;
+}
+
+// ======== REPL Mode with Pipeline Composer ========
+void runREPL() {
+    std::cout << "QuarterLang REPL (type 'exit' to quit)\n";
+    std::string line;
+    while (true) {
+        std::cout << ">> ";
+        std::getline(std::cin, line);
+        if (line == "exit") break;
+
+        // Check if line is a pipeline expression
+        if (line.find("->") != std::string::npos) {
+            auto pipedOps = parsePipelineExpression(line);
+            interpretUICL(pipedOps);
+            continue;
+        }
+
+        auto tokens = tokenizeQuarterLang(line);
+        auto dcil = generateDCIL(tokens);
+        auto ast = parseDCILToAST(dcil);
+        auto uicl = convertASTToUICL(ast);
+        interpretUICL(uicl);
+    }
+}
+
+// [rest of existing code remains unchanged]
+
+// quarterlang_transpiler.cpp
+// Full pipeline: QuarterLang -> DCIL -> CFG -> AST -> UICL -> Portable Bytecode -> .exe
+
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <map>
+#include <memory>
+#include <regex>
+#include <cstdint>
+#include <sstream>
+#include <cassert>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
+
+bool DEBUG_MODE = false;
+
+// ======== Capsule Legend ========
+std::map<std::string, std::string> capsuleLegend = {
+    {"Ω", "Meta-Call Capsule (cross-scope, dynamic context)"},
+    {"Ψ", "Recursive Capsule (re-entry loop support)"},
+    {"Δ", "Mathematical Capsule (arithmetic/transformative)"},
+    {"Ξ", "Logic Capsule (conditional/matching)"},
+    {"⟁", "Routing Capsule (signal/flow control)"},
+    {"🜂", "Alchemical Capsule (experimental/evolving ops)"},
+    {"->", "Pipeline Compose Operator (symbolic fold chaining)"},
+    {"<-", "Backpipe Operator (reverse fold)"}
+};
+
+// ======== Symbol Table for Scope Awareness ========
+std::map<std::string, std::string> symbolTable;
+
+// ======== QuarterLang Pipeline Composer Parser ========
+std::vector<UICLOp> parsePipelineExpression(const std::string& expression) {
+    std::vector<UICLOp> pipeline;
+    std::string normalized = expression;
+    std::replace(normalized.begin(), normalized.end(), '<', '>');
+    std::istringstream ss(normalized);
+    std::string token;
+    std::vector<std::string> segments;
+    while (std::getline(ss, token, '>')) {
+        if (!token.empty() && token.back() == '-') token.pop_back();
+        if (!token.empty() && token.front() == '-') token.erase(0, 1);
+        segments.push_back(token);
+    }
+    if (expression.find("<-") != std::string::npos) std::reverse(segments.begin(), segments.end());
+    for (const auto& seg : segments) {
+        std::istringstream line(seg);
+        std::string opcode;
+        line >> opcode;
+        std::string operand;
+        std::vector<std::string> operands;
+        while (line >> operand) operands.push_back(operand);
+        pipeline.push_back({ opcode, operands });
+    }
+    return pipeline;
+}
+
+// ======== Pipeline Flow Graph Export ========
+void exportPipelineDot(const std::vector<UICLOp>& pipeline, const std::string& filename) {
+    std::ofstream dot(filename);
+    dot << "digraph Pipeline {\n";
+    for (size_t i = 0; i < pipeline.size(); ++i) {
+        std::string label = pipeline[i].opcode;
+        for (const auto& op : pipeline[i].operands) label += " " + op;
+        dot << "n" << i << " [label=\"" << label << "\"]\n";
+        if (i > 0) dot << "n" << (i - 1) << " -> n" << i << "\n";
+    }
+    dot << "}\n";
+    dot.close();
+    if (DEBUG_MODE) std::cout << "Pipeline graph exported to " << filename << "\n";
+}
+
+// ======== REPL Mode with Pipeline Composer and Flow Graph ========
+void runREPL() {
+    std::cout << "QuarterLang REPL (type 'exit' to quit)\n";
+    std::string line;
+    while (true) {
+        std::cout << ">> ";
+        std::getline(std::cin, line);
+        if (line == "exit") break;
+
+        if (line.find("->") != std::string::npos || line.find("<-") != std::string::npos) {
+            auto pipedOps = parsePipelineExpression(line);
+            interpretUICL(pipedOps);
+            exportPipelineDot(pipedOps, "pipeline_flow.dot");
+            continue;
+        }
+
+        auto tokens = tokenizeQuarterLang(line);
+        auto dcil = generateDCIL(tokens);
+        auto ast = parseDCILToAST(dcil);
+        auto uicl = convertASTToUICL(ast);
+        interpretUICL(uicl);
+    }
+}
+
+// [rest of existing code remains unchanged]
+
+// quarterlang_transpiler.cpp
+// Full pipeline: QuarterLang -> DCIL -> CFG -> AST -> UICL -> Portable Bytecode -> .exe
+
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <map>
+#include <memory>
+#include <regex>
+#include <cstdint>
+#include <sstream>
+#include <cassert>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
+
+bool DEBUG_MODE = false;
+
+// ======== Capsule Legend ========
+std::map<std::string, std::string> capsuleLegend = {
+    {"Ω", "Meta-Call Capsule (cross-scope, dynamic context)"},
+    {"Ψ", "Recursive Capsule (re-entry loop support)"},
+    {"Δ", "Mathematical Capsule (arithmetic/transformative)"},
+    {"Ξ", "Logic Capsule (conditional/matching)"},
+    {"⟁", "Routing Capsule (signal/flow control)"},
+    {"🜂", "Alchemical Capsule (experimental/evolving ops)"},
+    {"🔁", "Loop Capsule (repeat and flowback)"},
+    {"if", "Conditional Guard Capsule (exec if true)"},
+    {"unless", "Conditional Guard Capsule (exec if false)"},
+    {"mut", "Inline Memory Mutation Capsule (register/memory change)"},
+    {"->", "Pipeline Compose Operator (symbolic fold chaining)"},
+    {"<-", "Backpipe Operator (reverse fold)"}
+};
+
+// ======== Symbol Table for Scope Awareness ========
+std::map<std::string, std::string> symbolTable;
+
+// ======== QuarterLang Pipeline Composer Parser ========
+std::vector<UICLOp> parsePipelineExpression(const std::string& expression) {
+    std::vector<UICLOp> pipeline;
+    std::string normalized = expression;
+    std::replace(normalized.begin(), normalized.end(), '<', '>');
+    std::istringstream ss(normalized);
+    std::string token;
+    std::vector<std::string> segments;
+    while (std::getline(ss, token, '>')) {
+        if (!token.empty() && token.back() == '-') token.pop_back();
+        if (!token.empty() && token.front() == '-') token.erase(0, 1);
+        segments.push_back(token);
+    }
+    if (expression.find("<-") != std::string::npos) std::reverse(segments.begin(), segments.end());
+    for (const auto& seg : segments) {
+        std::istringstream line(seg);
+        std::string opcode;
+        line >> opcode;
+        std::string operand;
+        std::vector<std::string> operands;
+        while (line >> operand) operands.push_back(operand);
+        pipeline.push_back({ opcode, operands });
+    }
+    return pipeline;
+}
+
+// ======== Pipeline Flow Graph Export ========
+void exportPipelineDot(const std::vector<UICLOp>& pipeline, const std::string& filename) {
+    std::ofstream dot(filename);
+    dot << "digraph Pipeline {\n";
+    for (size_t i = 0; i < pipeline.size(); ++i) {
+        std::string label = pipeline[i].opcode;
+        for (const auto& op : pipeline[i].operands) label += " " + op;
+        dot << "n" << i << " [label=\"" << label << "\"]\n";
+        if (i > 0) dot << "n" << (i - 1) << " -> n" << i << "\n";
+    }
+    dot << "}\n";
+    dot.close();
+    if (DEBUG_MODE) std::cout << "Pipeline graph exported to " << filename << "\n";
+}
+
+// ======== REPL Mode with Pipeline Composer and Flow Graph ========
+void runREPL() {
+    std::cout << "QuarterLang REPL (type 'exit' to quit)\n";
+    std::string line;
+    while (true) {
+        std::cout << ">> ";
+        std::getline(std::cin, line);
+        if (line == "exit") break;
+
+        if (line.find("->") != std::string::npos || line.find("<-") != std::string::npos) {
+            auto pipedOps = parsePipelineExpression(line);
+            interpretUICL(pipedOps);
+            exportPipelineDot(pipedOps, "pipeline_flow.dot");
+            continue;
+        }
+
+        auto tokens = tokenizeQuarterLang(line);
+        auto dcil = generateDCIL(tokens);
+        auto ast = parseDCILToAST(dcil);
+        auto uicl = convertASTToUICL(ast);
+        interpretUICL(uicl);
+    }
+}
+
+// [rest of existing code remains unchanged]
+
+// quarterlang_transpiler.cpp
+
+// Full pipeline: QuarterLang -> DCIL -> CFG -> AST -> UICL -> Portable Bytecode -> .exe
+
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <vector>
+#include <map>
+#include <memory>
+#include <regex>
+#include <cstdint>
+#include <sstream>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
+bool DEBUG_MODE = false;
+// ======== Capsule Legend ========
+
+std::map<std::string, std::string> capsuleLegend = {
+    {"Ω", "Meta-Call Capsule (cross-scope, dynamic context)"},
+    {"Ψ", "Recursive Capsule (re-entry loop support)"},
+    {"Δ", "Mathematical Capsule (arithmetic/transformative)"},
+    {"Ξ", "Logic Capsule (conditional/matching)"},
+    {"⟁", "Routing Capsule (signal/flow control)"},
+    {"🜂", "Alchemical Capsule (experimental/evolving ops)"},
+    {"🔁", "Loop Capsule (repeat and flowback)"},
+    {"if", "Conditional Guard Capsule (exec if true)"},
+    {"unless", "Conditional Guard Capsule (exec if false)"},
+    {"mut", "Inline Memory Mutation Capsule (register/memory change)"},
+    {"->", "Pipeline Compose Operator (symbolic fold chaining)"},
+    {"<-", "Backpipe Operator (reverse fold)"}
+};
+
+// ======== Symbol Table for Scope Awareness ========
+std::map<std::string, std::string> symbolTable;
+// ======== QuarterLang Pipeline Composer Parser ========
+
+std::vector<UICLOp> parsePipelineExpression(const std::string& expression) {
+    std::vector<UICLOp> pipeline;
+    std::string normalized = expression;
+    std::replace(normalized.begin(), normalized.end(), '<', '>');
+    std::istringstream ss(normalized);
+    std::string token;
+    std::vector<std::string> segments;
+    while (std::getline(ss, token, '>')) {
+        if (!token.empty() && token.back() == '-') token.pop_back();
+        if (!token.empty() && token.front() == '-') token.erase(0, 1);
+        segments.push_back(token);
+    }
+    if (expression.find("<-") != std::string::npos) std::reverse(segments.begin(), segments.end());
+    for (const auto& seg : segments) {
+        std::istringstream line(seg);
+        std::string opcode;
+        line >> opcode;
+        std::string operand;
+        std::vector<std::string> operands;
+        while (line >> operand) operands.push_back(operand);
+        pipeline.push_back({ opcode, operands });
+    }
+    return pipeline;
+}
+
+// ======== Pipeline Flow Graph Export ========
+void exportPipelineDot(const std::vector<UICLOp>& pipeline, const std::string& filename) {
+    std::ofstream dot(filename);
+    dot << "digraph Pipeline {\n";
+    for (size_t i = 0; i < pipeline.size(); ++i) {
+        std::string label = pipeline[i].opcode;
+        for (const auto& op : pipeline[i].operands) label += " " + op;
+        dot << "n" << i << " [label=\"" << label << "\"]\n";
+        if (i > 0) dot << "n" << (i - 1) << " -> n" << i << "\n";
+    }
+    dot << "}\n";
+    dot.close();
+    if (DEBUG_MODE) std::cout << "Pipeline graph exported to " << filename << "\n";
+}
+// ======== REPL Mode with Pipeline Composer and Flow Graph ========
+void runREPL() {
+    std::cout << "QuarterLang REPL (type 'exit' to quit)\n";
+    std::string line;
+    while (true) {
+        std::cout << ">> ";
+        std::getline(std::cin, line);
+        if (line == "exit") break;
+        if (line.find("->") != std::string::npos || line.find("<-") != std::string::npos) {
+            auto pipedOps = parsePipelineExpression(line);
+            interpretUICL(pipedOps);
+            exportPipelineDot(pipedOps, "pipeline_flow.dot");
+            continue;
+        }
+        auto tokens = tokenizeQuarterLang(line);
+        auto dcil = generateDCIL(tokens);
+        auto ast = parseDCILToAST(dcil);
+        auto uicl = convertASTToUICL(ast);
+        interpretUICL(uicl);
+    }
+}
+// ======== Step 1: Tokenization of QuarterLang Source Code ========
+std::vector<QLToken> tokenizeQuarterLang(const std::string& code) {
+    std::vector<QLToken> tokens;
+    std::regex ws(R"(\s+)");
+    std::map<std::string, std::string> patterns = {
+        {"CALL", R"(\bcall\b)"},
+        {"IF", R"(\bif\b)"},
+        {"UNLESS", R"(\bunles\b)"},
+        {"MUT", R"(\bmut\b)"},
+        {"PIPE", R"(\->)"},
+        {"BACKPIPE", R"(<-)"}
+	};
+    size_t pos = 0;
+    while (pos < code.size()) {
+        if (std::isspace(code[pos])) {
+            pos++;
+            continue;
+        }
+        bool matched = false;
+        for (const auto& [type, pattern] : patterns) {
+            std::regex re(pattern);
+            std::smatch match;
+            if (std::regex_search(code.begin() + pos, code.end(), match, re)) {
+                tokens.push_back({ type, match.str(0) });
+				pos += match.length(0);
+                matched = true;
+                break;
+            }
+        }
+        if (!matched) {
+            std::cerr << "Error: Unrecognized token at position " << pos << std::endl;
+            pos++;
+        }
+	}
+    if (DEBUG_MODE) {
+        std::cout << "\nTokens:\n";
+        for (const auto& token : tokens) {
+            std::cout << token.type << ": " << token.value << "\n";
+        }
+    }
+	return tokens;
+}
+// ======== Step 2: DCIL Generation from Tokens ========
+struct DCILInstruction {
+    std::string opcode;
+    std::vector<std::string> args;
+    std::string capsuleSymbol; // For capsule representation
+};
+std::vector<DCILInstruction> generateDCIL(const std::vector<QLToken>& tokens) {
+    std::vector<DCILInstruction> dcil;
+    for (const auto& token : tokens) {
+        if (token.type == "CALL") {
+            dcil.push_back({ "CALL", { token.value }, "Ω" });
+        }
+        else if (token.type == "IF") {
+            dcil.push_back({ "IF", {}, "Ξ" });
+        }
+        else if (token.type == "UNLESS") {
+            dcil.push_back({ "UNLESS", {}, "Ξ" });
+        }
+        else if (token.type == "MUT") {
+            dcil.push_back({ "MUT", {}, "Δ" });
+        }
+        else if (token.type == "PIPE") {
+            dcil.push_back({ "PIPE", {}, "->" });
+        }
+        else if (token.type == "BACKPIPE") {
+			dcil.push_back({ "BACKPIPE", {}, "<-" });
+            }
+        else {
+            std::cerr << "Error: Unrecognized token type " << token.type << std::endl;
+        }
+    }
+    if (DEBUG_MODE) {
+        std::cout << "\nDCIL Instructions:\n";
+        for (const auto& inst : dcil) {
+            std::cout << inst.opcode << " " << (inst.args.empty() ? "" : inst.args[0]) << " [" << inst.capsuleSymbol << "]\n";
+        }
+    }
+	return dcil;
+
+}
+// ======== Step 3: Control Flow Graph (CFG) Generation ========
+struct CFGNode {
+    std::string label;
+    std::vector<std::shared_ptr<CFGNode>> successors;
+};
+std::shared_ptr<CFGNode> generateCFG(const std::vector<DCILInstruction>& dcil) {
+    auto root = std::make_shared<CFGNode>();
+    std::shared_ptr<CFGNode> current = root;
+    for (const auto& inst : dcil) {
+        auto node = std::make_shared<CFGNode>();
+        node->label = inst.opcode + " " + (inst.args.empty() ? "" : inst.args[0]);
+        current->successors.push_back(node);
+        current = node; // Move to the new node
+    }
+    if (DEBUG_MODE) {
+        std::cout << "\nCFG Nodes:\n";
+        std::function<void(const std::shared_ptr<CFGNode>&, int)> printNode;
+        printNode = [&](const std::shared_ptr<CFGNode>& node, int depth) {
+            std::cout << std::string(depth * 2, ' ') << node->label << "\n";
+            for (const auto& succ : node->successors) {
+                printNode(succ, depth + 1);
+            }
+        };
+        printNode(root, 0);
+    }
+    return root;
+}
+// ======== Step 4: AST Generation from DCIL ========
+struct ASTNode {
+    std::string type;
+    std::string value;
+    std::vector<std::shared_ptr<ASTNode>> children;
+    ASTNode(const std::string& t, const std::string& v) : type(t), value(v) {}
+};
+std::shared_ptr<ASTNode> parseDCILToAST(const std::vector<DCILInstruction>& dcil) {
+    auto root = std::make_shared<ASTNode>("Program", "");
+    std::shared_ptr<ASTNode> current = root;
+    for (const auto& inst : dcil) {
+        auto node = std::make_shared<ASTNode>(inst.opcode, inst.args.empty() ? "" : inst.args[0]);
+        current->children.push_back(node);
+        current = node; // Move to the new node
+    }
+    if (DEBUG_MODE) {
+        std::cout << "\nAST Nodes:\n";
+        std::function<void(const std::shared_ptr<ASTNode>&, int)> printNode;
+        printNode = [&](const std::shared_ptr<ASTNode>& node, int depth) {
+            std::cout << std::string(depth * 2, ' ') << node->type << " (" << node->value << ")\n";
+            for (const auto& child : node->children) {
+                printNode(child, depth + 1);
+            }
+        };
+        printNode(root, 0);
+    }
+    return root;
+}
+// ======== Step 5: UICL Generation from AST ========
+std::vector<UICLOp> convertASTToUICL(const std::shared_ptr<ASTNode>& ast) {
+    std::vector<UICLOp> uicl;
+    std::function<void(const std::shared_ptr<ASTNode>&)> traverse;
+    traverse = [&](const std::shared_ptr<ASTNode>& node) {
+        if (node->type == "Program") {
+            for (const auto& child : node->children) {
+                traverse(child);
+            }
+        }
+        else {
+            uicl.push_back({ node->type, { node->value } });
+        }
+    };
+    traverse(ast);
+    if (DEBUG_MODE) {
+        std::cout << "\nUICL Operations:\n";
+        for (const auto& op : uicl) {
+            std::cout << op.opcode << " " << (op.operands.empty() ? "" : op.operands[0]) << "\n";
+        }
+    }
+    return uicl;
+}
+// ======== Step 6: Bytecode Generation from UICL ========
+void generateBytecode(const std::vector<UICLOp>& uicl, const std::string& outputFile) {
+    std::ofstream out(outputFile, std::ios::binary);
+    if (!out) {
+        std::cerr << "Error: Could not open output file " << outputFile << std::endl;
+        return;
+    }
+    for (const auto& op : uicl) {
+        out.write(op.opcode.c_str(), op.opcode.size());
+        out.put('\0'); // Null-terminate opcode
+        for (const auto& operand : op.operands) {
+            out.write(operand.c_str(), operand.size());
+            out.put('\0'); // Null-terminate operand
+        }
+    }
+    out.close();
+    if (DEBUG_MODE) std::cout << "Bytecode written to " << outputFile << "\n";
+}
+// ======== Step 7: REPL Mode with Full Pipeline ========
+void runREPL() {
+    std::cout << "QuarterLang REPL (type 'exit' to quit)\n";
+    std::string line;
+    while (true) {
+        std::cout << ">> ";
+        std::getline(std::cin, line);
+        if (line == "exit") break;
+        auto tokens = tokenizeQuarterLang(line);
+        auto dcil = generateDCIL(tokens);
+        auto ast = parseDCILToAST(dcil);
+        auto uicl = convertASTToUICL(ast);
+        interpretUICL(uicl);
+    }
+}
+// ======== Step 8: Unit Tests for Capsule Functionality ========
+void runUnitTests() {
+    std::cout << "\n[UNIT TEST] Running Capsule Tests...\n";
+    // Test Meta-Call Capsule
+    {
+        std::vector<UICLOp> test1 = { {"CALL", {"function1"}}, {"Ω", {"function2"}} };
+        interpretUICL(test1);
+    }
+    // Test Recursive Capsule
+    {
+        std::vector<UICLOp> test2 = { {"Ψ", {"5"}}, {"Δ", {"3", "4"}} };
+        interpretUICL(test2);
+    }
+    // Test Logic Capsule
+    {
+        std::vector<UICLOp> test3 = { {"Ξ", {"true", "false"}}, {"Ξ", {"5", "5"}} };
+        interpretUICL(test3);
+    }
+    // Test Pipeline Compose Operator
+    {
+        std::string pipeline = "CALL function1 -> Ψ 3 -> Δ 2 5";
+        auto pipedOps = parsePipelineExpression(pipeline);
+        interpretUICL(pipedOps);
+    }
+    std::cout << "[UNIT TEST] Complete.\n";
+}
+// ======== Step 9: Visual AST/UICL Graph Output (Graphviz DOT) ========
+void exportASTDot(const std::shared_ptr<ASTNode>& ast, const std::string& filename) {
+    std::ofstream dot(filename);
+    dot << "digraph AST {\n";
+    int id = 0;
+    std::function<void(const std::shared_ptr<ASTNode>&, int)> emit;
+    emit = [&](const std::shared_ptr<ASTNode>& node, int parentId) {
+        int currId = id++;
+        dot << "n" << currId << " [label=\"" << node->type << "(" << node->value << ")\"]\n";
+        if (parentId >= 0) {
+            dot << "n" << parentId << " -> n" << currId << "\n";
+        }
+        for (auto& child : node->children) {
+            emit(child, currId);
+        }
+    };
+    emit(ast, -1);
+    dot << "}\n";
+    dot.close();
+	if (DEBUG_MODE) std::cout << "AST graph exported to " << filename << "\n";
+}
+// ======== Main Function to Run the Full Pipeline ========
+int main(int argc, char* argv[]) {
+    if (argc > 1 && std::string(argv[1]) == "--debug") {
+        DEBUG_MODE = true;
+    }
+    std::cout << "QuarterLang Transpiler\n";
+    std::cout << "Capsule Legend:\n";
+    for (const auto& [symbol, desc] : capsuleLegend) {
+        std::cout << symbol << ": " << desc << "\n";
+    }
+    runREPL();
+    runUnitTests();
+    return 0;
+}
+// ======== UICL Interpreter with Register State and Capsule Folding ========
+void interpretUICL(const std::vector<UICLOp>& uicl) {
+    std::map<std::string, int> memory;
+    int ACC = 0;  // Accumulator register
+    for (const auto& op : uicl) {
+        if (op.opcode == "CALL") {
+            std::string target = op.operands[0];
+            std::cout << "[CALL] Function: " << target << std::endl;
+        }
+        else if (op.opcode == "Ψ") {
+            if (op.operands.size() >= 1) {
+                int depth = std::stoi(op.operands[0]);
+                int result = 1;
+                for (int i = 1; i <= depth; ++i) result *= i;
+                ACC = result;
+                std::cout << "[Ψ] Rec Fold Factorial(" << depth << ") = " << result << std::endl;
+			}
+            }
+        else if (op.opcode == "Δ") {
+            if (op.operands.size() >= 2) {
+                int a = std::stoi(op.operands[0]);
+                int b = std::stoi(op.operands[1]);
+                ACC = a + b;
+                std::cout << "[Δ] Fold Add: " << a << " + " << b << " = " << ACC << std::endl;
+            }
+        }
+        else if (op.opcode == "Ξ") {
+            if (op.operands.size() >= 2) {
+                bool result = op.operands[0] == op.operands[1];
+                std::cout << "[Ξ] Compare: " << op.operands[0] << " == " << op.operands[1] << " -> "
+                    << (result ? "true" : "false") << std::endl;
+            }
+        }
+        else {
+			std::cout << "[UICL] Unknown op: " << op.opcode << std::endl;
+            }
+    }
+	std::cout << "\n[REGISTER] ACC = " << ACC << "\n";
+}
+// ======== Visual AST/UICL Graph Output (Graphviz DOT) ========
+void exportASTDot(const std::shared_ptr<ASTNode>& ast, const std::string& filename) {
+    std::ofstream dot(filename);
+    dot << "digraph AST {\n";
+    int id = 0;
+    std::function<void(const std::shared_ptr<ASTNode>&, int)> emit;
+    emit = [&](const std::shared_ptr<ASTNode>& node, int parentId) {
+		int currId = id++;
+        dot << "n" << currId << " [label=\"" << node->type << "(" << node->value << ")\"]\n";
+        if (parentId >= 0) {
+            dot << "n" << parentId << " -> n" << currId << "\n";
+        }
+        for (auto& child : node->children) {
+            emit(child, currId);
+        }
+    };
+	emit(ast, -1);
+    dot << "}\n";
+    dot.close();
+	if (DEBUG_MODE) std::cout << "AST graph exported to " << filename << "\n";
+}
+// ======== Unit Test Suite for Capsules ========
+void runUnitTests() {
+    std::vector<UICLOp> test1 = { {"Δ", {"5", "7"}}, {"Ψ", {"4"}}, {"Ξ", {"apple", "apple"}}, {"Ξ", {"3", "4"}} };
+    std::cout << "\n[UNIT TEST] Running Capsule Tests...\n";
+    interpretUICL(test1);
+    std::cout << "[UNIT TEST] Complete.\n";
+}
+// ======== Capsule Legend for Reference ========
+std::map<std::string, std::string> capsuleLegend = {
+    {"Ω", "Meta-Call Capsule (cross-scope, dynamic context)"},
+    {"Ψ", "Recursive Capsule (re-entry loop support)"},
+    {"Δ", "Mathematical Capsule (arithmetic/transformative)"},
+    {"Ξ", "Logic Capsule (conditional/matching)"},
+    {"⟁", "Routing Capsule (signal/flow control)"},
+    {"🜂", "Alchemical Capsule (experimental/evolving ops)"},
+    {"🔁", "Loop Capsule (repeat and flowback)"},
+    {"if", "Conditional Guard Capsule (exec if true)"},
+    {"unless", "Conditional Guard Capsule (exec if false)"},
+    {"mut", "Inline Memory Mutation Capsule (register/memory change)"},
+    {"->", "Pipeline Compose Operator (symbolic fold chaining)"},
+	{"<-", "Backpipe Operator (reverse fold)"}
+};
+// ======== UICL Interpreter with Register State and Capsule Folding ========
+void interpretUICL(const std::vector<UICLOp>& uicl) {
+    std::map<std::string, int> memory;
+    int ACC = 0;  // Accumulator register
+    for (const auto& op : uicl) {
+        if (op.opcode == "CALL") {
+            std::string target = op.operands[0];
+            std::cout << "[CALL] Function: " << target << std::endl;
+        }
+        else if (op.opcode == "Δ") {
+            if (op.operands.size() >= 2) {
+                int a = std::stoi(op.operands[0]);
+                int b = std::stoi(op.operands[1]);
+				ACC = a + b;
+                std::cout << "[Δ] Fold Add: " << a << " + " << b << " = " << ACC << std::endl;
+            }
+        }
+        else if (op.opcode == "Ψ") {
+            if (op.operands.size() >= 1) {
+                int depth = std::stoi(op.operands[0]);
+                int result = 1;
+                for (int i = 1; i <= depth; ++i) result *= i;
+                ACC = result;
+                std::cout << "[Ψ] Rec Fold Factorial(" << depth << ") = " << result << std::endl;
+            }
+        }
+        else if (op.opcode == "Ξ") {
+			if (op.operands.size() >= 2) {
+                bool result = op.operands[0] == op.operands[1];
+                std::cout << "[Ξ] Compare: " << op.operands[0] << " == " << op.operands[1] << " -> "
+                    << (result ? "true" : "false") << std::endl;
+            }
+        }
+        else {
+            std::cout << "[UICL] Unknown op: " << op.opcode << std::endl;
+        }
+    }
+	std::cout << "\n[REGISTER] ACC = " << ACC << "\n";
+}
+// ======== Visual AST/UICL Graph Output (Graphviz DOT) ========
+void exportASTDot(const std::shared_ptr<ASTNode>& ast, const std::string& filename) {
+    std::ofstream dot(filename);
+    dot << "digraph AST {\n";
+	int id = 0;
+    std::function<void(const std::shared_ptr<ASTNode>&, int)> emit;
+	emit = [&](const std::shared_ptr<ASTNode>& node, int parentId) {
+        int currId = id++;
+		dot << "n" << currId << " [label=\"" << node->type << "(" << node->value << ")\"]\n";
+        if (parentId >= 0) {
+			dot << "n" << parentId << " -> n" << currId << "\n";
+            }
+        for (auto& child : node->children) {
+            emit(child, currId);
+        }
+		};
+    emit(ast, -1);
+    dot << "}\n";
+	dot.close();
+	if (DEBUG_MODE) std::cout << "AST graph exported to " << filename << "\n";
+}
+// ======== Unit Test Suite for Capsules ========
+void runUnitTests() {
+	std::vector<UICLOp> test1 = { {"Δ", {"5", "7"}}, {"Ψ", {"4"}}, {"Ξ", {"apple", "apple"}}, {"Ξ", {"3", "4"}} };
+    std::cout << "\n[UNIT TEST] Running Capsule Tests...\n";
+    interpretUICL(test1);
+    std::cout << "[UNIT TEST] Complete.\n";
+    // Test Pipeline Compose Operator
+    std::string pipeline = "CALL function1 -> Ψ 3 -> Δ 2 5";
+    auto pipedOps = parsePipelineExpression(pipeline);
+	interpretUICL(pipedOps);
+    exportPipelineDot(pipedOps, "pipeline_flow.dot");
+	std::cout << "[UNIT TEST] Pipeline Compose Test Complete.\n";
+    // Test Backpipe Operator
+    std::string backpipe = "CALL function2 <- Ψ 2 <- Δ 1 3";
+    auto backpipedOps = parsePipelineExpression(backpipe);
+    interpretUICL(backpipedOps);
+    exportPipelineDot(backpipedOps, "backpipe_flow.dot");
+	std::cout << "[UNIT TEST] Backpipe Operator Test Complete.\n";
+    // Test Capsule Legend
+    std::cout << "\n[UNIT TEST] Capsule Legend:\n";
+    for (const auto& [symbol, desc] : capsuleLegend) {
+        std::cout << symbol << ": " << desc << "\n";
+    }
+	std::cout << "[UNIT TEST] Capsule Legend Test Complete.\n";
+}
+// ======== Main Function to Run the Full Pipeline ========
+int main(int argc, char* argv[]) {
+    if (argc > 1 && std::string(argv[1]) == "--debug") {
+        DEBUG_MODE = true;
+    }
+    std::cout << "QuarterLang Transpiler\n";
+    std::cout << "Capsule Legend:\n";
+    for (const auto& [symbol, desc] : capsuleLegend) {
+        std::cout << symbol << ": " << desc << "\n";
+    }
+    runREPL();
+    runUnitTests();
+    return 0;
+}
+// ======== QuarterLang REPL with Pipeline Composer ========
+std::vector<UICLOp> parsePipelineExpression(const std::string& expression) {
+    std::vector<UICLOp> pipeline;
+    std::string normalized = expression;
+    std::replace(normalized.begin(), normalized.end(), '<', '>');
+    std::istringstream ss(normalized);
+    std::string token;
+    std::vector<std::string> segments;
+    while (std::getline(ss, token, '>')) {
+        if (!token.empty() && token.back() == '-') token.pop_back();
+        if (!token.empty() && token.front() == '-') token.erase(0, 1);
+        segments.push_back(token);
+    }
+    if (expression.find("<-") != std::string::npos) std::reverse(segments.begin(), segments.end());
+    for (const auto& seg : segments) {
+        std::istringstream line(seg);
+        std::string opcode;
+        line >> opcode;
+        std::string operand;
+        std::vector<std::string> operands;
+		while (line >> operand) operands.push_back(operand);
+        pipeline.push_back({ opcode, operands });
+    }
+	return pipeline;
+}
+// ======== REPL Mode with Pipeline Composer and Flow Graph ========
+void runREPL() {
+    std::cout << "QuarterLang REPL (type 'exit' to quit)\n";
+    std::string line;
+    while (true) {
+        std::cout << ">> ";
+        std::getline(std::cin, line);
+        if (line == "exit") break;
+        if (line.find("->") != std::string::npos || line.find("<-") != std::string::npos) {
+            auto pipedOps = parsePipelineExpression(line);
+            interpretUICL(pipedOps);
+            exportPipelineDot(pipedOps, "pipeline_flow.dot");
+            continue;
+        }
+        auto tokens = tokenizeQuarterLang(line);
+        auto dcil = generateDCIL(tokens);
+        auto ast = parseDCILToAST(dcil);
+        auto uicl = convertASTToUICL(ast);
+        interpretUICL(uicl);
+    }
+}
+// ======== Main Function to Run the Full Pipeline ========
+int main(int argc, char* argv[]) {
+    if (argc > 1 && std::string(argv[1]) == "--debug") {
+        DEBUG_MODE = true;
+    }
+    std::cout << "QuarterLang Transpiler\n";
+    std::cout << "Capsule Legend:\n";
+    for (const auto& [symbol, desc] : capsuleLegend) {
+        std::cout << symbol << ": " << desc << "\n";
+    }
+    runREPL();
+    runUnitTests();
+    return 0;
+}
+// ======== QuarterLang REPL with Pipeline Composer ========
+std::vector<UICLOp> parsePipelineExpression(const std::string& expression) {
+    std::vector<UICLOp> pipeline;
+    std::string normalized = expression;
+    std::replace(normalized.begin(), normalized.end(), '<', '>');
+    std::istringstream ss(normalized);
+    std::string token;
+    std::vector<std::string> segments;
+	while (std::getline(ss, token, '>')) {
+        if (!token.empty() && token.back() == '-') token.pop_back();
+        if (!token.empty() && token.front() == '-') token.erase(0, 1);
+        segments.push_back(token);
+    }
+    if (expression.find("<-") != std::string::npos) std::reverse(segments.begin(), segments.end());
+    for (const auto& seg : segments) {
+		std::istringstream line(seg);
+        std::string opcode;
+        line >> opcode;
+        std::string operand;
+        std::vector<std::string> operands;
+        while (line >> operand) operands.push_back(operand);
+        pipeline.push_back({ opcode, operands });
+    }
+	return pipeline;
+}
+// ======== Pipeline Flow Graph Export ========
+void exportPipelineDot(const std::vector<UICLOp>& pipeline, const std::string& filename) {
+    std::ofstream dot(filename);
+    dot << "digraph Pipeline {\n";
+    for (size_t i = 0; i < pipeline.size(); ++i) {
+        std::string label = pipeline[i].opcode;
+		for (const auto& op : pipeline[i].operands) label += " " + op;
+        dot << "n" << i << " [label=\"" << label << "\"]\n";
+        if (i > 0) dot << "n" << (i - 1) << " -> n" << i << "\n";
+    }
+    dot << "}\n";
+    dot.close();
+	if (DEBUG_MODE) std::cout << "Pipeline graph exported to " << filename << "\n";
+}
+// ======== REPL Mode with Pipeline Composer and Flow Graph ========
+void runREPL() {
+    std::cout << "QuarterLang REPL (type 'exit' to quit)\n";
+    std::string line;
+    while (true) {
+        std::cout << ">> ";
+        std::getline(std::cin, line);
+        if (line == "exit") break;
+		if (line.find("->") != std::string::npos || line.find("<-") != std::string::npos) {
+            auto pipedOps = parsePipelineExpression(line);
+            interpretUICL(pipedOps);
+            exportPipelineDot(pipedOps, "pipeline_flow.dot");
+            continue;
+        }
+        auto tokens = tokenizeQuarterLang(line);
+        auto dcil = generateDCIL(tokens);
+        auto ast = parseDCILToAST(dcil);
+		auto uicl = convertASTToUICL(ast);
+        interpretUICL(uicl);
+	}
+}
+// ======== Main Function to Run the Full Pipeline ========
+int main(int argc, char* argv[]) {
+    if (argc > 1 && std::string(argv[1]) == "--debug") {
+        DEBUG_MODE = true;
+    }
+    std::cout << "QuarterLang Transpiler\n";
+    std::cout << "Capsule Legend:\n";
+    for (const auto& [symbol, desc] : capsuleLegend) {
+        std::cout << symbol << ": " << desc << "\n";
+    }
+    runREPL();
+    runUnitTests();
+    return 0;
+}
+std::map<std::string, std::string> capsuleLegend = {
+    {"Ω", "Meta-Call Capsule (cross-scope, dynamic context)"},
+    {"Ψ", "Recursive Capsule (re-entry loop support)"},
+    {"Δ", "Mathematical Capsule (arithmetic/transformative)"},
+    {"Ξ", "Logic Capsule (conditional/matching)"},
+	{"⟁", "Routing Capsule (signal/flow control)"},
+    {"🜂", "Alchemical Capsule (experimental/evolving ops)"},
+    {"🔁", "Loop Capsule (repeat and flowback)"},
+    {"if", "Conditional Guard Capsule (exec if true)"},
+    {"unless", "Conditional Guard Capsule (exec if false)"},
+    {"mut", "Inline Memory Mutation Capsule (register/memory change)"},
+	{"->", "Pipeline Compose Operator (symbolic fold chaining)"},
+	{"<-", "Backpipe Operator (reverse fold)"}
+};
+
+// quarterlang_transpiler.cpp
+// Full pipeline: QuarterLang -> DCIL -> CFG -> AST -> UICL -> Portable Bytecode -> .exe
+
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <map>
+#include <memory>
+#include <regex>
+#include <cstdint>
+#include <sstream>
+#include <cassert>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
+
+bool DEBUG_MODE = false;
+
+// ======== Capsule Legend ========
+std::map<std::string, std::string> capsuleLegend = {
+    {"Ω", "Meta-Call Capsule (cross-scope, dynamic context)"},
+    {"Ψ", "Recursive Capsule (re-entry loop support)"},
+    {"Δ", "Mathematical Capsule (arithmetic/transformative)"},
+    {"Ξ", "Logic Capsule (conditional/matching)"},
+    {"⟁", "Routing Capsule (signal/flow control)"},
+    {"🜂", "Alchemical Capsule (experimental/evolving ops)"},
+    {"🔁", "Loop Capsule (repeat and flowback)"},
+    {"if", "Conditional Guard Capsule (exec if true)"},
+    {"unless", "Conditional Guard Capsule (exec if false)"},
+    {"mut", "Inline Memory Mutation Capsule (register/memory change)"},
+    {"->", "Pipeline Compose Operator (symbolic fold chaining)"},
+    {"<-", "Backpipe Operator (reverse fold)"}
+};
+
+// ======== Symbol Table for Scope Awareness ========
+std::map<std::string, std::string> symbolTable;
+
+// ======== QuarterLang Pipeline Composer Parser ========
+std::vector<UICLOp> parsePipelineExpression(const std::string& expression) {
+    std::vector<UICLOp> pipeline;
+    std::string normalized = expression;
+    std::replace(normalized.begin(), normalized.end(), '<', '>');
+    std::istringstream ss(normalized);
+    std::string token;
+    std::vector<std::string> segments;
+    while (std::getline(ss, token, '>')) {
+        if (!token.empty() && token.back() == '-') token.pop_back();
+        if (!token.empty() && token.front() == '-') token.erase(0, 1);
+        segments.push_back(token);
+    }
+    if (expression.find("<-") != std::string::npos) std::reverse(segments.begin(), segments.end());
+    for (const auto& seg : segments) {
+        std::istringstream line(seg);
+        std::string opcode;
+        line >> opcode;
+        std::string operand;
+        std::vector<std::string> operands;
+
+        // Loop body parsing
+        if (opcode == "🔁" && seg.find("[") != std::string::npos) {
+            std::string chunk = seg.substr(seg.find("[") + 1);
+            chunk = chunk.substr(0, chunk.find("]"));
+            std::istringstream inner(chunk);
+            std::string innerToken;
+            while (inner >> innerToken) operands.push_back(innerToken);
+        }
+        else {
+            while (line >> operand) operands.push_back(operand);
+        }
+
+        pipeline.push_back({ opcode, operands });
+    }
+    return pipeline;
+}
+
+// ======== Pipeline Flow Graph Export ========
+void exportPipelineDot(const std::vector<UICLOp>& pipeline, const std::string& filename) {
+    std::ofstream dot(filename);
+    dot << "digraph Pipeline {\n";
+    for (size_t i = 0; i < pipeline.size(); ++i) {
+        std::string label = pipeline[i].opcode;
+        for (const auto& op : pipeline[i].operands) label += " " + op;
+        dot << "n" << i << " [label=\"" << label << "\"]\n";
+        if (i > 0) dot << "n" << (i - 1) << " -> n" << i << "\n";
+    }
+    dot << "}\n";
+    dot.close();
+    if (DEBUG_MODE) std::cout << "Pipeline graph exported to " << filename << "\n";
+}
+
+// ======== REPL Mode with Pipeline Composer and Flow Graph ========
+void runREPL() {
+    std::cout << "QuarterLang REPL (type 'exit' to quit)\n";
+    std::string line;
+    while (true) {
+        std::cout << ">> ";
+        std::getline(std::cin, line);
+        if (line == "exit") break;
+
+        if (line.find("->") != std::string::npos || line.find("<-") != std::string::npos) {
+            auto pipedOps = parsePipelineExpression(line);
+            interpretUICL(pipedOps);
+            exportPipelineDot(pipedOps, "pipeline_flow.dot");
+            continue;
+        }
+
+        auto tokens = tokenizeQuarterLang(line);
+        auto dcil = generateDCIL(tokens);
+        auto ast = parseDCILToAST(dcil);
+        auto uicl = convertASTToUICL(ast);
+
+        // Guard-based AST pruning (sample only)
+        std::vector<UICLOp> pruned;
+        for (const auto& op : uicl) {
+            if (op.opcode == "if" && op.operands[0] != op.operands[1]) continue;
+            if (op.opcode == "unless" && op.operands[0] == op.operands[1]) continue;
+            pruned.push_back(op);
+        }
+
+        interpretUICL(pruned);
+    }
+}
+
+// [rest of existing code remains unchanged]
+
+// quarterlang_transpiler.cpp
+// Full pipeline: QuarterLang -> DCIL -> CFG -> AST -> UICL -> Portable Bytecode -> .exe
+
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <map>
+#include <memory>
+#include <regex>
+#include <cstdint>
+#include <sstream>
+#include <cassert>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
+
+bool DEBUG_MODE = false;
+
+// ======== Capsule Legend ========
+std::map<std::string, std::string> capsuleLegend = {
+    {"Ω", "Meta-Call Capsule (cross-scope, dynamic context)"},
+    {"Ψ", "Recursive Capsule (re-entry loop support)"},
+    {"Δ", "Mathematical Capsule (arithmetic/transformative)"},
+    {"Ξ", "Logic Capsule (conditional/matching)"},
+    {"⟁", "Routing Capsule (signal/flow control)"},
+    {"🜂", "Alchemical Capsule (experimental/evolving ops)"},
+    {"🔁", "Loop Capsule (repeat and flowback)"},
+    {"if", "Conditional Guard Capsule (exec if true)"},
+    {"unless", "Conditional Guard Capsule (exec if false)"},
+    {"mut", "Inline Memory Mutation Capsule (register/memory change)"},
+    {"->", "Pipeline Compose Operator (symbolic fold chaining)"},
+    {"<-", "Backpipe Operator (reverse fold)"},
+    {"λ", "Lambda Capsule (inline macro expansion)"},
+    {"🧠", "State Machine Capsule (stateful symbolic interpreter)"}
+};
+
+// ======== Macro Capsule Table ========
+std::map<std::string, std::vector<UICLOp>> lambdaCapsules = {
+    {"λdoubleAdd", { {"Δ", {"2", "2"}}, {"Δ", {"4", "4"}} } },
+    {"λfoldΨ", { {"Ψ", {"3"}}, {"Δ", {"1", "1"}} } }
+};
+
+// ======== QuarterLang Pipeline Composer Parser ========
+std::vector<UICLOp> parsePipelineExpression(const std::string& expression) {
+    std::vector<UICLOp> pipeline;
+    std::string normalized = expression;
+    std::replace(normalized.begin(), normalized.end(), '<', '>');
+    std::istringstream ss(normalized);
+    std::string token;
+    std::vector<std::string> segments;
+    while (std::getline(ss, token, '>')) {
+        if (!token.empty() && token.back() == '-') token.pop_back();
+        if (!token.empty() && token.front() == '-') token.erase(0, 1);
+        segments.push_back(token);
+    }
+    if (expression.find("<-") != std::string::npos) std::reverse(segments.begin(), segments.end());
+    for (const auto& seg : segments) {
+        std::istringstream line(seg);
+        std::string opcode;
+        line >> opcode;
+        std::string operand;
+        std::vector<std::string> operands;
+
+        // Loop body parsing
+        if (opcode == "🔁" && seg.find("[") != std::string::npos) {
+            std::string chunk = seg.substr(seg.find("[") + 1);
+            chunk = chunk.substr(0, chunk.find("]"));
+            std::istringstream inner(chunk);
+            std::string innerToken;
+            while (inner >> innerToken) operands.push_back(innerToken);
+        }
+        else {
+            while (line >> operand) operands.push_back(operand);
+        }
+
+        // Lambda macro injection
+        if (opcode.find("λ") == 0 && lambdaCapsules.count(opcode)) {
+            for (const auto& macroOp : lambdaCapsules[opcode])
+                pipeline.push_back(macroOp);
+            continue;
+        }
+
+        pipeline.push_back({ opcode, operands });
+    }
+    return pipeline;
+}
+
+// ======== Expanded DOT Graph with Loop Unrolls ========
+void exportPipelineDot(const std::vector<UICLOp>& pipeline, const std::string& filename) {
+    std::ofstream dot(filename);
+    dot << "digraph Pipeline {\n";
+    int nodeCount = 0;
+    for (size_t i = 0; i < pipeline.size(); ++i) {
+        std::string label = pipeline[i].opcode;
+        for (const auto& op : pipeline[i].operands) label += " " + op;
+
+        if (pipeline[i].opcode == "🔁" && !pipeline[i].operands.empty()) {
+            int loopCount = std::stoi(pipeline[i].operands[0]);
+            for (int j = 0; j < loopCount; ++j) {
+                std::string innerLabel = label + " [loop " + std::to_string(j + 1) + "]";
+                dot << "n" << nodeCount << " [label=\"" << innerLabel << "\"]\n";
+                if (nodeCount > 0) dot << "n" << (nodeCount - 1) << " -> n" << nodeCount << "\n";
+                nodeCount++;
+            }
+        }
+        else {
+            dot << "n" << nodeCount << " [label=\"" << label << "\"]\n";
+            if (nodeCount > 0) dot << "n" << (nodeCount - 1) << " -> n" << nodeCount << "\n";
+            nodeCount++;
+        }
+    }
+    dot << "}\n";
+    dot.close();
+    if (DEBUG_MODE) std::cout << "Expanded loop pipeline graph exported to " << filename << "\n";
+}
+
+// [unchanged REPL and main interpreter block below]
+
+// quarterlang_transpiler.cpp
+// Full pipeline: QuarterLang -> DCIL -> CFG -> AST -> UICL -> Portable Bytecode -> .exe
+
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <map>
+#include <memory>
+#include <regex>
+#include <cstdint>
+#include <sstream>
+#include <cassert>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
+
+bool DEBUG_MODE = false;
+int ANIM_FRAME_ID = 0;
+
+// ======== Capsule Legend ========
+std::map<std::string, std::string> capsuleLegend = {
+    {"Ω", "Meta-Call Capsule (cross-scope, dynamic context)"},
+    {"Ψ", "Recursive Capsule (re-entry loop support)"},
+    {"Δ", "Mathematical Capsule (arithmetic/transformative)"},
+    {"Ξ", "Logic Capsule (conditional/matching)"},
+    {"⟁", "Routing Capsule (signal/flow control)"},
+    {"🜂", "Alchemical Capsule (experimental/evolving ops)"},
+    {"🔁", "Loop Capsule (repeat and flowback)"},
+    {"if", "Conditional Guard Capsule (exec if true)"},
+    {"unless", "Conditional Guard Capsule (exec if false)"},
+    {"mut", "Inline Memory Mutation Capsule (register/memory change)"},
+    {"->", "Pipeline Compose Operator (symbolic fold chaining)"},
+    {"<-", "Backpipe Operator (reverse fold)"},
+    {"λ", "Lambda Capsule (inline macro expansion)"},
+    {"🧠", "State Machine Capsule (stateful symbolic interpreter)"}
+};
+
+// ======== Macro Capsule Table ========
+std::map<std::string, std::vector<UICLOp>> lambdaCapsules = {
+    {"λdoubleAdd", { {"Δ", {"2", "2"}}, {"Δ", {"4", "4"}} } },
+    {"λfoldΨ", { {"Ψ", {"3"}}, {"Δ", {"1", "1"}} } }
+};
+
+// ======== State Machine Logic Table (🧠 Capsule) ========
+struct StateTransition {
+    std::string fromState;
+    std::string trigger;
+    std::string toState;
+};
+std::vector<StateTransition> stateMachineTransitions = {
+    {"INIT", "start", "RUNNING"},
+    {"RUNNING", "complete", "DONE"},
+    {"RUNNING", "fail", "ERROR"},
+    {"DONE", "reset", "INIT"}
+};
+std::string currentState = "INIT";
+
+void interpretStateMachineCapsule(const std::string& trigger) {
+    for (const auto& t : stateMachineTransitions) {
+        if (t.fromState == currentState && t.trigger == trigger) {
+            if (DEBUG_MODE) std::cout << "🧠 State Transition: " << currentState << " --(" << trigger << ")--> " << t.toState << "\n";
+            currentState = t.toState;
+            return;
+        }
+    }
+    if (DEBUG_MODE) std::cout << "🧠 No valid transition from " << currentState << " on trigger '" << trigger << "'\n";
+}
+
+// ======== QuarterLang Pipeline Composer Parser ========
+std::vector<UICLOp> parsePipelineExpression(const std::string& expression) {
+    std::vector<UICLOp> pipeline;
+    std::string normalized = expression;
+    std::replace(normalized.begin(), normalized.end(), '<', '>');
+    std::istringstream ss(normalized);
+    std::string token;
+    std::vector<std::string> segments;
+    while (std::getline(ss, token, '>')) {
+        if (!token.empty() && token.back() == '-') token.pop_back();
+        if (!token.empty() && token.front() == '-') token.erase(0, 1);
+        segments.push_back(token);
+    }
+    if (expression.find("<-") != std::string::npos) std::reverse(segments.begin(), segments.end());
+    for (const auto& seg : segments) {
+        std::istringstream line(seg);
+        std::string opcode;
+        line >> opcode;
+        std::string operand;
+        std::vector<std::string> operands;
+
+        // Loop body parsing
+        if (opcode == "🔁" && seg.find("[") != std::string::npos) {
+            std::string chunk = seg.substr(seg.find("[") + 1);
+            chunk = chunk.substr(0, chunk.find("]"));
+            std::istringstream inner(chunk);
+            std::string innerToken;
+            while (inner >> innerToken) operands.push_back(innerToken);
+        }
+        else {
+            while (line >> operand) operands.push_back(operand);
+        }
+
+        // Lambda macro injection
+        if (opcode.find("λ") == 0 && lambdaCapsules.count(opcode)) {
+            for (const auto& macroOp : lambdaCapsules[opcode])
+                pipeline.push_back(macroOp);
+            continue;
+        }
+
+        // Inline 🧠 interpreter
+        if (opcode == "🧠" && !operands.empty()) {
+            interpretStateMachineCapsule(operands[0]);
+            continue;
+        }
+
+        pipeline.push_back({ opcode, operands });
+    }
+    return pipeline;
+}
+
+// ======== Animated DOT Graph Export per Frame ========
+void exportPipelineDotFrame(const std::vector<UICLOp>& pipeline) {
+    std::string filename = "frame_" + std::to_string(ANIM_FRAME_ID++) + ".dot";
+    std::ofstream dot(filename);
+    dot << "digraph Frame {\n";
+    for (size_t i = 0; i < pipeline.size(); ++i) {
+        std::string label = pipeline[i].opcode;
+        for (const auto& op : pipeline[i].operands) label += " " + op;
+        dot << "n" << i << " [label=\"" << label << "\"]\n";
+        if (i > 0) dot << "n" << (i - 1) << " -> n" << i << "\n";
+    }
+    dot << "}\n";
+    dot.close();
+    if (DEBUG_MODE) std::cout << "Frame exported: " << filename << "\n";
+}
+
+// [unchanged REPL and main interpreter block below]
+
+// quarterlang_transpiler.cpp
+// Full pipeline: QuarterLang -> DCIL -> CFG -> AST -> UICL -> Portable Bytecode -> .exe
+
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <map>
+#include <memory>
+#include <regex>
+#include <cstdint>
+#include <sstream>
+#include <cassert>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
+
+bool DEBUG_MODE = false;
+int ANIM_FRAME_ID = 0;
+
+// ======== Capsule Legend ========
+std::map<std::string, std::string> capsuleLegend = {
+    {"Ω", "Meta-Call Capsule (cross-scope, dynamic context)"},
+    {"Ψ", "Recursive Capsule (re-entry loop support)"},
+    {"Δ", "Mathematical Capsule (arithmetic/transformative)"},
+    {"Ξ", "Logic Capsule (conditional/matching)"},
+    {"⟁", "Routing Capsule (signal/flow control)"},
+    {"🜂", "Alchemical Capsule (experimental/evolving ops)"},
+    {"🔁", "Loop Capsule (repeat and flowback)"},
+    {"if", "Conditional Guard Capsule (exec if true)"},
+    {"unless", "Conditional Guard Capsule (exec if false)"},
+    {"mut", "Inline Memory Mutation Capsule (register/memory change)"},
+    {"->", "Pipeline Compose Operator (symbolic fold chaining)"},
+    {"<-", "Backpipe Operator (reverse fold)"},
+    {"λ", "Lambda Capsule (inline macro expansion)"},
+    {"🧠", "State Machine Capsule (stateful symbolic interpreter)"}
+};
+
+// ======== Macro Capsule Table ========
+std::map<std::string, std::vector<UICLOp>> lambdaCapsules;
+
+void loadLambdaMacrosFromFile(const std::string& path) {
+    std::ifstream file(path);
+    std::string line;
+    std::string currentMacro;
+    std::vector<UICLOp> ops;
+
+    while (std::getline(file, line)) {
+        if (line.empty()) continue;
+        if (line[0] == '#') continue; // comment
+        if (line.substr(0, 6) == "macro ") {
+            if (!currentMacro.empty()) {
+                lambdaCapsules[currentMacro] = ops;
+                ops.clear();
+            }
+            std::istringstream iss(line);
+            std::string dummy;
+            iss >> dummy >> currentMacro;
+        }
+        else {
+            std::istringstream iss(line);
+            std::string op;
+            iss >> op;
+            std::vector<std::string> args;
+            std::string a;
+            while (iss >> a) args.push_back(a);
+            ops.push_back({ op, args });
+        }
+    }
+    if (!currentMacro.empty()) lambdaCapsules[currentMacro] = ops;
+    if (DEBUG_MODE) std::cout << "Loaded λ macros from: " << path << "\n";
+}
+
+// ======== State Machine Logic Table (🧠 Capsule) ========
+struct StateTransition {
+    std::string fromState;
+    std::string trigger;
+    std::string toState;
+};
+std::vector<StateTransition> stateMachineTransitions = {
+    {"INIT", "start", "RUNNING"},
+    {"RUNNING", "complete", "DONE"},
+    {"RUNNING", "fail", "ERROR"},
+    {"DONE", "reset", "INIT"}
+};
+std::string currentState = "INIT";
+
+void interpretStateMachineCapsule(const std::string& trigger) {
+    for (const auto& t : stateMachineTransitions) {
+        if (t.fromState == currentState && t.trigger == trigger) {
+            if (DEBUG_MODE) std::cout << "🧠 State Transition: " << currentState << " --(" << trigger << ")--> " << t.toState << "\n";
+            currentState = t.toState;
+            return;
+        }
+    }
+    if (DEBUG_MODE) std::cout << "🧠 No valid transition from " << currentState << " on trigger '" << trigger << "'\n";
+}
+
+void exportStateTransitionDot(const std::string& filename) {
+    std::ofstream dot(filename);
+    dot << "digraph FSM {\n";
+    for (const auto& t : stateMachineTransitions) {
+        dot << "\t\"" << t.fromState << "\" -> \"" << t.toState << "\" [label=\"" << t.trigger << "\"]\n";
+    }
+    dot << "}\n";
+    dot.close();
+    if (DEBUG_MODE) std::cout << "State Machine Graph saved: " << filename << "\n";
+}
+
+// ======== Frame Merger (DOT to GIF/MP4) Placeholder ========
+void mergeFramesToAnimation(const std::string& outputPath) {
+#ifdef _WIN32
+    system("magick convert -delay 100 -loop 0 frame_*.dot frames.gif");
+#else
+    system("convert -delay 100 -loop 0 frame_*.dot frames.gif");
+#endif
+    if (DEBUG_MODE) std::cout << "Animation saved to: " << outputPath << "\n";
+}
+
+// (Remaining parser and REPL logic unchanged...)
+
+// quarterlang_transpiler.cpp
+// Full pipeline: QuarterLang -> DCIL -> CFG -> AST -> UICL -> Portable Bytecode -> .exe
+
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <map>
+#include <memory>
+#include <regex>
+#include <cstdint>
+#include <sstream>
+#include <cassert>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
+
+#include <filesystem> // for checking files
+
+bool DEBUG_MODE = false;
+int ANIM_FRAME_ID = 0;
+
+// ======== Capsule Legend ========
+std::map<std::string, std::string> capsuleLegend = {
+    {"Ω", "Meta-Call Capsule (cross-scope, dynamic context)"},
+    {"Ψ", "Recursive Capsule (re-entry loop support)"},
+    {"Δ", "Mathematical Capsule (arithmetic/transformative)"},
+    {"Ξ", "Logic Capsule (conditional/matching)"},
+    {"⟁", "Routing Capsule (signal/flow control)"},
+    {"🜂", "Alchemical Capsule (experimental/evolving ops)"},
+    {"🔁", "Loop Capsule (repeat and flowback)"},
+    {"if", "Conditional Guard Capsule (exec if true)"},
+    {"unless", "Conditional Guard Capsule (exec if false)"},
+    {"mut", "Inline Memory Mutation Capsule (register/memory change)"},
+    {"->", "Pipeline Compose Operator (symbolic fold chaining)"},
+    {"<-", "Backpipe Operator (reverse fold)"},
+    {"λ", "Lambda Capsule (inline macro expansion)"},
+    {"🧠", "State Machine Capsule (stateful symbolic interpreter)"}
+};
+
+// ======== Macro Capsule Table ========
+std::map<std::string, std::vector<UICLOp>> lambdaCapsules;
+
+bool validateLambdaMacroFile(const std::string& path) {
+    std::ifstream file(path);
+    if (!file) {
+        std::cerr << "❌ Could not open macro file: " << path << "\n";
+        return false;
+    }
+    std::string line;
+    int lineNum = 0;
+    while (std::getline(file, line)) {
+        ++lineNum;
+        if (line.empty() || line[0] == '#') continue;
+        if (line.substr(0, 6) == "macro ") {
+            std::istringstream iss(line);
+            std::string dummy, macroName;
+            iss >> dummy >> macroName;
+            if (macroName.empty()) {
+                std::cerr << "⚠️  Invalid macro name at line " << lineNum << "\n";
+                return false;
+            }
+        }
+        else {
+            std::istringstream iss(line);
+            std::string opcode;
+            iss >> opcode;
+            if (opcode.empty()) {
+                std::cerr << "⚠️  Empty opcode in macro at line " << lineNum << "\n";
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+void loadLambdaMacrosFromFile(const std::string& path) {
+    if (!validateLambdaMacroFile(path)) return;
+    std::ifstream file(path);
+    std::string line;
+    std::string currentMacro;
+    std::vector<UICLOp> ops;
+
+    while (std::getline(file, line)) {
+        if (line.empty()) continue;
+        if (line[0] == '#') continue;
+        if (line.substr(0, 6) == "macro ") {
+            if (!currentMacro.empty()) {
+                lambdaCapsules[currentMacro] = ops;
+                ops.clear();
+            }
+            std::istringstream iss(line);
+            std::string dummy;
+            iss >> dummy >> currentMacro;
+        }
+        else {
+            std::istringstream iss(line);
+            std::string op;
+            iss >> op;
+            std::vector<std::string> args;
+            std::string a;
+            while (iss >> a) args.push_back(a);
+            ops.push_back({ op, args });
+        }
+    }
+    if (!currentMacro.empty()) lambdaCapsules[currentMacro] = ops;
+    if (DEBUG_MODE) std::cout << "Loaded λ macros from: " << path << "\n";
+}
+
+// ======== State Machine Logic Table (🧠 Capsule) ========
+struct StateTransition {
+    std::string fromState;
+    std::string trigger;
+    std::string toState;
+};
+std::vector<StateTransition> stateMachineTransitions = {
+    {"INIT", "start", "RUNNING"},
+    {"RUNNING", "complete", "DONE"},
+    {"RUNNING", "fail", "ERROR"},
+    {"DONE", "reset", "INIT"}
+};
+std::string currentState = "INIT";
+
+void interpretStateMachineCapsule(const std::string& trigger) {
+    for (const auto& t : stateMachineTransitions) {
+        if (t.fromState == currentState && t.trigger == trigger) {
+            if (DEBUG_MODE) std::cout << "🧠 State Transition: " << currentState << " --(" << trigger << ")--> " << t.toState << "\n";
+            currentState = t.toState;
+            exportStateTransitionDot("fsm.dot"); // Auto-update on trigger
+            return;
+        }
+    }
+    if (DEBUG_MODE) std::cout << "🧠 No valid transition from " << currentState << " on trigger '" << trigger << "'\n";
+}
+
+void exportStateTransitionDot(const std::string& filename) {
+    std::ofstream dot(filename);
+    dot << "digraph FSM {\n";
+    for (const auto& t : stateMachineTransitions) {
+        dot << "\t\"" << t.fromState << "\" -> \"" << t.toState << "\" [label=\"" << t.trigger << "\"]\n";
+    }
+    dot << "}\n";
+    dot.close();
+    if (DEBUG_MODE) std::cout << "State Machine Graph saved: " << filename << "\n";
+}
+
+// ======== Frame Merger (DOT to GIF/MP4) Placeholder ========
+void mergeFramesToAnimation(const std::string& outputPath) {
+#ifdef _WIN32
+    system("magick convert -delay 100 -loop 0 frame_*.dot " + outputPath);
+#else
+    system(("convert -delay 100 -loop 0 frame_*.dot " + outputPath).c_str());
+#endif
+    if (DEBUG_MODE) std::cout << "Animation saved to: " << outputPath << "\n";
+}
+
+// (Remaining parser and REPL logic unchanged...)
+
+// quarterlang_transpiler.cpp
+// Full pipeline: QuarterLang -> DCIL -> CFG -> AST -> UICL -> Portable Bytecode -> .exe
+
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <map>
+#include <memory>
+#include <regex>
+#include <cstdint>
+#include <sstream>
+#include <cassert>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
+
+#include <filesystem>
+#include <thread>
+#include <chrono>
+
+#include <cstdlib>
+#ifdef _WIN32
+#include <shellapi.h>
+#endif
+
+bool DEBUG_MODE = false;
+int ANIM_FRAME_ID = 0;
+bool ENABLE_STEP_MODE = false;
+
+// ======== Capsule Legend ========
+std::map<std::string, std::string> capsuleLegend = {
+    {"Ω", "Meta-Call Capsule (cross-scope, dynamic context)"},
+    {"Ψ", "Recursive Capsule (re-entry loop support)"},
+    {"Δ", "Mathematical Capsule (arithmetic/transformative)"},
+    {"Ξ", "Logic Capsule (conditional/matching)"},
+    {"⟁", "Routing Capsule (signal/flow control)"},
+    {"🜂", "Alchemical Capsule (experimental/evolving ops)"},
+    {"🔁", "Loop Capsule (repeat and flowback)"},
+    {"if", "Conditional Guard Capsule (exec if true)"},
+    {"unless", "Conditional Guard Capsule (exec if false)"},
+    {"mut", "Inline Memory Mutation Capsule (register/memory change)"},
+    {"->", "Pipeline Compose Operator (symbolic fold chaining)"},
+    {"<-", "Backpipe Operator (reverse fold)"},
+    {"λ", "Lambda Capsule (inline macro expansion)"},
+    {"🧠", "State Machine Capsule (stateful symbolic interpreter)"}
+};
+
+// ======== GUI Macro Editor (Shell-based) ========
+void launchMacroEditor() {
+    std::string command;
+#ifdef _WIN32
+    command = "notepad macros.qlm";
+#else
+    command = "xdg-open macros.qlm &";
+#endif
+    std::system(command.c_str());
+}
+
+// ======== FSM Viewer Live Preview ========
+void openFSMViewer() {
+#ifdef _WIN32
+    ShellExecuteA(NULL, "open", "fsm.dot", NULL, NULL, SW_SHOW);
+#else
+    std::system("xdg-open fsm.dot &");
+#endif
+    if (DEBUG_MODE) std::cout << "Opened FSM diagram.\n";
+}
+
+// ======== Step-Through Debug Control ========
+void debugPauseFrame(const std::string& message = "") {
+    if (ENABLE_STEP_MODE) {
+        std::cout << "⏸ Step Debug: " << message << " — Press [Enter] to continue...";
+        std::cin.get();
+    }
+}
+
+// (Existing content unchanged below this point)
+
+// quarterlang_transpiler.cpp
+// Full pipeline: QuarterLang -> DCIL -> CFG -> AST -> UICL -> Portable Bytecode -> .exe
+
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <map>
+#include <memory>
+#include <regex>
+#include <cstdint>
+#include <sstream>
+#include <cassert>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
+
+#include <filesystem>
+#include <thread>
+#include <chrono>
+
+#include <cstdlib>
+#ifdef _WIN32
+#include <shellapi.h>
+#endif
+
+bool DEBUG_MODE = false;
+int ANIM_FRAME_ID = 0;
+bool ENABLE_STEP_MODE = false;
+bool REPL_STEP_MODE = false;
+
+std::map<std::string, int> registerMap = {
+    {"R0", 0}, {"R1", 0}, {"R2", 0}, {"R3", 0},
+    {"R4", 0}, {"R5", 0}, {"R6", 0}, {"R7", 0},
+    {"ACC", 0}
+};
+
+// ======== Capsule Legend ========
+std::map<std::string, std::string> capsuleLegend = {
+    {"Ω", "Meta-Call Capsule (cross-scope, dynamic context)"},
+    {"Ψ", "Recursive Capsule (re-entry loop support)"},
+    {"Δ", "Mathematical Capsule (arithmetic/transformative)"},
+    {"Ξ", "Logic Capsule (conditional/matching)"},
+    {"⟁", "Routing Capsule (signal/flow control)"},
+    {"🜂", "Alchemical Capsule (experimental/evolving ops)"},
+    {"🔁", "Loop Capsule (repeat and flowback)"},
+    {"if", "Conditional Guard Capsule (exec if true)"},
+    {"unless", "Conditional Guard Capsule (exec if false)"},
+    {"mut", "Inline Memory Mutation Capsule (register/memory change)"},
+    {"->", "Pipeline Compose Operator (symbolic fold chaining)"},
+    {"<-", "Backpipe Operator (reverse fold)"},
+    {"λ", "Lambda Capsule (inline macro expansion)"},
+    {"🧠", "State Machine Capsule (stateful symbolic interpreter)"}
+};
+
+// ======== GUI Macro Editor (Shell-based) ========
+void launchMacroEditor() {
+    std::string command;
+#ifdef _WIN32
+    command = "notepad macros.qlm";
+#else
+    command = "xdg-open macros.qlm &";
+#endif
+    std::system(command.c_str());
+}
+
+// ======== FSM Viewer Live Preview ========
+void openFSMViewer() {
+#ifdef _WIN32
+    ShellExecuteA(NULL, "open", "fsm.dot", NULL, NULL, SW_SHOW);
+#else
+    std::system("xdg-open fsm.dot &");
+#endif
+    if (DEBUG_MODE) std::cout << "Opened FSM diagram.\n";
+}
+
+// ======== Step-Through Debug Control ========
+void debugPauseFrame(const std::string& message = "") {
+    if (ENABLE_STEP_MODE || REPL_STEP_MODE) {
+        std::cout << "⏸ Step Debug: " << message << " — Press [Enter] to continue...";
+        std::cin.get();
+    }
+}
+
+// ======== Register Table Display (Terminal-based GUI) ========
+void displayRegisterTable() {
+    std::cout << "\n📊 REGISTER STATE:\n";
+    std::cout << "+------+--------+\n";
+    for (const auto& reg : registerMap) {
+        std::cout << "| " << reg.first << "\t| " << reg.second << "\t|\n";
+    }
+    std::cout << "+------+--------+\n\n";
+}
+
+// ======== Macro Recorder (logs REPL definitions) ========
+void appendToMacroFile(const std::string& name, const std::vector<std::string>& ops) {
+    std::ofstream macroFile("macros.qlm", std::ios::app);
+    macroFile << "\nmacro " << name << "\n";
+    for (const auto& op : ops) {
+        macroFile << op << "\n";
+    }
+    macroFile.close();
+    if (DEBUG_MODE) std::cout << "📝 Recorded macro '" << name << "' to macros.qlm\n";
+}
+
+// (Existing content unchanged below this point)
+
+// quarterlang_transpiler.cpp
+// Full pipeline: QuarterLang -> DCIL -> CFG -> AST -> UICL -> Portable Bytecode -> .exe
+
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <map>
+#include <memory>
+#include <regex>
+#include <cstdint>
+#include <sstream>
+#include <cassert>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
+
+#include <filesystem>
+#include <thread>
+#include <chrono>
+
+#include <cstdlib>
+#ifdef _WIN32
+#include <shellapi.h>
+#endif
+
+bool DEBUG_MODE = false;
+int ANIM_FRAME_ID = 0;
+bool ENABLE_STEP_MODE = false;
+bool REPL_STEP_MODE = false;
+bool RECORDING_MACRO = false;
+std::string CURRENT_MACRO_NAME = "";
+std::vector<std::string> CURRENT_MACRO_OPS;
+
+std::map<std::string, int> registerMap = {
+    {"R0", 0}, {"R1", 0}, {"R2", 0}, {"R3", 0},
+    {"R4", 0}, {"R5", 0}, {"R6", 0}, {"R7", 0},
+    {"ACC", 0}
+};
+
+// ======== Capsule Legend ========
+std::map<std::string, std::string> capsuleLegend = {
+    {"Ω", "Meta-Call Capsule (cross-scope, dynamic context)"},
+    {"Ψ", "Recursive Capsule (re-entry loop support)"},
+    {"Δ", "Mathematical Capsule (arithmetic/transformative)"},
+    {"Ξ", "Logic Capsule (conditional/matching)"},
+    {"⟁", "Routing Capsule (signal/flow control)"},
+    {"🜂", "Alchemical Capsule (experimental/evolving ops)"},
+    {"🔁", "Loop Capsule (repeat and flowback)"},
+    {"if", "Conditional Guard Capsule (exec if true)"},
+    {"unless", "Conditional Guard Capsule (exec if false)"},
+    {"mut", "Inline Memory Mutation Capsule (register/memory change)"},
+    {"->", "Pipeline Compose Operator (symbolic fold chaining)"},
+    {"<-", "Backpipe Operator (reverse fold)"},
+    {"λ", "Lambda Capsule (inline macro expansion)"},
+    {"🧠", "State Machine Capsule (stateful symbolic interpreter)"}
+};
+
+// ======== GUI Macro Editor (Shell-based) ========
+void launchMacroEditor() {
+    std::string command;
+#ifdef _WIN32
+    command = "notepad macros.qlm";
+#else
+    command = "xdg-open macros.qlm &";
+#endif
+    std::system(command.c_str());
+}
+
+// ======== FSM Viewer Live Preview ========
+void openFSMViewer() {
+#ifdef _WIN32
+    ShellExecuteA(NULL, "open", "fsm.dot", NULL, NULL, SW_SHOW);
+#else
+    std::system("xdg-open fsm.dot &");
+#endif
+    if (DEBUG_MODE) std::cout << "Opened FSM diagram.\n";
+}
+
+// ======== Step-Through Debug Control ========
+void debugPauseFrame(const std::string& message = "") {
+    if (ENABLE_STEP_MODE || REPL_STEP_MODE) {
+        std::cout << "⏸ Step Debug: " << message << " — Press [Enter] to continue...";
+        std::cin.get();
+    }
+}
+
+// ======== Register Table Display (Terminal-based GUI) ========
+void displayRegisterTable() {
+    std::cout << "\n📊 REGISTER STATE:\n";
+    std::cout << "+------+--------+\n";
+    for (const auto& reg : registerMap) {
+        std::cout << "| " << reg.first << "\t| " << reg.second << "\t|\n";
+    }
+    std::cout << "+------+--------+\n\n";
+}
+
+// ======== Macro Recorder (logs REPL definitions) ========
+void appendToMacroFile(const std::string& name, const std::vector<std::string>& ops) {
+    std::ofstream macroFile("macros.qlm", std::ios::app);
+    macroFile << "\nmacro " << name << "\n";
+    for (const auto& op : ops) {
+        macroFile << op << "\n";
+    }
+    macroFile.close();
+    if (DEBUG_MODE) std::cout << "📝 Recorded macro '" << name << "' to macros.qlm\n";
+}
+
+// ======== REPL Macro Recorder Hook ========
+void checkREPLMacroCommand(const std::string& line) {
+    if (line.rfind(":record", 0) == 0) {
+        std::istringstream iss(line);
+        std::string cmd, name;
+        iss >> cmd >> name;
+        if (!name.empty()) {
+            RECORDING_MACRO = true;
+            CURRENT_MACRO_NAME = name;
+            CURRENT_MACRO_OPS.clear();
+            std::cout << "🔴 Recording macro: " << name << "\n";
+        }
+    }
+    else if (line == ":end") {
+        RECORDING_MACRO = false;
+        appendToMacroFile(CURRENT_MACRO_NAME, CURRENT_MACRO_OPS);
+        std::cout << "🟢 Macro saved: " << CURRENT_MACRO_NAME << "\n";
+    }
+    else if (RECORDING_MACRO) {
+        CURRENT_MACRO_OPS.push_back(line);
+    }
+}
+
+// ======== UICL Interpreter Step Hook (example stub) ========
+void interpretUICLOp(const std::string& opLine) {
+    // (Actual logic goes here)
+    if (DEBUG_MODE) std::cout << "▶️ Executing: " << opLine << "\n";
+    displayRegisterTable();
+    debugPauseFrame("UICL Step");
+}
+
+#include <iostream>
+#include <string>
+#include <vector>
+#include <functional>
+#include <unordered_map>
+
+// --- Test Capsule Definition ---
+struct Capsule {
+    std::string name;
+    std::function<void()> run;
+};
+
+// --- Capsule Registry ---
+class CapsuleInjector {
+    std::vector<Capsule> capsules;
+
+public:
+    void registerCapsule(const Capsule& cap) {
+        capsules.push_back(cap);
+        std::cout << "[Injector] Registered capsule: " << cap.name << std::endl;
+    }
+
+    void interactiveInject() {
+        std::cout << "\n=== Capsule Injection Console ===\n";
+        for (size_t i = 0; i < capsules.size(); ++i) {
+            std::cout << i << ": " << capsules[i].name << '\n';
+        }
+        std::cout << "Select capsule index to inject (-1 to exit): ";
+
+        int choice;
+        while (std::cin >> choice && choice != -1) {
+            if (choice >= 0 && choice < (int)capsules.size()) {
+                std::cout << "[Injector] Injecting capsule: " << capsules[choice].name << "\n";
+                capsules[choice].run();
+            }
+            else {
+                std::cout << "[Injector] Invalid choice\n";
+            }
+            std::cout << "Select capsule index to inject (-1 to exit): ";
+        }
+    }
+};
+
+// --- FSM States ---
+enum class FSMState { Idle, Running, Paused, Error };
+
+// Macro-controlled FSM toggler
+#define TOGGLE_FSM(stateVar, currentState, nextState) \
+    do { \
+        if(stateVar == currentState) { \
+            stateVar = nextState; \
+            std::cout << "[FSM] State toggled from " << #currentState << " to " << #nextState << "\n"; \
+        } else { \
+            std::cout << "[FSM] No toggle: current state is not " << #currentState << "\n"; \
+        } \
+    } while(0)
+
+#include <sstream>
+
+// --- Simple REPL for auto-chaining folds ---
+class REPL {
+    CapsuleInjector& injector;
+    FSMState& fsmState;
+
+public:
+    REPL(CapsuleInjector& inj, FSMState& state) : injector(inj), fsmState(state) {}
+
+    void start() {
+        std::cout << "\n=== REPL Scripting Mode ===\n";
+        std::cout << "Commands:\n";
+        std::cout << "  inject <index>  - Inject capsule\n";
+        std::cout << "  toggle          - Toggle FSM state Idle->Running->Paused->Idle\n";
+        std::cout << "  exit            - Exit REPL\n";
+
+        std::string line;
+        while (true) {
+            std::cout << ">>> ";
+            if (!std::getline(std::cin, line)) break;
+
+            std::istringstream iss(line);
+            std::string cmd; iss >> cmd;
+
+            if (cmd == "exit") break;
+
+            else if (cmd == "inject") {
+                int idx; iss >> idx;
+                if (idx >= 0 && idx < (int)injector.capsules.size()) {
+                    std::cout << "[REPL] Injecting capsule " << idx << "\n";
+                    injector.capsules[idx].run();
+                }
+                else {
+                    std::cout << "[REPL] Invalid capsule index\n";
+                }
+            }
+
+            else if (cmd == "toggle") {
+                // Cycle FSM states Idle -> Running -> Paused -> Idle
+                switch (fsmState) {
+                case FSMState::Idle:   TOGGLE_FSM(fsmState, FSMState::Idle, FSMState::Running); break;
+                case FSMState::Running: TOGGLE_FSM(fsmState, FSMState::Running, FSMState::Paused); break;
+                case FSMState::Paused: TOGGLE_FSM(fsmState, FSMState::Paused, FSMState::Idle); break;
+                default:
+                    std::cout << "[REPL] FSM in Error state, reset to Idle\n";
+                    fsmState = FSMState::Idle;
+                }
+            }
+
+            else {
+                std::cout << "[REPL] Unknown command\n";
+            }
+        }
+    }
+};
+
+int main() {
+    CapsuleInjector injector;
+    FSMState fsmState = FSMState::Idle;
+
+    // Register test capsules
+    injector.registerCapsule({ "Hello World Capsule", []() {
+        std::cout << "[Capsule] Hello, world! The capsule breathes.\n";
+    } });
+    injector.registerCapsule({ "Math Test Capsule", []() {
+        int x = 42, y = 58;
+        std::cout << "[Capsule] Math Test: " << x << " + " << y << " = " << (x + y) << "\n";
+    } });
+
+    // Start interactive capsule injection session
+    injector.interactiveInject();
+
+    // Start REPL session
+    REPL repl(injector, fsmState);
+    repl.start();
+
+    std::cout << "[System] Shutdown complete. Until next invocation.\n";
+    return 0;
+}
+
+#include <iostream>
+#include <string>
+#include <vector>
+#include <unordered_map>
+#include <map>
+#include <chrono>
+#include <ctime>
+#include <sstream>
+#include <fstream>
+#include <algorithm>
+
+// Aliases for clarity
+using primative = std::string;
+using ConfigMap = std::map<std::string, primative>;
+using SessionMap = std::unordered_map<std::string, ConfigMap>;
+
+// Global user/session state
+std::vector<std::string> users;
+SessionMap session_map;
+
+// Utility: current time as UNIX timestamp (seconds)
+inline int now() {
+    return static_cast<int>(std::time(nullptr));
+}
+
+// Utility: Generate UID (mocked)
+std::string generate_uid() {
+    static int counter = 0;
+    return "UID-" + std::to_string(++counter);
+}
+
+// Utility: dg sig (mocked, just prefix for demo)
+std::string to_dg(const std::string& uid) {
+    return "dg_" + uid;
+}
+
+// Check if user exists
+bool user_exists(const std::string& username) {
+    return std::find(users.begin(), users.end(), username) != users.end();
+}
+
+// Login user & create session with default config
+void login(const std::string& username) {
+    if (user_exists(username)) {
+        std::cout << "⚠️ User '" << username << "' already logged in.\n";
+        return;
+    }
+    users.push_back(username);
+    std::string dg_id = to_dg(generate_uid());
+    ConfigMap config;
+    config["theme"] = "galactic";
+    config["prompt"] = "⭑";
+    config["dg_sig"] = dg_id;
+    config["last_active"] = std::to_string(now());
+    config["session_start"] = std::to_string(now());
+    config["permissions"] = "read,write";
+    config["timeout_sec"] = "3600"; // 1 hour
+    session_map[username] = config;
+
+    std::cout << "🔓 Welcome, " << username << "!\n";
+    std::cout << "[INFO] User '" << username << "' logged in with session DG " << dg_id << ".\n";
+}
+
+// Logout user and clear session
+void logout(const std::string& username) {
+    if (!user_exists(username)) {
+        std::cout << "⚠️ User '" << username << "' not logged in.\n";
+        return;
+    }
+    users.erase(std::remove(users.begin(), users.end(), username), users.end());
+    session_map.erase(username);
+    std::cout << "🔒 Goodbye, " << username << "!\n";
+    std::cout << "[INFO] User '" << username << "' logged out and session cleared.\n";
+}
+
+// Get session config value for user and key
+primative session_get_config(const std::string& username, const std::string& key) {
+    if (!user_exists(username)) {
+        std::cout << "⚠️ No active session for user '" << username << "'.\n";
+        return {};
+    }
+    const auto& config = session_map[username];
+    auto it = config.find(key);
+    if (it == config.end()) {
+        std::cout << "⚠️ Key '" << key << "' not found in session config for '" << username << "'.\n";
+        return {};
+    }
+    return it->second;
+}
+
+// Set session config key-value for user
+void session_set_config(const std::string& username, const std::string& key, const primative& value) {
+    if (!user_exists(username)) {
+        std::cout << "⚠️ No active session for user '" << username << "'.\n";
+        return;
+    }
+    session_map[username][key] = value;
+    std::cout << "[INFO] Session config '" << key << "' updated for user '" << username << "'.\n";
+}
+
+// Update last active timestamp for user session
+void session_touch(const std::string& username) {
+    if (user_exists(username)) {
+        session_map[username]["last_active"] = std::to_string(now());
+    }
+}
+
+// Check session expiration and auto logout timed-out users
+void check_session_expiry() {
+    int current_time = now();
+    // Copy users list to avoid modification during iteration
+    std::vector<std::string> users_copy = users;
+    for (const auto& user : users_copy) {
+        auto it = session_map.find(user);
+        if (it == session_map.end()) continue;
+
+        const auto& config = it->second;
+        int last_active = std::stoi(config.at("last_active"));
+        int timeout_sec = std::stoi(config.at("timeout_sec"));
+
+        if (current_time - last_active > timeout_sec) {
+            std::cout << "[WARN] Session expired for user '" << user << "', logging out.\n";
+            logout(user);
+        }
+    }
+}
+
+// Serialize sessions to a JSON-like string
+std::string serialize_sessions() {
+    std::ostringstream sb;
+    sb << "{\n";
+    for (size_t i = 0; i < users.size(); ++i) {
+        const auto& user = users[i];
+        sb << "  \"" << user << "\": {\n";
+        const auto& config = session_map[user];
+        size_t count = 0;
+        for (const auto& [key, val] : config) {
+            sb << "    \"" << key << "\": \"" << val << "\"";
+            if (++count < config.size()) sb << ",";
+            sb << "\n";
+        }
+        sb << "  }";
+        if (i + 1 < users.size()) sb << ",";
+        sb << "\n";
+    }
+    sb << "}\n";
+    return sb.str();
+}
+
+// Deserialize sessions from string (placeholder)
+void deserialize_sessions(const std::string& data) {
+    // For demo: clear all and print placeholder
+    users.clear();
+    session_map.clear();
+    std::cout << "[INFO] Deserialization placeholder - implement parser here.\n";
+}
+
+// Save sessions to file
+void save_sessions_to_file(const std::string& path) {
+    std::string serialized = serialize_sessions();
+    std::ofstream ofs(path);
+    if (!ofs) {
+        std::cout << "[ERROR] Could not open file '" << path << "' for writing.\n";
+        return;
+    }
+    ofs << serialized;
+    ofs.close();
+    std::cout << "[INFO] Sessions saved to '" << path << "'.\n";
+}
+
+// Load sessions from file
+void load_sessions_from_file(const std::string& path) {
+    std::ifstream ifs(path);
+    if (!ifs) {
+        std::cout << "No session file found at '" << path << "', skipping load.\n";
+        return;
+    }
+    std::stringstream buffer;
+    buffer << ifs.rdbuf();
+    deserialize_sessions(buffer.str());
+    std::cout << "[INFO] Sessions loaded from '" << path << "'.\n";
+}
+
+// List active users
+void list_users() {
+    if (users.empty()) {
+        std::cout << "No active users.\n";
+        return;
+    }
+    std::cout << "Active users:\n";
+    for (const auto& user : users) {
+        std::cout << "- " << user << "\n";
+    }
+}
+
+// Interactive CLI demo for login/logout/status
+void cli_user_demo() {
+    std::cout << "User Session CLI demo. Commands: login <name>, logout <name>, list, config <name> <key>, exit\n";
+
+    std::string line;
+    while (true) {
+        std::cout << ">>> ";
+        if (!std::getline(std::cin, line)) break;
+        if (line.empty()) continue;
+
+        std::istringstream iss(line);
+        std::vector<std::string> parts;
+        std::string word;
+        while (iss >> word) {
+            parts.push_back(word);
+        }
+        if (parts.empty()) continue;
+
+        const std::string& cmd = parts[0];
+
+        if (cmd == "exit") {
+            std::cout << "Exiting User Session CLI.\n";
+            break;
+        }
+        else if (cmd == "login") {
+            if (parts.size() < 2) {
+                std::cout << "Usage: login <username>\n";
+                continue;
+            }
+            login(parts[1]);
+        }
+        else if (cmd == "logout") {
+            if (parts.size() < 2) {
+                std::cout << "Usage: logout <username>\n";
+                continue;
+            }
+            logout(parts[1]);
+        }
+        else if (cmd == "list") {
+            list_users();
+        }
+        else if (cmd == "config") {
+            if (parts.size() < 3) {
+                std::cout << "Usage: config <username> <key>\n";
+                continue;
+            }
+            primative val_out = session_get_config(parts[1], parts[2]);
+            if (!val_out.empty())
+                std::cout << "Config value: " << val_out << "\n";
+        }
+        else {
+            std::cout << "Unknown command: " << cmd << "\n";
+        }
+
+        // Touch session last active on any valid command (optional)
+        if (parts.size() >= 2 && user_exists(parts[1])) {
+            session_touch(parts[1]);
+        }
+
+        // Auto check session expiry after each command
+        check_session_expiry();
+    }
+}
+
+int main() {
+    // Optional: load_sessions_from_file("sessions.json");
+    cli_user_demo();
+    // Optional: save_sessions_to_file("sessions.json");
+    return 0;
+}
+
+void loadLambdaMacrosFromFile(const std::string& path) {
+	if (!validateLambdaMacroFile(path)) return
+		std::ifstream
+
+#include <iostream>
+#include <string>
+#include <vector>
+#include <unordered_map>
+#include <map>
+#include <sstream>
+#include <cctype>
+#include <functional>
+#include <memory>
+#include <stdexcept>
+
+        // --- QuarterLang Primitive Types ---
+        enum class QType { INT, STRING, DG, VOID };
+
+    // Value container (variant)
+    struct QValue {
+        QType type;
+        int int_val = 0;
+        std::string str_val;
+
+        QValue() : type(QType::VOID) {}
+        explicit QValue(int v) : type(QType::INT), int_val(v) {}
+        explicit QValue(const std::string& s) : type(QType::STRING), str_val(s) {}
+        static QValue dg(const std::string& s) {
+            QValue v;
+            v.type = QType::DG;
+            v.str_val = s;
+            return v;
+        }
+
+        std::string to_string() const {
+            switch (type) {
+            case QType::INT: return std::to_string(int_val);
+            case QType::STRING: return str_val;
+            case QType::DG: return str_val;
+            case QType::VOID: return "void";
+            }
+            return "void";
+        }
+    };
+
+    // --- DG (Dodecagram) conversion ---
+    int from_dg_char(char c) {
+        if (c >= '0' && c <= '9') return c - '0';
+        if (c == 'X') return 10;
+        if (c == 'Y') return 11;
+        throw std::runtime_error("Invalid DG char");
+    }
+    char to_dg_char(int v) {
+        if (v >= 0 && v <= 9) return '0' + v;
+        if (v == 10) return 'X';
+        if (v == 11) return 'Y';
+        throw std::runtime_error("Invalid DG val");
+    }
+    int from_dg(const std::string & dg) {
+        int result = 0;
+        for (char c : dg) {
+            result = result * 12 + from_dg_char(c);
+        }
+        return result;
+    }
+    std::string to_dg(int n) {
+        if (n == 0) return "0";
+        std::string res;
+        int x = n > 0 ? n : -n;
+        while (x > 0) {
+            res = to_dg_char(x % 12) + res;
+            x /= 12;
+        }
+        if (n < 0) res = "-" + res;
+        return res;
+    }
+    // DG math: addition and multiplication on int level, result in DG string
+    std::string dg_add(int a, int b) { return to_dg(a + b); }
+    std::string dg_mul(int a, int b) { return to_dg(a * b); }
+
+    // --- Environment ---
+
+    using Env = std::unordered_map<std::string, QValue>;
+    using FuncImpl = std::function<QValue(const std::vector<QValue>&)>;
+
+    // --- AST Nodes ---
+
+    struct ASTNode {
+        virtual ~ASTNode() = default;
+        virtual QValue eval(Env& env, std::unordered_map<std::string, FuncImpl>& funcs) = 0;
+    };
+
+    // Forward declarations
+    struct Expr;
+    struct Stmt;
+
+    // Expression node base
+    struct Expr : ASTNode {};
+
+    // Statement node base
+    struct Stmt : ASTNode {};
+
+    // --- Expressions ---
+
+    struct ExprInt : Expr {
+        int val;
+        explicit ExprInt(int v) : val(v) {}
+        QValue eval(Env&, std::unordered_map<std::string, FuncImpl>&) override {
+            return QValue(val);
+        }
+    };
+
+    struct ExprString : Expr {
+        std::string val;
+        explicit ExprString(std::string v) : val(std::move(v)) {}
+        QValue eval(Env&, std::unordered_map<std::string, FuncImpl>&) override {
+            return QValue(val);
+        }
+    };
+
+    struct ExprDG : Expr {
+        std::string val; // DG string
+        explicit ExprDG(std::string v) : val(std::move(v)) {}
+        QValue eval(Env&, std::unordered_map<std::string, FuncImpl>&) override {
+            return QValue::dg(val);
+        }
+    };
+
+    struct ExprVar : Expr {
+        std::string name;
+        explicit ExprVar(std::string n) : name(std::move(n)) {}
+        QValue eval(Env& env, std::unordered_map<std::string, FuncImpl>&) override {
+            if (env.find(name) == env.end())
+                throw std::runtime_error("Variable '" + name + "' not defined");
+            return env[name];
+        }
+    };
+
+    enum class BinOp { ADD, SUB, MUL, DIV, GT, LT, EQ, NEQ };
+
+    struct ExprBinOp : Expr {
+        BinOp op;
+        std::unique_ptr<Expr> left;
+        std::unique_ptr<Expr> right;
+
+        ExprBinOp(BinOp o, std::unique_ptr<Expr> l, std::unique_ptr<Expr> r)
+            : op(o), left(std::move(l)), right(std::move(r)) {
+        }
+
+        QValue eval(Env& env, std::unordered_map<std::string, FuncImpl>& funcs) override {
+            QValue l = left->eval(env, funcs);
+            QValue r = right->eval(env, funcs);
+
+            if (l.type == QType::INT && r.type == QType::INT) {
+                int lv = l.int_val, rv = r.int_val;
+                switch (op) {
+                case BinOp::ADD: return QValue(lv + rv);
+                case BinOp::SUB: return QValue(lv - rv);
+                case BinOp::MUL: return QValue(lv * rv);
+                case BinOp::DIV: if (rv == 0) throw std::runtime_error("Division by zero");
+                    return QValue(lv / rv);
+                case BinOp::GT: return QValue(lv > rv ? 1 : 0);
+                case BinOp::LT: return QValue(lv < rv ? 1 : 0);
+                case BinOp::EQ: return QValue(lv == rv ? 1 : 0);
+                case BinOp::NEQ: return QValue(lv != rv ? 1 : 0);
+                }
+            }
+            throw std::runtime_error("Unsupported binary operation or operand types");
+        }
+    };
+
+    struct ExprFuncCall : Expr {
+        std::string func_name;
+        std::vector<std::unique_ptr<Expr>> args;
+
+        ExprFuncCall(std::string fn, std::vector<std::unique_ptr<Expr>> a)
+            : func_name(std::move(fn)), args(std::move(a)) {
+        }
+
+        QValue eval(Env& env, std::unordered_map<std::string, FuncImpl>& funcs) override {
+            if (funcs.find(func_name) == funcs.end())
+                throw std::runtime_error("Function '" + func_name + "' not defined");
+            std::vector<QValue> argvals;
+            for (auto& arg : args) {
+                argvals.push_back(arg->eval(env, funcs));
+            }
+            return funcs[func_name](argvals);
+        }
+    };
+
+    // --- Statements ---
+
+    struct StmtSay : Stmt {
+        std::unique_ptr<Expr> expr;
+        explicit StmtSay(std::unique_ptr<Expr> e) : expr(std::move(e)) {}
+        QValue eval(Env& env, std::unordered_map<std::string, FuncImpl>& funcs) override {
+            QValue val = expr->eval(env, funcs);
+            std::string s = val.to_string();
+
+            // Simple string interpolation for {var}
+            size_t pos = 0;
+            while (true) {
+                size_t start = s.find('{', pos);
+                if (start == std::string::npos) break;
+                size_t end = s.find('}', start);
+                if (end == std::string::npos) break;
+                std::string varname = s.substr(start + 1, end - start - 1);
+                QValue v = env.find(varname) != env.end() ? env[varname] : QValue("{" + varname + "}");
+                s.replace(start, end - start + 1, v.to_string());
+                pos = start + v.to_string().length();
+            }
+
+            std::cout << s << "\n";
+            return QValue();
+        }
+    };
+
+    struct StmtValDecl : Stmt {
+        std::string name;
+        QType type;
+        std::unique_ptr<Expr> expr;
+
+        StmtValDecl(std::string n, QType t, std::unique_ptr<Expr> e)
+            : name(std::move(n)), type(t), expr(std::move(e)) {
+        }
+
+        QValue eval(Env& env, std::unordered_map<std::string, FuncImpl>& funcs) override {
+            QValue val = expr->eval(env, funcs);
+            // TODO: Type enforcement and conversions
+            env[name] = val;
+            return val;
+        }
+    };
+
+    struct StmtDerive : Stmt {
+        std::string name;
+        std::string base_var;
+        std::unique_ptr<Expr> by_expr;
+
+        StmtDerive(std::string n, std::string base, std::unique_ptr<Expr> by)
+            : name(std::move(n)), base_var(std::move(base)), by_expr(std::move(by)) {
+        }
+
+        QValue eval(Env& env, std::unordered_map<std::string, FuncImpl>& funcs) override {
+            if (env.find(base_var) == env.end())
+                throw std::runtime_error("Base variable '" + base_var + "' not found for derive");
+            QValue base_val = env[base_var];
+            QValue by_val = by_expr->eval(env, funcs);
+
+            // For now only supports int derive by int (sum)
+            if (base_val.type == QType::INT && by_val.type == QType::INT) {
+                env[name] = QValue(base_val.int_val + by_val.int_val);
+                return env[name];
+            }
+            throw std::runtime_error("Derive supports only int + int");
+        }
+    };
+
+    struct StmtLoop : Stmt {
+        int from, to;
+        std::vector<std::unique_ptr<Stmt>> body;
+
+        StmtLoop(int f, int t, std::vector<std::unique_ptr<Stmt>> b)
+            : from(f), to(t), body(std::move(b)) {
+        }
+
+        QValue eval(Env& env, std::unordered_map<std::string, FuncImpl>& funcs) override {
+            for (int i = from; i <= to; ++i) {
+                env["loop_i"] = QValue(i);
+                for (auto& stmt : body) {
+                    stmt->eval(env, funcs);
+                }
+            }
+            return QValue();
+        }
+    };
+
+    struct StmtWhen : Stmt {
+        std::unique_ptr<Expr> condition;
+        std::vector<std::unique_ptr<Stmt>> body;
+
+        StmtWhen(std::unique_ptr<Expr> cond, std::vector<std::unique_ptr<Stmt>> b)
+            : condition(std::move(cond)), body(std::move(b)) {
+        }
+
+        QValue eval(Env& env, std::unordered_map<std::string, FuncImpl>& funcs) override {
+            QValue cond_val = condition->eval(env, funcs);
+            if (cond_val.type == QType::INT && cond_val.int_val != 0) {
+                for (auto& stmt : body) {
+                    stmt->eval(env, funcs);
+                }
+            }
+            return QValue();
+        }
+    };
+
+    // --- Parser Helpers ---
+
+    class Parser {
+        std::vector<std::string> tokens;
+        size_t pos = 0;
+
+        std::string current_token() {
+            return pos < tokens.size() ? tokens[pos] : "";
+        }
+        bool match(const std::string& tok) {
+            if (current_token() == tok) {
+                pos++;
+                return true;
+            }
+            return false;
+        }
+        bool match_prefix(const std::string& prefix) {
+            if (current_token().substr(0, prefix.size()) == prefix) {
+                pos++;
+                return true;
+            }
+            return false;
+        }
+        std::string expect(const std::string& tok) {
+            if (current_token() != tok) {
+                throw std::runtime_error("Expected '" + tok + "' but got '" + current_token() + "'");
+            }
+            pos++;
+            return tok;
+        }
+
+        bool is_number(const std::string& s) {
+            if (s.empty()) return false;
+            size_t i = 0;
+            if (s[0] == '-') i = 1;
+            for (; i < s.size(); i++) {
+                if (!isdigit(s[i])) return false;
+            }
+            return true;
+        }
+
+        bool is_dg_literal(const std::string& s) {
+            if (s.empty()) return false;
+            for (char c : s) {
+                if (!(isdigit(c) || c == 'X' || c == 'Y')) return false;
+            }
+            return true;
+        }
+
+        QType parse_type(const std::string& s) {
+            if (s == "int") return QType::INT;
+            if (s == "string") return QType::STRING;
+            if (s == "dg") return QType::DG;
+            throw std::runtime_error("Unknown type '" + s + "'");
+        }
+
+    public:
+        explicit Parser(std::vector<std::string> toks) : tokens(std::move(toks)) {}
+
+        // Very simplified parse expression: number, string literal, var, func call, binary ops +, *, >, etc.
+        std::unique_ptr<Expr> parse_expr() {
+            // For brevity only parse single literal, var, or function call
+            std::string tok = current_token();
+            if (tok.empty()) throw std::runtime_error("Unexpected EOF parsing expression");
+
+            // Parse number literal int
+            if (is_number(tok)) {
+                pos++;
+                return std::make_unique<ExprInt>(std::stoi(tok));
+            }
+
+            // Parse string literal: quoted with ""
+            if (tok.front() == '"' && tok.back() == '"') {
+                std::string str = tok.substr(1, tok.size() - 2);
+                pos++;
+                return std::make_unique<ExprString>(str);
+            }
+
+            // DG literal
+            if (is_dg_literal(tok)) {
+                pos++;
+                return std::make_unique<ExprDG>(tok);
+            }
+
+            // Variable or function call
+            if (std::isalpha(tok[0])) {
+                std::string name = tok;
+                pos++;
+                if (match("(")) {
+                    // function call args
+                    std::vector<std::unique_ptr<Expr>> args;
+                    if (!match(")")) {
+                        while (true) {
+                            args.push_back(parse_expr());
+                            if (match(")")) break;
+                            expect(",");
+                        }
+                    }
+                    return std::make_unique<ExprFuncCall>(name, std::move(args));
+                }
+                else {
+                    return std::make_unique<ExprVar>(name);
+                }
+            }
+
+            throw std::runtime_error("Cannot parse expression at token '" + tok + "'");
+        }
+
+        // Parse statements: val, say, derive, loop, when, etc.
+        std::unique_ptr<Stmt> parse_stmt() {
+            std::string tok = current_token();
+            if (tok == "val") {
+                // val name as type: expr
+                pos++;
+                std::string name = current_token();
+                pos++;
+                expect("as");
+                std::string typ = current_token();
+                pos++;
+                expect(":");
+                std::unique_ptr<Expr> expr = parse_expr();
+                return std::make_unique<StmtValDecl>(name, parse_type(typ), std::move(expr));
+            }
+            if (tok == "say") {
+                pos++;
+                std::unique_ptr<Expr> expr = parse_expr();
+                return std::make_unique<StmtSay>(std::move(expr));
+            }
+            if (tok == "derive") {
+                // derive name from base_var by expr
+                pos++;
+                std::string name = current_token();
+                pos++;
+                expect("from");
+                std::string base_var = current_token();
+                pos++;
+                expect("by");
+                std::unique_ptr<Expr> by_expr = parse_expr();
+                return std::make_unique<StmtDerive>(name, base_var, std::move(by_expr));
+            }
+            if (tok == "loop") {
+                pos++;
+                expect("from");
+                std::string from_str = current_token();
+                pos++;
+                expect("to");
+                std::string to_str = current_token();
+                pos++;
+                expect(":");
+
+                int from_val = std::stoi(from_str);
+                int to_val = std::stoi(to_str);
+
+                std::vector<std::unique_ptr<Stmt>> body;
+
+                // Parse body lines until next blank line or "end"
+                while (pos < tokens.size()) {
+                    if (current_token() == "end" || current_token() == "") break;
+                    // For simplicity: stop parsing loop body on blank line or dedent
+                    // Here, just parse one statement for demo
+                    try {
+                        body.push_back(parse_stmt());
+                    }
+                    catch (...) {
+                        break;
+                    }
+                }
+                return std::make_unique<StmtLoop>(from_val, to_val, std::move(body));
+            }
+            if (tok == "when") {
+                pos++;
+                std::unique_ptr<Expr> cond = parse_expr();
+                expect(":");
+                std::vector<std::unique_ptr<Stmt>> body;
+                while (pos < tokens.size()) {
+                    if (current_token() == "end" || current_token() == "") break;
+                    try {
+                        body.push_back(parse_stmt());
+                    }
+                    catch (...) {
+                        break;
+                    }
+                }
+                return std::make_unique<StmtWhen>(std::move(cond), std::move(body));
+            }
+
+            throw std::runtime_error("Unknown statement start '" + tok + "'");
+        }
+
+    };
+
+    // --- Tokenizer ---
+    std::vector<std::string> tokenize(const std::string & input) {
+        std::vector<std::string> tokens;
+        size_t i = 0;
+        while (i < input.size()) {
+            if (std::isspace(input[i])) {
+                i++;
+                continue;
+            }
+            if (input[i] == '"') {
+                size_t start = i++;
+                while (i < input.size() && input[i] != '"') i++;
+                if (i < input.size()) i++;
+                tokens.push_back(input.substr(start, i - start));
+                continue;
+            }
+            if (isalpha(input[i])) {
+                size_t start = i;
+                while (i < input.size() && (isalnum(input[i]) || input[i] == '_' || input[i] == '>' || input[i] == ':')) i++;
+                tokens.push_back(input.substr(start, i - start));
+                continue;
+            }
+            if (isdigit(input[i])) {
+                size_t start = i;
+                while (i < input.size() && (isdigit(input[i]) || input[i] == 'X' || input[i] == 'Y')) i++;
+                tokens.push_back(input.substr(start, i - start));
+                continue;
+            }
+            // single char tokens like + - * ( ) :
+            tokens.push_back(std::string(1, input[i]));
+            i++;
+        }
+        return tokens;
+    }
+
+    // --- Sample Program from your example ---
+    const std::string sample_program = R"(
+star
+val velocity as int: 88
+derive momentum from velocity by 44
+say momentum
+
+val hex as dg: 9A1
+say from_dg(hex)
+say to_dg(1234)
+say dg_add(100, 100)
+say dg_mul(12, 12)
+
+loop from 1 to 3:
+  say "Quarter Running..."
+
+end
+)";
+
+    // --- Built-in function bindings ---
+    QValue fn_from_dg(const std::vector<QValue>&args) {
+        if (args.size() != 1) throw std::runtime_error("from_dg expects 1 argument");
+        if (args[0].type != QType::DG) throw std::runtime_error("from_dg argument must be dg");
+        return QValue(from_dg(args[0].str_val));
+    }
+    QValue fn_to_dg(const std::vector<QValue>&args) {
+        if (args.size() != 1) throw std::runtime_error("to_dg expects 1 argument");
+        if (args[0].type != QType::INT) throw std::runtime_error("to_dg argument must be int");
+        return QValue(to_dg(args[0].int_val));
+    }
+    QValue fn_dg_add(const std::vector<QValue>&args) {
+        if (args.size() != 2) throw std::runtime_error("dg_add expects 2 arguments");
+        if (args[0].type != QType::INT || args[1].type != QType::INT)
+            throw std::runtime_error("dg_add arguments must be int");
+        return QValue(dg_add(args[0].int_val, args[1].int_val));
+    }
+    QValue fn_dg_mul(const std::vector<QValue>&args) {
+        if (args.size() != 2) throw std::runtime_error("dg_mul expects 2 arguments");
+        if (args[0].type != QType::INT || args[1].type != QType::INT)
+            throw std::runtime_error("dg_mul arguments must be int");
+        return QValue(dg_mul(args[0].int_val, args[1].int_val));
+    }
+
+    int main() {
+        // Tokenize sample program, extract lines between star/end
+        std::istringstream ss(sample_program);
+        std::string line;
+        std::string code_block;
+        bool inside_star = false;
+        while (std::getline(ss, line)) {
+            if (line.find("star") != std::string::npos) {
+                inside_star = true;
+                continue;
+            }
+            if (line.find("end") != std::string::npos) {
+                inside_star = false;
+                break;
+            }
+            if (inside_star) {
+                code_block += line + "\n";
+            }
+        }
+
+        // Tokenize
+        auto tokens = tokenize(code_block);
+
+        // Simple print tokens (debug)
+        // for(auto& t : tokens) std::cout << "[" << t << "] ";
+
+        // Parse statements one by one until tokens exhausted
+        Parser parser(tokens);
+
+        Env global_env;
+        std::unordered_map<std::string, FuncImpl> funcs;
+
+        // Register builtins
+        funcs["from_dg"] = fn_from_dg;
+        funcs["to_dg"] = fn_to_dg;
+        funcs["dg_add"] = fn_dg_add;
+        funcs["dg_mul"] = fn_dg_mul;
+
+        try {
+            while (true) {
+                // parse next statement, break on error or end
+                auto stmt = parser.parse_stmt();
+                if (!stmt) break;
+                stmt->eval(global_env, funcs);
+            }
+        }
+        catch (const std::exception& ex) {
+            // expected to break parse at end or error
+            // std::cerr << "Parse/Exec error: " << ex.what() << std::endl;
+        }
+
+        return 0;
+    }
+
+    class Lexer {
+        std::istream& input;
+        std::vector<int> indentStack{ 0 };
+        int currentIndent = 0;
+        std::string line;
+        int lineNum = 0;
+
+    public:
+        explicit Lexer(std::istream& in) : input(in) {}
+
+        std::vector<Token> tokenize() {
+            std::vector<Token> tokens;
+            while (std::getline(input, line)) {
+                lineNum++;
+                int indent = countIndent(line);
+                handleIndentation(indent, tokens);
+                // Tokenize line content into tokens and append
+                auto lineTokens = tokenizeLine(line);
+                tokens.insert(tokens.end(), lineTokens.begin(), lineTokens.end());
+            }
+            // flush remaining dedents
+            while (indentStack.size() > 1) {
+                indentStack.pop_back();
+                tokens.push_back(Token(TokenType::DEDENT, "", lineNum));
+            }
+            return tokens;
+        }
+    private:
+        int countIndent(const std::string& l) {
+            int count = 0;
+            for (char c : l) {
+                if (c == ' ') count++;
+                else break;
+            }
+            return count;
+        }
+        void handleIndentation(int indent, std::vector<Token>& tokens) {
+            if (indent > indentStack.back()) {
+                indentStack.push_back(indent);
+                tokens.push_back(Token(TokenType::INDENT, "", lineNum));
+            }
+            else {
+                while (indent < indentStack.back()) {
+                    indentStack.pop_back();
+                    tokens.push_back(Token(TokenType::DEDENT, "", lineNum));
+                }
+            }
+        }
+        std::vector<Token> tokenizeLine(const std::string& l) {
+            // tokenize actual line content ignoring leading spaces
+            // (implement standard tokenizer for words, symbols, literals)
+        }
+    };
+
+    class Parser {
+        std::vector<Token> tokens;
+        size_t pos;
+
+        int getPrecedence(TokenType tok) {
+            switch (tok) {
+            case TokenType::PLUS: return 10;
+            case TokenType::MINUS: return 10;
+            case TokenType::MUL: return 20;
+            case TokenType::DIV: return 20;
+            case TokenType::GT: return 5;
+            case TokenType::EQ: return 5;
+            default: return 0;
+            }
+        }
+
+        ExprNode* parseExpression(int prec = 0) {
+            ExprNode* left = parsePrimary();
+
+            while (true) {
+                Token tok = peek();
+                int tokPrec = getPrecedence(tok.type);
+                if (tokPrec < prec) break;
+
+                consume();
+                ExprNode* right = parseExpression(tokPrec + 1);
+
+                left = new BinaryOpNode(tok.type, left, right);
+            }
+            return left;
+        }
+
+        ExprNode* parsePrimary() {
+            // parse literals, variables, parens, function calls, etc.
+        }
+    };
+
+    struct IRNode {
+        virtual ~IRNode() = default;
+    };
+
+    struct IRFunction : IRNode {
+        std::string name;
+        std::vector<std::pair<std::string, QType>> params;
+        QType returnType;
+        std::vector<std::unique_ptr<IRNode>> body;
+    };
+
+    struct IRLoop : IRNode {
+        int from, to;
+        std::vector<std::unique_ptr<IRNode>> body;
+    };
+
+    // and so on...
+
+    void emitValDecl(const std::string& name, QValue val, std::ostream& out) {
+        // Reserve storage and initialize
+        out << "section .data\n";
+        out << name << " dq " << val.int_val << "\n";
+    }
+
+    void emitSayCall(QValue val, std::ostream& out) {
+        // For example: call printf with val formatted string
+        if (val.type == QType::STRING) {
+            out << " ; say string: " << val.str_val << "\n";
+            // actual printf code omitted for brevity
+        }
+    }
+
+    struct Capsule {
+        std::string header = "QTRC";
+        int version = 1;
+        std::string compressedNasmasm;
+        std::string compressedSource;
+        std::string compressedMetadata;
+
+        void write(std::ostream& out) {
+            out.write(header.data(), header.size());
+            out.write(reinterpret_cast<char*>(&version), sizeof(version));
+            writeBlock(out, compressedNasmasm);
+            writeBlock(out, compressedSource);
+            writeBlock(out, compressedMetadata);
+        }
+    };
+
+#include <iostream>
+#include <string>
+#include <vector>
+#include <stack>
+#include <cctype>
+
+    enum class TokenType {
+        STAR, END, VAL, VAR, ENUM, STRUCT, FUNC, DEFINE, LOOP, MATCH,
+        CASE, WHEN, RETURN, EXTERN, ASM, PLUGIN, IDENTIFIER,
+        INT_LITERAL, STRING_LITERAL, DG_LITERAL,
+        INDENT, DEDENT, NEWLINE, EOF_TOKEN,
+        PLUS, MINUS, MUL, DIV, LT, GT, EQ, NEQ, AND, OR,
+        COLON, COMMA, LPAREN, RPAREN, LBRACE, RBRACE,
+        UNKNOWN
+    };
+
+    struct Token {
+        TokenType type;
+        std::string text;
+        int line, col;
+    };
+
+    class Lexer {
+        std::istream& input;
+        std::string currentLine;
+        int lineNum = 0;
+        int pos = 0;
+        std::stack<int> indentStack{ 0 };
+
+    public:
+        Lexer(std::istream& in) : input(in) {}
+
+        std::vector<Token> tokenize() {
+            std::vector<Token> tokens;
+            while (getline(input, currentLine)) {
+                lineNum++;
+                pos = 0;
+                int indent = countIndent(currentLine);
+                handleIndentation(indent, tokens);
+                while (pos < (int)currentLine.size()) {
+                    if (isspace(currentLine[pos])) { pos++; continue; }
+                    Token tok = nextToken();
+                    tokens.push_back(tok);
+                }
+                tokens.push_back({ TokenType::NEWLINE, "\n", lineNum, pos });
+            }
+            while (indentStack.size() > 1) {
+                indentStack.pop();
+                tokens.push_back({ TokenType::DEDENT, "", lineNum, 0 });
+            }
+            tokens.push_back({ TokenType::EOF_TOKEN, "", lineNum, 0 });
+            return tokens;
+        }
+
+    private:
+        int countIndent(const std::string& line) {
+            int count = 0;
+            for (char c : line) {
+                if (c == ' ') count++;
+                else break;
+            }
+            return count;
+        }
+
+        void handleIndentation(int indent, std::vector<Token>& tokens) {
+            if (indent > indentStack.top()) {
+                indentStack.push(indent);
+                tokens.push_back({ TokenType::INDENT, "", lineNum, 0 });
+            }
+            else {
+                while (indent < indentStack.top()) {
+                    indentStack.pop();
+                    tokens.push_back({ TokenType::DEDENT, "", lineNum, 0 });
+                }
+            }
+        }
+
+        Token nextToken() {
+            char c = currentLine[pos];
+            int start = pos;
+
+            // Single char tokens
+            switch (c) {
+            case '+': pos++; return { TokenType::PLUS, "+", lineNum, start };
+            case '-': pos++; return { TokenType::MINUS, "-", lineNum, start };
+            case '*': pos++; return { TokenType::MUL, "*", lineNum, start };
+            case '/': pos++; return { TokenType::DIV, "/", lineNum, start };
+            case '(': pos++; return { TokenType::LPAREN, "(", lineNum, start };
+            case ')': pos++; return { TokenType::RPAREN, ")", lineNum, start };
+            case ':': pos++; return { TokenType::COLON, ":", lineNum, start };
+            case ',': pos++; return { TokenType::COMMA, ",", lineNum, start };
+            case '<': pos++; return { TokenType::LT, "<", lineNum, start };
+            case '>': pos++; return { TokenType::GT, ">", lineNum, start };
+            case '=':
+                pos++;
+                if (pos < (int)currentLine.size() && currentLine[pos] == '=') {
+                    pos++;
+                    return { TokenType::EQ, "==", lineNum, start };
+                }
+                return { TokenType::EQ, "=", lineNum, start };
+            default:
+                break;
+            }
+
+            // Identifiers or keywords
+            if (isalpha(c) || c == '_') {
+                while (pos < (int)currentLine.size() && (isalnum(currentLine[pos]) || currentLine[pos] == '_')) {
+                    pos++;
+                }
+                std::string text = currentLine.substr(start, pos - start);
+                // Map keywords
+                if (text == "star") return { TokenType::STAR, text, lineNum, start };
+                if (text == "end") return { TokenType::END, text, lineNum, start };
+                if (text == "val") return { TokenType::VAL, text, lineNum, start };
+                if (text == "var") return { TokenType::VAR, text, lineNum, start };
+                if (text == "enum") return { TokenType::ENUM, text, lineNum, start };
+                if (text == "struct") return { TokenType::STRUCT, text, lineNum, start };
+                if (text == "func" || text == "define") return { TokenType::FUNC, text, lineNum, start };
+                if (text == "loop") return { TokenType::LOOP, text, lineNum, start };
+                if (text == "match") return { TokenType::MATCH, text, lineNum, start };
+                if (text == "case") return { TokenType::CASE, text, lineNum, start };
+                if (text == "when") return { TokenType::WHEN, text, lineNum, start };
+                if (text == "return") return { TokenType::RETURN, text, lineNum, start };
+                if (text == "extern") return { TokenType::EXTERN, text, lineNum, start };
+                if (text == "asm") return { TokenType::ASM, text, lineNum, start };
+                if (text == "plugin") return { TokenType::PLUGIN, text, lineNum, start };
+                return { TokenType::IDENTIFIER, text, lineNum, start };
+            }
+
+            // Integer literals
+            if (isdigit(c)) {
+                while (pos < (int)currentLine.size() && isdigit(currentLine[pos])) pos++;
+                return { TokenType::INT_LITERAL, currentLine.substr(start, pos - start), lineNum, start };
+            }
+
+            // String literal: "..."
+            if (c == '"') {
+                pos++;
+                std::string str;
+                while (pos < (int)currentLine.size() && currentLine[pos] != '"') {
+                    if (currentLine[pos] == '\\' && pos + 1 < (int)currentLine.size()) {
+                        pos++;
+                        switch (currentLine[pos]) {
+                        case 'n': str += '\n'; break;
+                        case 't': str += '\t'; break;
+                        default: str += currentLine[pos]; break;
+                        }
+                    }
+                    else {
+                        str += currentLine[pos];
+                    }
+                    pos++;
+                }
+                pos++; // consume closing "
+                return { TokenType::STRING_LITERAL, str, lineNum, start };
+            }
+
+            // DG literals (Hex base-12: digits 0-9,X,Y)
+            if (c >= '0' && c <= '9' || c == 'X' || c == 'Y') {
+                while (pos < (int)currentLine.size() &&
+                    (isdigit(currentLine[pos]) || currentLine[pos] == 'X' || currentLine[pos] == 'Y')) {
+                    pos++;
+                }
+                return { TokenType::DG_LITERAL, currentLine.substr(start, pos - start), lineNum, start };
+            }
+
+            pos++;
+            return { TokenType::UNKNOWN, std::string(1,c), lineNum, start };
+        }
+    };
+
+#include <memory>
+#include <map>
+#include <functional>
+
+    struct ASTNode {
+        virtual ~ASTNode() {}
+    };
+
+    struct ASTBlock : ASTNode {
+        std::vector<std::unique_ptr<ASTNode>> statements;
+    };
+
+    struct ASTValDecl : ASTNode {
+        std::string name;
+        std::string type;
+        std::unique_ptr<ASTNode> expr;
+    };
+
+    struct ASTExpression : ASTNode {
+        // Base for expressions; extend with BinaryOp, UnaryOp, etc.
+    };
+
+    class Parser {
+        const std::vector<Token>& tokens;
+        int pos = 0;
+
+    public:
+        Parser(const std::vector<Token>& toks) : tokens(toks) {}
+
+        std::unique_ptr<ASTBlock> parseProgram() {
+            expect(TokenType::STAR);
+            auto block = parseBlock();
+            expect(TokenType::END);
+            return block;
+        }
+
+    private:
+        std::unique_ptr<ASTBlock> parseBlock() {
+            auto block = std::make_unique<ASTBlock>();
+            expect(TokenType::INDENT);
+            while (!check(TokenType::DEDENT) && !check(TokenType::EOF_TOKEN)) {
+                block->statements.push_back(parseStatement());
+            }
+            expect(TokenType::DEDENT);
+            return block;
+        }
+
+        std::unique_ptr<ASTNode> parseStatement() {
+            if (match(TokenType::VAL)) {
+                return parseValDecl();
+            }
+            // Parse other statements (func, loop, match, struct, enum, asm, extern, plugin)
+            // Stub:
+            return nullptr;
+        }
+
+        std::unique_ptr<ASTValDecl> parseValDecl() {
+            auto node = std::make_unique<ASTValDecl>();
+            node->name = consumeIdentifier();
+            expect(TokenType::AS);
+            node->type = consumeIdentifier();
+            expect(TokenType::COLON);
+            node->expr = parseExpression();
+            return node;
+        }
+
+        std::unique_ptr<ASTExpression> parseExpression(int precedence = 0) {
+            // Pratt parser or recursive descent parser supporting operator precedence
+            return nullptr;
+        }
+
+        // Helper token utilities:
+        bool check(TokenType t) { return pos < (int)tokens.size() && tokens[pos].type == t; }
+        bool match(TokenType t) {
+            if (check(t)) {
+                pos++;
+                return true;
+            }
+            return false;
+        }
+        void expect(TokenType t) {
+            if (!match(t)) throw std::runtime_error("Expected token " + std::to_string((int)t));
+        }
+        std::string consumeIdentifier() {
+            if (check(TokenType::IDENTIFIER)) {
+                return tokens[pos++].text;
+            }
+            throw std::runtime_error("Expected identifier");
+        }
+    };
+
+    struct ASTEnum : ASTNode {
+        std::string name;
+        std::vector<std::string> members;
+    };
+
+    struct ASTStructField {
+        std::string name;
+        std::string type;
+    };
+
+    struct ASTStruct : ASTNode {
+        std::string name;
+        std::vector<ASTStructField> fields;
+    };
+
+    struct ASTFunc : ASTNode {
+        std::string name;
+        std::vector<std::pair<std::string, std::string>> params; // name and type
+        std::string returnType;
+        std::unique_ptr<ASTBlock> body;
+    };
+
+    struct ASTGenericFunc : ASTFunc {
+        std::vector<std::string> genericParams;
+    };
+
+    struct ASTExternFunc : ASTNode {
+        std::string name;
+        std::vector<std::pair<std::string, std::string>> params;
+        std::string returnType;
+    };
+
+    struct ASTPluginLoad : ASTNode {
+        std::string pluginName;
+    };
+
+    struct ASTAsmBlock : ASTNode {
+        std::string asmCode;
+    };
+
+    enum class Precedence {
+        LOWEST = 1,
+        OR,      // ||
+        AND,     // &&
+        EQUALS,  // == !=
+        LESSGREATER, // < >
+        SUM,     // + -
+        PRODUCT, // * /
+        PREFIX,  // -x !x
+        CALL     // myFunction(x)
+    };
+
+    class ExprParser {
+        const std::vector<Token>& tokens;
+        int pos = 0;
+
+        std::map<TokenType, Precedence> precedences = {
+            {TokenType::OR, Precedence::OR},
+            {TokenType::AND, Precedence::AND},
+            {TokenType::EQ, Precedence::EQUALS},
+            {TokenType::NEQ, Precedence::EQUALS},
+            {TokenType::LT, Precedence::LESSGREATER},
+            {TokenType::GT, Precedence::LESSGREATER},
+            {TokenType::PLUS, Precedence::SUM},
+            {TokenType::MINUS, Precedence::SUM},
+            {TokenType::MUL, Precedence::PRODUCT},
+            {TokenType::DIV, Precedence::PRODUCT},
+        };
+
+    public:
+        ExprParser(const std::vector<Token>& toks) : tokens(toks) {}
+
+        std::unique_ptr<ASTExpression> parseExpression(int prec = 1) {
+            auto left = parsePrefix();
+
+            while (true) {
+                if (pos >= (int)tokens.size()) break;
+                TokenType tokType = tokens[pos].type;
+                int tokPrec = getPrecedence(tokType);
+                if (tokPrec < prec) break;
+
+                // infix
+                auto op = tokens[pos++];
+                auto right = parseExpression(tokPrec + 1);
+                left = std::make_unique<BinaryOpNode>(op, std::move(left), std::move(right));
+            }
+            return left;
+        }
+
+    private:
+        int getPrecedence(TokenType t) {
+            if (precedences.count(t)) return (int)precedences[t];
+            return (int)Precedence::LOWEST;
+        }
+
+        std::unique_ptr<ASTExpression> parsePrefix() {
+            Token tok = tokens[pos++];
+            // handle literals, identifiers, parens, unary ops
+            // e.g. if tok is int literal, return ASTIntLiteral
+            // if tok is LPAREN parse grouped expr, etc.
+            return nullptr;
+        }
+    };
+
+    struct Stmt {
+        virtual ~Stmt() = default;
+        virtual QValue eval(Env& env, std::unordered_map<std::string, FuncImpl>& funcs) = 0;
+	};
+
+    class NASMCodeGen {
+        std::ostream& out;
+
+    public:
+        NASMCodeGen(std::ostream& os) : out(os) {}
+
+        void emitHeader() {
+            out << "section .data\n";
+            out << "fmt_str db \"%s\", 10, 0\n";
+            out << "section .text\n";
+            out << "global main\n";
+            out << "extern printf\n";
+        }
+
+        void emitMainPrologue() {
+            out << "main:\n";
+            out << "push rbp\n";
+            out << "mov rbp, rsp\n";
+        }
+
+        void emitMainEpilogue() {
+            out << "mov rsp, rbp\n";
+            out << "pop rbp\n";
+            out << "mov rax, 0\n";
+            out << "ret\n";
+        }
+
+        void emitSay(const std::string& str) {
+            out << "    mov rdi, fmt_str\n";
+            out << "    mov rsi, " << escapeStringForNASM(str) << "\n";
+            out << "    xor rax, rax\n";
+            out << "    call printf\n";
+        }
+
+        std::string escapeStringForNASM(const std::string& s) {
+            std::string res;
+            for (char c : s) {
+                if (c == '\\') res += "\\\\";
+                else if (c == '"') res += "\\\"";
+                else res += c;
+            }
+            return "\"" + res + "\"";
+        }
+
+        // ... More codegen methods for structs, enums, function calls, asm blocks, etc.
+    };
+
+    class StmtValDecl : public Stmt {
+        std::string name;
+        QType type;
+		std::unique_ptr<Expr> expr;
+
+#include <fstream>
+#include <vector>
+#include <cstring>
+#include <zlib.h>  // For compression
+
+        struct CapsuleHeader {
+            char magic[4] = { 'Q','T','R','C' };
+            uint32_t version = 1;
+            uint32_t compressedNasmbSize;
+            uint32_t compressedSrcSize;
+            uint32_t compressedMetaSize;
+        };
+
+        class Capsule {
+            std::vector<uint8_t> nasmData, srcData, metaData;
+        public:
+            void setNASM(const std::string& data) {
+                nasmData.assign(data.begin(), data.end());
+            }
+            void setSource(const std::string& data) {
+                srcData.assign(data.begin(), data.end());
+            }
+            void setMeta(const std::string& data) {
+                metaData.assign(data.begin(), data.end());
+            }
+
+            bool writeToFile(const std::string& filename) {
+                std::vector<uint8_t> compNasm = compressData(nasmData);
+                std::vector<uint8_t> compSrc = compressData(srcData);
+                std::vector<uint8_t> compMeta = compressData(metaData);
+
+                CapsuleHeader header;
+                header.compressedNasmbSize = compNasm.size();
+                header.compressedSrcSize = compSrc.size();
+                header.compressedMetaSize = compMeta.size();
+
+                std::ofstream out(filename, std::ios::binary);
+                if (!out) return false;
+
+                out.write((char*)&header, sizeof(header));
+                out.write((char*)compNasm.data(), compNasm.size());
+                out.write((char*)compSrc.data(), compSrc.size());
+                out.write((char*)compMeta.data(), compMeta.size());
+                return true;
+            }
+
+        private:
+            std::vector<uint8_t> compressData(const std::vector<uint8_t>& input) {
+                uLongf destLen = compressBound(input.size());
+                std::vector<uint8_t> output(destLen);
+                if (compress(output.data(), &destLen, input.data(), input.size()) != Z_OK) {
+                    return {};
+                }
+                output.resize(destLen);
+                return output;
+            }
+        };
+
+        public:
+            StmtValDecl(const std::string& n, QType t, std::unique_ptr<Expr> e)
+				: name(n), type(t),
+                expr(std::move(e)) {}
+			QValue eval(Env& env
+                , std::unordered_map<std::string, FuncImpl>& funcs) override {
+                QValue val = expr->eval(env, funcs);
+                env.set(name, val);
+                return val;
+            }
+            void emitNASM(NASMCodeGen& codegen) const {
+                // Emit NASM code to declare variable
+                codegen.emitValDecl(name, type, expr->toNASM());
+            }
+        };
+        // --- Expression parsing ---
+        std::unique_ptr<Expr> parse_expr() {
+			std::string tok = current_token();
+            if (tok == "") {
+                throw std::runtime_error("Unexpected end of input while parsing expression");
+            }
+            // Handle parentheses for grouping
+            if (match("(")) {
+                auto expr = parse_expr();
+                expect(")");
+                return expr;
+            }
+            // Handle literals: int, string, etc.
+            if (std::isdigit(tok[0])) {
+                pos++;
+                return std::make_unique<ExprInt>(std::stoi(tok));
+            }
+            if (tok[0] == '"') {
+                pos++;
+				return std::make_unique<ExprString>(tok.substr(1, tok.size() - 2)); // remove quotes
+                }
+            if (tok[0] == 'X' || tok[0] == 'Y' || (tok.size() > 1 && tok.find_first_not_of("0123456789XY") == std::string::npos)) {
+                pos++;
+                return std::make_unique<ExprDG>(tok); // Handle base-12 digits
+            }
+            // Handle variables and function calls
+            if (std::isalpha(tok[0]) || tok[0] == '_') {
+                pos++;
+                std::string name = tok;
+                if (match("(")) {
+                    // Function call
+                    std::vector<std::unique_ptr<Expr>> args;
+                    while (!match(")")) {
+                        args.push_back(parse_expr());
+                        if (!match(")")) {
+							expect(",");
+                            }
+                    }
+                    return std::make_unique<ExprFuncCall>(name, std::move(args));
+                }
+                return std::make_unique<ExprVar>(name);
+            }
+            throw std::runtime_error("Unexpected token in expression: " + tok);
+        }
+        // --- Statement parsing ---
+        std::unique_ptr<Stmt> parse_stmt() {
+            if (pos >= tokens.size()) return nullptr; // End of input
+            std::string tok = current_token();
+            if (tok == "") {
+                pos++;
+                return nullptr; // Skip empty lines
+            }
+            if (tok == "star") {
+                pos++;
+                return nullptr; // Start of program block
+            }
+            if (tok == "end") {
+                pos++;
+                return nullptr; // End of program block
+            }
+            if (tok == "val") {
+                pos++;
+                std::string name = current_token();
+				pos++;
+                expect("as");
+                std::string type = current_token();
+                pos++;
+                expect(":");
+                std::unique_ptr<Expr> expr = parse_expr();
+                return std::make_unique<StmtValDecl>(name, type, std::move(expr));
+            }
+            if (tok == "say") {
+                pos++;
+                std::unique_ptr<Expr> expr = parse_expr();
+                return std::make_unique<StmtSay>(std::move(expr));
+            }
+			if (tok == "loop") {
+                pos++;
+                expect("from");
+                std::unique_ptr<Expr> from_expr = parse_expr();
+                expect("to");
+                std::unique_ptr<Expr> to_expr = parse_expr();
+                expect(":");
+				std::vector<std::unique_ptr<Stmt>> body;
+                while (pos < tokens.size()) {
+                    if (current_token() == "end" || current_token() == "") break;
+					try {
+                        body.push_back(parse_stmt());
+                    }
+                    catch (...) {
+						// Handle parsing errors gracefully
+                        break;
+                    }
+                }
+                expect("end");
+                return std::make_unique<StmtLoop>(std::move(from_expr), std::move(to_expr), std::move(body));
+            }
+            if (tok == "match") {
+                pos++;
+                std::unique_ptr<Expr> expr = parse_expr();
+				expect(":");
+                std::vector<std::unique_ptr<StmtWhen>> body;
+                while (pos < tokens.size()) {
+                    if (current_token() == "end" || current_token() == "") break;
+                    if (current_token() == "case") {
+                        pos++;
+                        std::unique_ptr<Expr> case_expr = parse_expr();
+                        expect(":");
+                        body.push_back(std::make_unique<StmtWhen>(std::move(case_expr), std::vector<std::unique_ptr<Stmt>>()));
+                    }
+                    else if (current_token() == "when") {
+                        body.back()->addCondition(parse_when());
+                    }
+					try {
+                        body.push_back(parse_stmt());
+                    }
+                    catch (...) {
+                        // Handle parsing errors gracefully
+                        break;
+                    }
+                }
+                expect("end");
+                return std::make_unique<StmtMatch>(std::move(expr), std::move(body));
+            }
+            // Handle other statements like extern, asm, plugin, etc.
+            throw std::runtime_error("Unknown statement: " + tok);
+        }
+        std::string current_token() {
+            if (pos < tokens.size()) return tokens[pos].text;
+            return "";
+        }
+        bool match(const std::string& expected) {
+            if (current_token() == expected) {
+                pos++;
+                return true;
+            }
+            return false;
+        }
+        void expect(const std::string& expected) {
+            if (!match(expected)) {
+                throw std::runtime_error("Expected token: " + expected + ", got: " + current_token());
+            }
+		}
+        // --- Expression evaluation ---
+        QValue eval_expr(const std::unique_ptr<Expr>& expr, Env& env, std::unordered_map<std::string, FuncImpl>& funcs) {
+            if (!expr) throw std::runtime_error("Null expression");
+            return expr->eval(env, funcs);
+        }
+	};
+    // --- Built-in functions ---
+        QValue from_dg(const std::string& dg) {
+            // Convert base-12 string to integer
+            int value = 0;
+            for (char c : dg) {
+                if (c >= '0' && c <= '9') {
+                    value = value * 12 + (c - '0');
+                }
+                else if (c == 'X') {
+                    value = value * 12 + 10; // X -> 10
+                }
+                else if (c == 'Y') {
+                    value = value * 12 + 11; // Y -> 11
+                }
+                else {
+                    throw std::runtime_error("Invalid character in dg: " + std::string(1, c));
+                }
+            }
+            return QValue(value);
+        }
+        std::string to_dg(int value) {
+            // Convert integer to base-12 string
+            std::string result;
+            while (value > 0) {
+                int digit = value % 12;
+                if (digit < 10) {
+                    result += ('0' + digit);
+                }
+                else if (digit == 10) {
+                    result += 'X';
+                }
+                else if (digit == 11) {
+                    result += 'Y';
+                }
+                value /= 12;
+            }
+            std::reverse(result.begin(), result.end());
+            return result.empty() ? "0" : result;
+        }
+        int dg_add(int a, int b) {
+            return a + b; // Simple addition
+        }
+        int dg_mul(int a, int b) {
+            return a * b; // Simple multiplication
+		}
+        }
+    int main(int argc, char* argv[]) {
+        if (argc < 2) {
+            std::cerr << "Usage: " << argv[0] << " <source_file>" << std::endl;
+            return 1;
+        }
+        std::ifstream file(argv[1]);
+        if (!file) {
+            std::cerr << "Error opening file: " << argv[1] << std::endl;
+            return 1;
+        }
+        // Read the entire file into a string
+        std::stringstream ss;
+        ss << file.rdbuf();
+        file.close();
+        // Extract code block between star and end
+        std::string line;
+        bool inside_star = false;
+		std::string code_block;
+        while (std::getline(ss, line)) {
+            if (line == "star") {
+                inside_star = true;
+                continue;
+            }
+            if (line == "end") {
+                inside_star = false;
+                break;
+            }
+            if (inside_star) {
+                code_block += line + "\n";
+            }
+        }
+        if (!inside_star) {
+            std::cerr << "No star-end block found in source file." << std::endl;
+            return 1;
+        }
+        // Tokenize the code block
+        Lexer lexer(std::istringstream(code_block));
+        auto tokens = lexer.tokenize();
+		// Parse the tokens into an AST and evaluate it
+        try {
+            Parser parser(tokens);
+            auto ast = parser.parseProgram();
+            Env env;
+			std::unordered_map<std::string, FuncImpl> funcs
+                std::ofstream nasmFile("output.asm");
+            NASMCodeGen codegen(nasmFile);
+            codegen.emitHeader();
+            codegen.emitMainPrologue();
+            for (const auto& stmt : ast->statements) {
+                stmt->emitNASM(codegen);
+            }
+            codegen.emitMainEpilogue();
+            nasmFile.close();
+            // Write capsule
+            Capsule capsule;
+            capsule.setNASM("output.asm");
+            capsule.setSource(code_block);
+            capsule.setMeta("Metadata goes here");
+            if (!capsule.writeToFile("output.qtrc")) {
+                std::cerr << "Failed to write capsule file." << std::endl;
+                return 1;
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "Error: " << e.what() << std::endl;
+            return 1;
+        }
+        return 0;
+	}
+    std::vector<Token> tokenize(const std::string& source) {
+            std::vector<Token> tokens;
+			std::istringstream stream(source
+                );
+            Lexer lexer(stream);
+            tokens = lexer.tokenize();
+            return tokens;
+        }
+        int countIndent(const std::string& l) {
+			int count = 0;
+            for (char c : l) {
+                if (c == ' ') count++;
+                else break;
+            }
+            return count;
+        }
+        void handleIndentation(int indent, int lineNum, std::vector<Token>& indentStack, std::vector<Token>& tokens) {
+            // Handle indentation changes
+            if (indent > indentStack.back().col) {
+                indentStack.push_back(Token(TokenType::INDENT, "", lineNum));
+                tokens.push_back(Token(TokenType::INDENT, "", lineNum));
+            }
+            else {
+                while (indent < indentStack.back().col) {
+                    indentStack.pop_back();
+                    tokens.push_back(Token(TokenType::DEDENT, "", lineNum));
+                }
+            }
+        }
+		void handleIndentation(int indent, int lineNum, std::vector<int>& indentStack, std::vector < Token
+            >& tokens) {
+            // Handle indentation changes
+            if (indent > indentStack.back()) {
+                indentStack.push_back(indent);
+                tokens.push_back(Token(TokenType::INDENT, "", lineNum));
+            }
+            else {
+                while (indent < indentStack.back()) {
+                    indentStack.pop_back();
+                    tokens.push_back(Token(TokenType::DEDENT, "", lineNum));
+                }
+            }
+        }
+        int getPrecedence(TokenType type) {
+            switch (type) {
+            case TokenType::OR: return 1;
+            case TokenType::AND: return 2;
+            case TokenType::EQ: return 3;
+            case TokenType::NEQ: return 3;
+            case TokenType::LT: return 4;
+            case TokenType::GT: return 4;
+			case TokenType::PLUS: return 10;
+			case TokenType::MINUS: return 10;
+			case TokenType::MUL: return 20;
+			case TokenType::DIV: return 20;
+                default: return 0; // Lowest precedence
+            }
+        }
+        std::string escapeStringForNASM(const std::string& s) {
+            std::string res;
+            for (char c : s) {
+                if (c == '\\') res += "\\\\";
+                else if (c == '"') res += "\\\"";
+                else res += c;
+            }
+            return "\"" + res + "\"";
+		}
+        void emitValDecl(const std::string& name, QType type, QValue val, std::ostream& out) {
+        // Emit NASM code to declare a variable
+        out << "section .data\n";
+        out << name << " ";
+        switch (type) {
+        case QType::INT:
+            out << "dq " << val.int_val << "\n";
+            break;
+        case QType::STRING:
+            out << "db \"" << escapeStringForNASM(val.str_val) << "\", 0\n";
+            break;
+        default:
+            throw std::runtime_error("Unsupported type for NASM output");
+		}
+        out << "section .text\n";
+        out << "global " << name << "\n";
+        out << name << ":\n";
+        out << "    mov rax, " << name << "\n"; // Load value into rax
+		}
+        void writeBlock(std::ostream& out, const std::vector<uint8_t>& data) {
+            uint32_t size = data.size();
+            out.write(reinterpret_cast<char*>(&size), sizeof(size));
+            out.write(reinterpret_cast<const char*>(data.data()), size);
+        }
+    struct Capsule {
+        uint32_t version = 1;
+        std::vector<uint8_t> compressedNasmasm;
+        std::vector<uint8_t> compressedSource;
+        std::vector<uint8_t> compressedMetadata;
+        bool writeToFile(const std::string& filename) {
+            std::ofstream out(filename, std::ios::binary);
+			if (!out) return false;
+            CapsuleHeader header;
+            std::memcpy(header.magic, "QTRC", 4);
+            header.version = version;
+            header.compressedNasmbSize = compressedNasmasm.size();
+            header.compressedSrcSize = compressedSource.size();
+            header.compressedMetaSize = compressedMetadata.size();
+            out.write(reinterpret_cast<const char*>(&header), sizeof(header));
+            writeBlock(out, compressedNasmasm);
+            writeBlock(out, compressedSource);
+            writeBlock(out, compressedMetadata);
+            return true;
+        }
+	};
+#include <iostream>
+#include <sstream>
+#include <vector>
+#include <string>
+#include <cctype>
+#include <stdexcept>
+#include <stack>
+
+    class Lexer {
+        std::istream& input;
+        std::string currentLine;
+        int pos = 0;
+        int lineNum = 1;
+        std::stack<int> indentStack;
+    public:
+        Lexer(std::istream& in) : input(in) {
+            indentStack.push(0); // Initial indentation level
+        }
+        std::vector<Token> tokenize() {
+            std::vector<Token> tokens;
+            while (std::getline(input, currentLine)) {
+                pos = 0;
+                int indent = countIndent(currentLine);
+                handleIndentation(indent, lineNum, tokens);
+                lineNum++;
+				currentLine.erase(0, i
+                    ndent); // Remove leading spaces
+                while (pos < (int)currentLine.size()) {
+                    if (isspace(currentLine[pos])) {
+                        pos++;
+                        continue;
+                    }
+                    tokens.push_back(nextToken());
+                }
+            }
+            // Handle remaining dedents
+            while (indentStack.size() > 1) {
+                indentStack.pop();
+                tokens.push_back({ TokenType::DEDENT, "", lineNum, 0 });
+            }
+            tokens.push_back({ TokenType::EOF_TOKEN, "", lineNum, 0 });
+            return tokens;
+		}
+        void handleIndentation(int indent, int lineNum, std::vector<Token>& tokens) {
+            // Handle indentation changes
+            if (indent > indentStack.top()) {
+                indentStack.push(indent);
+                tokens.push_back({ TokenType::INDENT, "", lineNum, 0 });
+            }
+            else {
+                while (indent < indentStack.top()) {
+                    indentStack.pop();
+					tokens.push_back({
+                        TokenType::DEDENT, "", lineNum, 0 });
+                }
+            }
+        }
+        Token nextToken() {
+            if (pos >= (int)currentLine.size()) return { TokenType::EOF_TOKEN, "", lineNum, 0 };
+            char c = currentLine[pos];
+            int start = pos;
+            // Skip whitespace
+            if (isspace(c)) {
+                pos++;
+                return { TokenType::WHITESPACE, " ", lineNum, start };
+            }
+            // Single character tokens
+            switch (c) {
+            case '+': pos++; return { TokenType::PLUS, "+", lineNum, start };
+            case '-': pos++; return { TokenType::MINUS, "-", lineNum, start };
+			case '*': pos++; return {
+                TokenType::MUL, "*", lineNum, start };
+            case '/': pos++; return { TokenType::DIV, "/", lineNum, start };
+            case '(': pos++; return { TokenType::LPAREN, "(", lineNum, start };
+            case ')': pos++; return { TokenType::RPAREN, ")", lineNum, start };
+			case '{': pos++; return { TokenType::LBRACE, "{", line
+                Num, start };
+			case '}': pos++; return { TokenType::RBRACE, "}", line
+                Num, start };
+            case ',': pos++; return { TokenType::COMMA, ",", lineNum, start };
+            case ':': pos++; return { TokenType::COLON, ":", lineNum, start };
+            case ';': pos++; return { TokenType::SEMICOLON, ";", lineNum, start };
+            case '=': 
+                if (pos + 1 < (int)currentLine.size() && currentLine[pos + 1] == '=') {
+                    pos += 2;
+                    return { TokenType::EQ, "==", lineNum, start };
+                }
+                pos++;
+                return { TokenType::ASSIGN, "=", lineNum, start };
+            case '!':
+                if (pos + 1 < (int)currentLine.size() && currentLine[pos + 1] == '=') {
+                    pos += 2;
+                    return { TokenType::NEQ, "!=", lineNum, start };
+                }
+                pos++;
+                return { TokenType::NOT, "!", lineNum, start };
+            case '<': pos++; return { TokenType::LT, "<", lineNum, start };
+            case '>': pos++; return { TokenType::GT, ">", lineNum, start };
+            }
+            // Identifiers and keywords
+            if (isalpha(c) || c == '_') {
+				while (pos < (int)currentLine.size() && (isalnum(currentLine[pos]) || currentLine[pos] == '_')) {
+                    pos++;
+                }
+                std::string text = currentLine.substr(start, pos - start);
+                if (text == "val") return { TokenType::VAL, text, lineNum, start };
+                if (text == "func") return { TokenType::FUNC, text, lineNum, start };
+                if (text == "loop") return { TokenType::LOOP, text, lineNum, start };
+                if (text == "match") return { TokenType::MATCH, text, lineNum, start };
+                if (text == "struct") return { TokenType::STRUCT, text, lineNum, start };
+                if (text == "enum") return { TokenType::ENUM, text, lineNum, start };
+                if (text == "extern") return { TokenType::EXTERN, text, lineNum, start };
+				if (text == "say") return { TokenType::SAY, text, lineNum, start };
+                if (text == "plugin") return { TokenType::PLUGIN, text, lineNum, start };
+                if (text == "asm") return { TokenType::ASM, text, lineNum, start };
+                if (text == "star") return { TokenType::STAR, text, lineNum, start };
+                if (text == "end") return { TokenType::END, text, lineNum, start };
+                return { TokenType::IDENTIFIER, text, lineNum, start };
+            }
+            // String literals
+            if (c == '"') {
+                pos++; // consume opening "
+                std::string str;
+                while (pos < (int)currentLine.size() && currentLine[pos] != '"') {
+                    if (currentLine[pos] == '\\' && pos + 1 < (int)currentLine.size() &&
+						currentLine[pos + 1] == 'n' || currentLine[pos + 1] == 't') {
+                        if (currentLine[pos + 1] == 'n') {
+                            str += '\n';
+                        } else if (currentLine[pos + 1] == 't') {
+                            str += '\t';
+                        }
+                        pos += 2; // skip escape sequence
+                    } else {
+                        str += currentLine[pos++];
+                    }
+                }
+                if (pos < (int)currentLine.size() && currentLine[pos] == '"') {
+                    pos++; // consume closing "
+                }
+                return { TokenType::STRING_LITERAL, str, lineNum, start };
+            }
+            // Base-12 digits
+            if (isdigit(c) || c == 'X' || c == 'Y') {
+				while (pos < (int)currentLine.size() &&
+                    (isdigit(currentLine[pos]) || currentLine[pos] == 'X' || currentLine[pos] == 'Y')) {
+                    pos++;
+                }
+                std::string dg = currentLine.substr(start, pos - start);
+                return { TokenType::DIGIT_LITERAL, dg, lineNum, start };
+            }
+            throw std::runtime_error("Unexpected character: " + std::string(1, c));
+        }
+	};
+    std::unique_ptr<ASTBlock> parseProgram() {
+            auto block = parseBlock();
+            expect(TokenType::STAR);
+            expect(TokenType::END);
+            expect(TokenType::EOF_TOKEN);
+            block->statements.push_back(std::make_unique<ASTEnd>());
+            block->statements.push_back(std::make_unique<ASTStar>());
+			block->statements.push_back(std::make_unique < AST
+                Block > ());
+            block->statements.push_back(std::make_unique<ASTEnd>());
+			block->statements.push_back(std::make_unique < ASTStar
+                > ());
+            return block;
+        }
+        std::unique_ptr<ASTBlock> parseBlock() {
+            auto block = std::make_unique<ASTBlock>();
+            while (pos < (int)tokens.size()) {
+                auto stmt = parseStatement();
+                if (stmt) {
+                    block->statements.push_back(std::move(stmt));
+                }
+            }
+            return block;
+        }
+        std::unique_ptr<ASTNode> parseStatement() {
+            if (check(TokenType::VAL)) {
+				pos++;
+                    
+                std::string name = consumeIdentifier();
+                expect(TokenType::AS);
+                std::string type = consumeIdentifier();
+                expect(TokenType::COLON);
+                auto expr = parseExpression();
+                return std::make_unique<ASTValDecl>(name, type, std::move(expr));
+            }
+			if (check(TokenType::FUNC)) {
+                pos++;
+                std::string name = consumeIdentifier();
+                expect(TokenType::LPAREN);
+                std::vector<std::pair<std::string, std::string>> params;
+                while (!match(TokenType::RPAREN)) {
+                    std::string paramName = consumeIdentifier();
+                    expect(TokenType::AS);
+                    std::string paramType = consumeIdentifier();
+                    params.emplace_back(paramName, paramType);
+                    if (!match(TokenType::RPAREN)) {
+                        expect(TokenType::COMMA);
+                    }
+                }
+                expect(TokenType::COLON);
+                auto body = parseBlock();
+                return std::make_unique<ASTFunc>(name, params, "", std::move(body));
+            }
+            // Handle other statements like loop, match, etc.
+            return nullptr; // Placeholder
+        }
+        bool check(TokenType t) {
+            if (pos < (int)tokens.size() && tokens[pos].type == t) {
+                return true;
+            }
+            return false;
+        }
+		bool match(TokenType t) {
+            if (check(t)) {
+                pos++;
+                return true;
+            }
+            return false;
+        }
+        std::string consumeIdentifier() {
+            if (pos < (int)tokens.size() && tokens[pos].type == TokenType::IDENTIFIER) {
+                return tokens[pos++].text;
+            }
+            throw std::runtime_error("Expected identifier, found: " + tokens[pos].text);
+        }
+        std::unique_ptr<ASTExpression> parseExpression() {
+            ExprParser parser(tokens);
+            return parser.parseExpression();
+		}
+
+#include <iostream>
+#include <sstream>
+#include <vector>
+#include <string>
+#include <map>
+#include <memory>
+#include <unordered_map>
+#include <stdexcept>
+#include <algorithm>
+#include <fstream>
+#include <cctype>
+        #include <zlib.h>  // For compression
+    enum class TokenType {
+        IDENTIFIER, STRING_LITERAL, DIGIT_LITERAL, WHITESPACE,
+        PLUS, MINUS, MUL, DIV, LPAREN, RPAREN, LBRACE, RBRACE,
+        COMMA, COLON, SEMICOLON, ASSIGN, EQ, NEQ, LT, GT,
+        AND, OR, NOT, VAL, FUNC, LOOP, MATCH, STRUCT, ENUM,
+        EXTERN, SAY, PLUGIN, ASM, STAR, END,
+        INDENT, DEDENT,
+        EOF_TOKEN
+    };
+    struct Token {
+        TokenType type;
+        std::string text;
+        int line;
+        int col;
+        Token(TokenType t = TokenType::EOF_TOKEN,
+              const std::string& txt = "", int ln = 0, int c = 0)
+            : type(t), text(txt), line(ln), col(c) {}
+    };
+    enum class Precedence {
+        LOWEST = 0,
+        SUM = 10,
+        PRODUCT = 20,
+        LESSGREATER = 30,
+        EQUALS = 40,
+        AND = 50,
+        OR = 60
+    };
+    class ASTExpression {
+    public:
+        virtual ~ASTExpression() = default;
+    };
+    class BinaryOpNode : public ASTExpression {
+    public:
+        Token op;
+        std::unique_ptr<ASTExpression> left;
+        std::unique_ptr<ASTExpression> right;
+        BinaryOpNode(Token o, std::unique_ptr<ASTExpression> l,
+                     std::unique_ptr<ASTExpression> r)
+            : op(o), left(std::move(l)), right(std::move(r)) {}
+    };
+    class ExprParser {
+        const std::vector<Token>& tokens;
+        int pos = 0;
+		std::map<TokenType, Precedence> precedences =
+            {
+                {TokenType::PLUS, Precedence::SUM},
+                {TokenType::MINUS, Precedence::SUM},
+                {TokenType::MUL, Precedence::PRODUCT},
+                {TokenType::DIV, Precedence::PRODUCT},
+                {TokenType::EQ, Precedence::EQUALS},
+                {TokenType::NEQ, Precedence::EQUALS},
+                {TokenType::LT, Precedence::LESSGREATER},
+                {TokenType::GT, Precedence::LESSGREATER},
+                {TokenType::AND, Precedence::AND},
+                {TokenType::OR, Precedence::OR}
+            };
+    public:
+        ExprParser(const std::vector<Token>& toks) : tokens(toks) {}
+        std::unique_ptr<ASTExpression> parseExpression() {
+            // Implement expression parsing logic here
+			// This will handle binary operations, unary ops, id
+            // literals, function calls, etc.
+            std::unique_ptr<ASTExpression> left = parsePrimary();
+            while (pos < tokens.size() && isOperator(tokens[pos].type)) {
+                Token op = tokens[pos++];
+                std::unique_ptr<ASTExpression> right = parsePrimary();
+                left = std::make_unique<BinaryOpNode>(op, std::move(left), std::move(right));
+            }
+            return left;
+        }
+    private:
+        bool isOperator(TokenType type) {
+            return precedences.find(type) != precedences.end();
+        }
+        std::unique_ptr<ASTExpression> parsePrimary() {
+            if (pos >= tokens.size()) throw std::runtime_error("Unexpected end of input");
+            const Token& tok = tokens[pos];
+            if (tok.type == TokenType::IDENTIFIER) {
+                pos++;
+                return std::make_unique<IdentifierNode>(tok.text);
+			}
+            if (tok.type == TokenType::STRING_LITERAL) {
+                pos++;
+                return std::make_unique<StringLiteralNode>(tok.text);
+            }
+            if (tok.type == TokenType::DIGIT_LITERAL) {
+                pos++;
+                return std::make_unique<DigitLiteralNode>(tok.text);
+            }
+            if (tok.type == TokenType::LPAREN) {
+                pos++;
+                auto expr = parseExpression();
+                if (pos >= tokens.size() || tokens[pos].type != TokenType::RPAREN) {
+                    throw std::runtime_error("Expected closing parenthesis");
+                }
+                pos++; // consume RPAREN
+                return expr;
+            }
+            throw std::runtime_error("Unexpected token: " + tok.text);
+        }
+    };
+    class IdentifierNode : public ASTExpression {
+        std::string name;
+    public:
+        IdentifierNode(const std::string& n) : name(n) {}
+    };
+    class StringLiteralNode : public ASTExpression {
+        std::string value;
+    public:
+        StringLiteralNode(const std::string& v) : value(v) {}
+    };
+    class DigitLiteralNode : public ASTExpression {
+        std::string value;
+    public:
+        DigitLiteralNode(const std::string& v) : value(v) {}
+	};
+    class CapsuleHeader {
+    public:
+        char magic[4] = {'Q', 'T', 'R', 'C'};
+        uint32_t version = 1;
+        uint32_t compressedNasmbSize = 0;
+        uint32_t compressedSrcSize = 0;
+        uint32_t compressedMetaSize = 0;
+    };
+    class Capsule {
+        std::vector<uint8_t> nasmData;
+        std::vector<uint8_t> sourceData;
+        std::vector<uint8_t> metaData;
+        public:
+            void setNASM(const std::string& nasm) {
+                nasmData.assign(nasm.begin(), nasm.end());
+            }
+            void setSource(const std::string& source) {
+                sourceData.assign(source.begin(), source.end());
+            }
+            void setMeta(const std::string& meta) {
+                metaData.assign(meta.begin(), meta.end());
+            }
+            bool writeToFile(const std::string& filename) {
+                CapsuleHeader header;
+                auto compNasm = compressData(nasmData);
+                auto compSrc = compressData(sourceData);
+                auto compMeta = compressData(metaData);
+                if (compNasm.empty() || compSrc.empty() || compMeta.empty()) return false;
+				header.compressedNasmbSize = compNasm.size();
+				header.compressedSrcSize = compSrc.size();
+                header.compressedMetaSize = compMeta.size();
+                std::ofstream out(filename, std::ios::binary);
+                if (!out) return false;
+                out.write(reinterpret_cast<const char*>(&header), sizeof(header));
+                out.write(reinterpret_cast<const char*>(compNasm.data()), compNasm.size());
+                out.write(reinterpret_cast<const char*>(compSrc.data()), compSrc.size());
+                out.write(reinterpret_cast<const char*>(compMeta.data()), compMeta.size());
+                return true;
+            }
+        private:
+            std::vector<uint8_t> compressData(const std::vector<uint8_t>& data) {
+                uLongf compressedSize = compressBound(data.size());
+                std::vector<uint8_t> compressedData(compressedSize);
+                if (compress(compressedData.data(), &compressedSize, data.data(), data.size()) != Z_OK) {
+                    return {};
+                }
+                compressedData.resize(compressedSize);
+                return compressedData;
+            }
+	};
+#include <memory>
+#include <iostream>
+#include <sstream>
+#include <vector>
+#include <string>
+#include <unordered_map>
+#include <stdexcept>
+#include <fstream>
+#include <algorithm>
+#include <cctype>
+    class Expr {
+    public:
+        virtual ~Expr() = default;
+        virtual QValue eval(Env& env, std::unordered_map<std::string, FuncImpl>& funcs) const = 0;
+    };
+    class ExprVar : public Expr {
+        std::string name;
+    public:
+        ExprVar(const std::string& n) : name(n) {}
+        QValue eval(Env& env, std::unordered_map<std::string, FuncImpl>& funcs) const override {
+            return env.get(name);
+        }
+    };
+    class ExprFuncCall : public Expr {
+        std::string name;
+        std::vector<std::unique_ptr<Expr>> args;
+    public:
+        ExprFuncCall(const std::string& n, std::vector<std::unique_ptr<Expr>> a)
+			: name(n), args(std
+                ::move(a)) {}
+        QValue eval(Env& env, std::unordered_map<std::string, FuncImpl>& funcs) const override {
+            auto it = funcs.find(name);
+            if (it == funcs.end()) {
+                throw std::runtime_error("Function not found: " + name);
+            }
+            FuncImpl& func = it->second;
+            if (args.size() != func.params.size()) {
+                throw std::runtime_error("Function " + name + " expects " +
+                                         std::to_string(func.params.size()) + " arguments, got " +
+                                         std::to_string(args.size()));
+            }
+            Env localEnv;
+            for (size_t i = 0; i < args.size(); ++i) {
+                localEnv.set(func.params[i].first, args[i]->eval(env, funcs));
+            }
+            return func.body->eval(localEnv, funcs);
+        }
+    };
+    class Parser {
+        const std::vector<Token>& tokens;
+        int pos = 0;
+    public:
+        Parser(const std::vector<Token>& toks) : tokens(toks) {}
+        std::unique_ptr<ASTBlock> parseProgram() {
+            auto block = std::make_unique<ASTBlock>();
+            while (pos < tokens.size()) {
+                auto stmt = parse_stmt();
+                if (stmt) {
+                    block->statements.push_back(std::move(stmt));
+                }
+			}
+            return block;
+        }
+        std::unique_ptr<Stmt> parse_stmt() {
+            if (pos >= tokens.size()) return nullptr;
+            const Token& tok = tokens[pos];
+            if (tok.type == TokenType::VAL) {
+                pos++;
+                std::string name = consumeIdentifier();
+                expect(TokenType::AS);
+                std::string type = consumeIdentifier();
+                expect(TokenType::COLON);
+                std::unique_ptr<Expr> expr = parse_expr();
+                return std::make_unique<StmtValDecl>(name, type, std::move(expr));
+            }
+            if (tok.type == TokenType::FUNC) {
+                pos++;
+                std::string name = consumeIdentifier();
+                expect(TokenType::LPAREN);
+                std::vector<std::pair<std::string, std::string>> params;
+                while (!match(TokenType::RPAREN)) {
+                    std::string paramName = consumeIdentifier();
+                    expect(TokenType::AS);
+                    std::string paramType = consumeIdentifier();
+                    params.emplace_back(paramName, paramType);
+                    if (!match(TokenType::RPAREN)) {
+                        expect(TokenType::COMMA);
+                    }
+                }
+                expect(TokenType::COLON);
+                std::unique_ptr<Block> body = parseBlock();
+                return std::make_unique<StmtFunc>(name, params, "", std::move(body));
+			}
+            if (tok.type == TokenType::LOOP) {
+                pos++;
+                std::unique_ptr<Expr> condition = parse_expr();
+                std::unique_ptr<Block> body = parseBlock();
+                return std::make_unique<StmtLoop>(std::move(condition), std::move(body));
+            }
+            if (tok.type == TokenType::MATCH) {
+                pos++;
+                std::unique_ptr<Expr> expr = parse_expr();
+                std::vector<std::unique_ptr<Stmt>> body;
+                while (pos < tokens.size() && tokens[pos].type != TokenType::END) {
+                    if (match(TokenType::WHEN)) {
+                        auto case_expr = parse_expr();
+						body.push_
+                            back(std::make_unique<StmtWhen>(std::move(case_expr), parseBlock()));
+                    }
+                    else if (match(TokenType::ELSE)) {
+                        body.push_back(std::make_unique<StmtElse>(parseBlock()));
+                    }
+                    else {
+                        throw std::runtime_error("Expected WHEN or ELSE in match statement");
+                    }
+                }
+                expect(TokenType::END);
+                return std::make_unique<StmtMatch>(std::move(expr), std::move(body));
+            }
+            if (tok.type == TokenType::STRUCT) {
+                pos++;
+                std::string name = consumeIdentifier();
+                expect(TokenType::LBRACE);
+                std::vector<std::pair<std::string, std::string>> fields;
+                while (!match(TokenType::RBRACE)) {
+                    std::string fieldName = consumeIdentifier();
+                    expect(TokenType::AS);
+                    std::string fieldType = consumeIdentifier();
+                    fields.emplace_back(fieldName, fieldType);
+                    if (!match(TokenType::RBRACE)) {
+						expect(TokenType::COMMA);
+                        }
+                }
+                return std::make_unique<StmtStruct>(name, fields);
+            }
+            if (tok.type == TokenType::ENUM) {
+                pos++;
+                std::string name = consumeIdentifier();
+                expect(TokenType::LBRACE);
+                std::vector<std::string> values;
+                while (!match(TokenType::RBRACE)) {
+                    std::string value = consumeIdentifier();
+                    values.push_back(value);
+                    if (!match(TokenType::RBRACE)) {
+                        expect(TokenType::COMMA);
+                    }
+                }
+                return std::make_unique<StmtEnum>(name, values);
+            }
+            if (tok.type == TokenType::EXTERN) {
+				pos++;
+                std::string name = consumeIdentifier();
+                expect(TokenType::AS);
+                std::string type = consumeIdentifier();
+                return std::make_unique<StmtExtern>(name, type);
+            }
+            if (tok.type == TokenType::SAY) {
+                pos++;
+                std::unique_ptr<Expr> expr = parse_expr();
+                return std::make_unique<StmtSay>(std::move(expr));
+            }
+            if (tok.type == TokenType::PLUGIN) {
+                pos++;
+                std::string name = consumeIdentifier();
+                expect(TokenType::LBRACE);
+                std::vector<std::unique_ptr<Stmt>> body;
+                while (!match(TokenType::RBRACE)) {
+                    auto stmt = parse_stmt();
+                    if (stmt) {
+                        body.push_back(std::move(stmt));
+                    }
+				}
+                return std::make_unique<StmtPlugin>(name, std::move(body));
+            }
+            if (tok.type == TokenType::ASM) {
+                pos++;
+                std::string code = consumeStringLiteral();
+                return std::make_unique<StmtAsm>(code);
+            }
+            if (tok.type == TokenType::STAR) {
+                pos++;
+                return std::make_unique<StmtStar>();
+            }
+            if (tok.type == TokenType::END) {
+                pos++;
+                return std::make_unique<StmtEnd>();
+            }
+            throw std::runtime_error("Unexpected token: " + tok.text);
+        }
+        void expect(TokenType type) {
+            if (pos >= tokens.size() || tokens[pos].type != type) {
+                throw std::runtime_error("Expected token of type " + std::to_string(static_cast<int>(type)) +
+					", found: " + tokens[pos].text);
+                }
+            pos++;
+        }
+        bool match(TokenType type) {
+            if (pos < tokens.size() && tokens[pos].type == type) {
+                pos++;
+                return true;
+            }
+            return false;
+        }
+        std::string consumeIdentifier() {
+            if (pos < tokens.size() && tokens[pos].type == TokenType::IDENTIFIER) {
+                return tokens[pos++].text;
+            }
+            throw std::runtime_error("Expected identifier, found: " + tokens[pos].text);
+        }
+        std::string consumeStringLiteral() {
+            if (pos < tokens.size() && tokens[pos].type == TokenType::STRING_LITERAL) {
+                return tokens[pos++].text;
+            }
+            throw std::runtime_error("Expected string literal, found: " + tokens[pos].text);
+		}
+
+        class Optimizer {
+        public:
+            void constantFold(ASTNode* node) {
+                // Recursively evaluate constant expressions and replace
+                // TODO: implement expression evaluator and AST substitution
+            }
+
+            void loopUnroll(ASTLoop* loopNode, int unrollFactor = 4) {
+                if (loopNode->range < unrollFactor) return; // too small
+                // Replace loop body by repeated copies with adjusted indices
+            }
+        };
+
+        void optimize(ASTBlock* block) {
+            Optimizer optimizer;
+            for (auto& stmt : block->statements) {
+                if (auto loop = dynamic_cast<ASTLoop*>(stmt.get())) {
+                    optimizer.loopUnroll(loop);
+                }
+                else if (auto expr = dynamic_cast<ASTExpression*>(stmt.get())) {
+                    optimizer.constantFold(expr);
+                }
+            }
+		}
+        void handleIndentation(int indent, int lineNum, std::vector<Token>& tokens, std::vector<Token>& indentStack) {
+            // Handle indentation changes
+			if (indent > indentStack.back().col) {
+                indentStack.push_back(Token(TokenType::INDENT, "", lineNum));
+                tokens.push_back(Token(TokenType::INDENT, "", lineNum));
+            }
+            else {
+				while (in
+                    dent < indentStack.back().col) {
+                    indentStack.pop_back();
+                    tokens.push_back(Token(TokenType::DEDENT, "", lineNum));
+                }
+            }
+        }
+        int countIndent(const std::string& line) {
+            int count = 0;
+            for (char c : line) {
+                if (c == ' ') count++;
+                else break;
+            }
+            return count;
+		}
+        void handleDedent(std::vector<Token>& tokens, std::vector<Token>& indentStack, int lineNum) {
+            // Handle dedentation
+            while (indentStack.size() > 1) {
+                if (indentStack.back().type == TokenType::INDENT) {
+					in
+                        dentStack.pop_back();
+                    tokens.push_back(Token(TokenType::DEDENT, "", lineNum));
+                }
+                else {
+                    break; // No more dedents
+                }
+            }
+        }
+        int getPrecedence(TokenType type) {
+            switch (type) {
+			case TokenType::OR: return 1;
+                case TokenType::AND: return 2;
+            case TokenType::EQ: return 3;
+            case TokenType::NEQ: return 3;
+            case TokenType::LT: return 4;
+            case TokenType::GT: return 4;
+            case TokenType::PLUS: return 5;
+            case TokenType::MINUS: return 5;
+            case TokenType::MUL: return 6;
+			case TokenType::DIV: return 6;
+                default: return 0; // Lowest precedence
+            }
+        }
+        std::string escapeStringForNASM(const std::string& str) {
+            std::ostringstream oss;
+            for (char c : str) {
+                if (c == '"') {
+                    oss << "\\\""; // Escape double quotes
+                } else if (c == '\n') {
+                    oss << "\\n"; // Newline
+                } else if (c == '\t') {
+                    oss << "\\t"; // Tab
+                } else if (c < 32 || c > 126) {
+                    oss << "\\x" << std::hex << static_cast<int>(c); // Non-printable characters
+                } else {
+                    oss << c; // Normal character
+                }
+            }
+			return oss.str();
+            }
+        void writeBlock(std::ostream& out, const std::vector<uint8_t>& data) {
+			if (data.empty()) return;
+            uint32_t size = static_cast<uint32_t>(data.size());
+            out.write(reinterpret_cast<const char*>(&size), sizeof(size));
+			if (size == 0) return; // Avoid writing empty blocks
+            out.write(reinterpret_cast<const char*>(data.data()), size);
+        }
+    };
+    class Capsule {
+		uint32_t version = 1;
+        std::vector<uint8_t> compressedNasmasm;
+        std::vector<uint8_t> compressedSource;
+        std::vector<uint8_t> compressedMetadata;
+    public:
+        void setNASM(const std::string& nasm) {
+            compressedNasmasm.assign(nasm.begin(), nasm.end());
+        }
+        void setSource(const std::string& source) {
+            compressedSource.assign(source.begin(), source.end());
+        }
+        void setMetadata(const std::string& metadata) {
+            compressedMetadata.assign(metadata.begin(), metadata.end());
+		}
+        bool writeToFile(const std::string& filename) {
+            CapsuleHeader header;
+            header.version = version;
+            header.compressedNasmbSize = compressedNasmasm.size();
+            header.compressedSrcSize = compressedSource.size();
+            header.compressedMetaSize = compressedMetadata.size();
+            std::ofstream out(filename, std::ios::binary);
+            if (!out) return false;
+			out.write(reinterpret_cast<const char*>(&header), sizeof(header));
+            writeBlock(out, compressedNasmasm);
+            writeBlock(out, compressedSource);
+            writeBlock(out, compressedMetadata);
+            return true;
+        }
+    };
+    class Lexer {
+        std::istream& input;
+        std::string currentLine;
+        int pos = 0;
+        int lineNum = 1;
+        std::stack<int> indentStack; // Stack to track indentation levels
+	public:
+        Lexer(std::istream& in) : input(in) {
+            indentStack.push(0); // Initial indentation level
+        }
+        std::vector<Token> tokenize() {
+            std::vector<Token> tokens;
+            while (std::getline(input, currentLine)) {
+                pos = 0; // Reset position for each line
+                int indent = countIndent(currentLine);
+                handleIndentation(indent, lineNum, tokens);
+                if (currentLine.empty()) {
+                    lineNum++;
+                    continue; // Skip empty lines
+				}
+                while (pos < (int)currentLine.size()) {
+                    Token token = nextToken();
+                    if (token.type == TokenType::EOF_TOKEN) break;
+                    tokens.push_back(token);
+                }
+				lineNum++;
+                // Handle dedentation at the end of the line
+                handleDedent(tokens, indentStack, lineNum);
+            }
+            // Handle any remaining dedents after EOF
+            while (indentStack.size() > 1) {
+                indentStack.pop();
+                tokens.push_back({ TokenType::DEDENT, "", lineNum, 0 });
+            }
+            tokens.push_back({ TokenType::EOF_TOKEN, "", lineNum, 0 });
+            return tokens;
+		}
+        Token nextToken() {
+            if (pos >= (int)currentLine.size()) return { TokenType::EOF_TOKEN, "", lineNum, 0 };
+            // Skip whitespace
+            while (pos < (int)currentLine.size() && isspace(currentLine[pos])) {
+                pos++;
+			}
+            if (pos >= (int)currentLine.size()) return { TokenType::EOF_TOKEN, "", lineNum, 0 };
+            int start = pos;
+            char c = currentLine[pos];
+            // Handle comments
+            if (c == '#') {
+                while (pos < (int)currentLine.size() && currentLine[pos] != '\n') {
+                    pos++;
+				}
+                return { TokenType::WHITESPACE, "", lineNum, start };
+            }
+            // Handle single-character tokens
+            switch (c) {
+            case '+': pos++; return { TokenType::PLUS, "+", lineNum, start };
+            case '-': pos++; return { TokenType::MINUS, "-", lineNum, start };
+			case '*': pos++; return {
+                TokenType::MUL, "*", lineNum, start };
+            case '/': pos++; return { TokenType::DIV, "/", lineNum, start };
+            case '(': pos++; return { TokenType::LPAREN, "(", lineNum, start };
+			case ')': pos++; return { TokenType::RPAREN, ")", lineNum, start };
+                    case '{': pos++; return { TokenType::LBRACE, "{", lineNum, start };
+            case '}': pos++; return { TokenType::RBRACE, "}", lineNum, start };
+            case ',': pos++; return { TokenType::COMMA, ",", lineNum, start };
+			case ':': pos++; return { TokenType::COLON, ":", lineNum, start };
+                    case ';': pos++; return { TokenType::SEMICOLON, ";", lineNum, start };
+            case '=':
+                if (pos + 1 < (int)currentLine.size() && currentLine[pos + 1] == '=') {
+                    pos += 2;
+                    return { TokenType::EQ, "==", lineNum, start };
+                }
+				pos++;
+                return { TokenType::ASSIGN, "=", lineNum, start };
+            case '!':
+                if (pos + 1 < (int)currentLine.size() && currentLine[pos + 1] == '=') {
+                    pos += 2;
+                    return { TokenType::NEQ, "!=", lineNum, start };
+                }
+				pos++; // consume '!'
+                return { TokenType::NOT, "!", lineNum, start };
+            case '<':
+                pos++;
+                return { TokenType::LT, "<", lineNum, start };
+            case '>':
+                pos++;
+                return { TokenType::GT, ">", lineNum, start };
+            case '&':
+                if (pos + 1 < (int)currentLine.size() && currentLine[pos + 1] == '&') {
+                    pos += 2;
+                    return { TokenType::AND, "&&", lineNum, start };
+				}
+                pos++;
+                return { TokenType::AND, "&", lineNum, start };
+            case '|':
+                if (pos + 1 < (int)currentLine.size() && currentLine[pos + 1] == '|') {
+                    pos += 2;
+                    return { TokenType::OR, "||", lineNum, start };
+                }
+                pos++;
+                return { TokenType::OR, "|", lineNum, start };
+            default:
+            // Handle identifiers and keywords
+            if (isalpha(c) || c == '_') {
+                while (pos < (int)currentLine.size() &&
+                       (isalnum(currentLine[pos]) || currentLine[pos] == '_')) {
+                    pos++;
+                }
+                std::string text = currentLine.substr(start, pos - start);
+                if (text == "val") return { TokenType::VAL, text, lineNum, start };
+                if (text == "func") return { TokenType::FUNC, text, lineNum, start };
+				if (text == "loop") return { TokenType::LOOP, text, lineNum, start };
+                if (text == "match") return { TokenType::MATCH, text, lineNum, start };
+                if (text == "struct") return { TokenType::STRUCT, text, lineNum, start };
+                if (text == "enum") return { TokenType::ENUM, text, lineNum, start };
+				if (text == "extern") return { TokenType::EXTERN, text, lineNum, start };
+                if (text == "say") return { TokenType::SAY, text, lineNum, start };
+                if (text == "plugin") return { TokenType::PLUGIN, text, lineNum, start };
+                if (text == "asm") return { TokenType::ASM, text, lineNum, start };
+                if (text == "star") return { TokenType::STAR, text, lineNum, start };
+                if (text == "end") return { TokenType::END, text, lineNum, start };
+                return { TokenType::IDENTIFIER, text, lineNum, start };
+            }
+            // Handle string literals
+            if (c == '"') {
+                pos++; // consume opening "
+                std::string str;
+                while (pos < (int)currentLine.size() && currentLine[pos] != '"') {
+                    if (currentLine[pos] == '\\') {
+                        pos++; // consume escape character
+                        if (pos < (int)currentLine.size() && currentLine[pos] == 'n') {
+                            str += '\n';
+                        } else if (pos < (int)currentLine.size() && currentLine[pos] == 't') {
+                            str += '\t';
+                        } else if (pos < (int)currentLine.size() && currentLine[pos] == '"') {
+                            str += '"';
+                        } else if (currentLine.substr(pos, 2) == '\\\\') {
+                            str += '\\'; // handle escaped backslash
+                        } else if (currentLine.substr(pos, 2) == '\\' + ' ') {
+                            str += ' '; // handle escaped space
+                        } else if (currentLine.substr(pos, 2) == '\\' + 'r') {
+                            str += '\r'; // handle escaped carriage return
+                        } else if (currentLine.substr(pos, 2) == '\\' + 'a') {
+                            str += '\a'; // handle alert sound
+                        } else if (currentLine.substr(pos, 2) == '\\' + 'b') {
+                            str += '\b'; // handle backspace
+                        } else if (currentLine.substr(pos, 2) == '\\' + 'f') {
+                            str += '\f'; // handle form feed
+                        } else if (currentLine.substr(pos, 2) == '\\' + 'v') {
+							str += '\v'; // handle vertical
+                            } else {
+                            str += currentLine[pos]; // just add the character
+                        }
+                    } else {
+                        str += currentLine[pos];
+                    }
+                    pos++;
+                }
+                if (pos < (int)currentLine.size() && currentLine[pos] == '"') {
+                    pos++; // consume closing "
+                    return { TokenType::STRING_LITERAL, str, lineNum, start };
+                }
+                throw std::runtime_error("Unterminated string literal at line " + std::to_string(lineNum));
+            }
+            // Handle digit literals
+            if (isdigit(c)) {
+                while (pos < (int)currentLine.size() && isdigit(currentLine[pos])) {
+					pos++;
+                    }
+                std::string num = currentLine.substr(start, pos - start);
+                return { TokenType::DIGIT_LITERAL, num, lineNum, start };
+            }
+            throw std::runtime_error("Unexpected character '" + std::string(1, c) +
+                                     "' at line " + std::to_string(lineNum));
+        }
+        int countIndent(const std::string& line) {
+            int count = 0;
+            for (char c : line) {
+                if (c == ' ') count++;
+                else break;
+            }
+            return count;
+        }
+        void handleIndentation(int indent, int lineNum, std::vector<Token>& tokens) {
+            // Handle indentation changes
+            if (indent > indentStack.back().col) {
+                indentStack.push(Token(TokenType::INDENT, "", lineNum));
+                tokens.push_back(Token(TokenType::INDENT, "", lineNum));
+            } else {
+                while (indent < indentStack.back().col) {
+                    indentStack.pop_back();
+                    tokens.push_back(Token(TokenType::DEDENT, "", lineNum));
+                }
+            }
+		}
+        void handleDedent(std::vector<Token>& tokens, std::vector<Token>& indentStack, int lineNum) {
+            // Handle dedentation
+            while (indentStack.size() > 1) {
+                if (indentStack.back().type == TokenType::INDENT) {
+                    indentStack.pop_back();
+                    tokens.push_back(Token(TokenType::DEDENT, "", lineNum));
+                } else {
+                    break; // No more dedents
+                }
+            }
+        }
+    };
+    int main() {
+        std::istringstream input("val x as int: 42\nfunc add(a as int, b as int):\n  return a + b\n");
+        Lexer lexer(input);
+        auto tokens = lexer.tokenize();
+		ExprParser rser(tokens);
+        try {
+            auto expr = rser.parseExpression();
+            // Here you would typically evaluate the expression or generate code
+            std::cout << "Parsed expression successfully." << std::endl;
+        } catch (const std::runtime_error& e) {
+            std::cerr << "Error: " << e.what() << std::endl;
+        }
+        return 0;
+	}
+#include <zlib.h>
+#include <fstream>
+#include <vector>
+#include <map>
+#include <memory>
+#include <iostream>
+#include <string>
+#include <stdexcept>
+#include <sstream>
+#include <cstdint>
+#include <algorithm>
+#include <unordered_map>
+#include <stack>
+#include <utility>
+#include <cctype>
+#include <iostream>
+    enum class TokenType {
+        IDENTIFIER, STRING_LITERAL, DIGIT_LITERAL,
+        PLUS, MINUS, MUL, DIV,
+        LPAREN, RPAREN, LBRACE, RBRACE,
+        COMMA, COLON, SEMICOLON,
+        EQ, NEQ, LT, GT,
+        AND, OR, NOT,
+        VAL, FUNC, LOOP, MATCH,
+        STRUCT, ENUM, EXTERN,
+        SAY, PLUGIN, ASM,
+        STAR, END,
+        WHITESPACE, INDENT, DEDENT,
+        EOF_TOKEN
+    };
+    struct Token {
+        TokenType type;
+        std::string text;
+        int line;
+        int col;
+        Token(TokenType t = TokenType::EOF_TOKEN, const std::string& txt = "", int ln = 0, int c = 0)
+            : type(t), text(txt), line(ln), col(c) {}
+    };
+    class ASTNode {
+    public:
+        virtual ~ASTNode() = default;
+    };
+    class ASTBlock : public ASTNode {
+    public:
+        std::vector<std::unique_ptr<ASTNode>> statements;
+    };
+    class ASTExpression : public ASTNode {};
+    class BinaryOpNode : public ASTExpression {
+    public:
+        Token op;
+        std::unique_ptr<ASTExpression> left;
+		std::unique_ptr<ASTExpression>
+            right;
+        BinaryOpNode(const Token& o, std::unique_ptr<ASTExpression> l, std::unique_ptr<ASTExpression> r)
+            : op(o), left(std::move(l)), right(std::move(r)) {}
+    };
+    class ExprParser {
+        const std::vector<Token>& tokens;
+        int pos = 0;
+        std::unordered_map<TokenType, int> precedences = {
+            {TokenType::OR, 1}, {TokenType::AND, 2},
+            {TokenType::EQ, 3}, {TokenType::NEQ, 3},
+            {TokenType::LT, 4}, {TokenType::GT, 4},
+            {TokenType::PLUS, 5}, {TokenType::MINUS, 5},
+            {TokenType::MUL, 6}, {TokenType::DIV, 6}
+        };
+    public:
+        ExprParser(const std::vector<Token>& toks) : tokens(toks) {}
+        std::unique_ptr<ASTExpression> parseExpression() {
+			// Implement the expre
+            if (pos >= tokens.size()) throw std::runtime_error("Unexpected end of input");
+            auto left = parsePrimary();
+            while (pos < tokens.size() && precedences.count(tokens[pos].type)) {
+                Token op = tokens[pos++];
+                auto right = parsePrimary();
+                left = std::make_unique<BinaryOpNode>(op, std::move(left), std::move(right));
+            }
+            return left;
+        }
+        std::unique_ptr<ASTExpression> parsePrimary() {
+			if (pos >= tokens.size()) throw std::runtime_error("Unexpected end
+                const Token& tok = tokens[pos];
+            if (tok.type == TokenType::IDENTIFIER) {
+                pos++;
+                return std::make_unique<IdentifierNode>(tok.text);
+            }
+            if (tok.type == TokenType::STRING_LITERAL) {
+                pos++;
+                return std::make_unique<StringLiteralNode>(tok.text);
+            }
+            if (tok.type == TokenType::DIGIT_LITERAL) {
+                pos++;
+                return std::make_unique<DigitLiteralNode>(tok.text);
+            }
+			if (tok.type == TokenType::LPAREN) {
+                pos++;
+                auto expr = parseExpression();
+                if (pos >= tokens.size() || tokens[pos].type != TokenType::RPAREN) {
+                    throw std::runtime_error("Expected closing parenthesis");
+                }
+                pos++; // consume RPAREN
+                return expr;
+            }
+            throw std::runtime_error("Unexpected token: " + tok.text);
+        }
+    };
+    class IdentifierNode : public ASTExpression {
+        std::string name;
+    public:
+        IdentifierNode(const std::string& n) : name(n) {}
+        std::string getName() const { return name; }
+		void setName(const std::string& n) {
+            name = n;
+        }
+    };
+    class StringLiteralNode : public ASTExpression {
+        std::string value;
+    public:
+        StringLiteralNode(const std::string& v) : value(v) {}
+		std::string getValue() const { return value; }
+        void setValue(const std::string& v) {
+            value = v;
+        }
+    };
+    class DigitLiteralNode : public ASTExpression {
+        std::string value;
+    public:
+		DigitLiteralNode(const std::string& v) : value(v) {}
+        std::string getValue() const { return value; }
+        void setValue(const std::string& v) {
+            value = v;
+        }
+    };
+    class CapsuleHeader {
+    public:
+        uint32_t version = 1;
+        uint32_t compressedNasmbSize = 0;
+        uint32_t compressedSrcSize = 0;
+        uint32_t compressedMetaSize = 0;
+    };
+    class CapsuleWriter {
+        std::vector<uint8_t> nasmData;
+        std::vector<uint8_t> sourceData;
+        std::vector<uint8_t> metaData;
+	public:
+        void setNASM(const std::string& nasm) {
+                nasmData.assign(nasm.begin(), nasm.end());
+            }
+            void setSource(const std::string& source) {
+                sourceData.assign(source.begin(), source.end());
+            }
+            void setMetadata(const std::string& metadata) {
+                metaData.assign(metadata.begin(), metadata.end());
+            }
+            bool writeToFile(const std::string& filename) {
+                CapsuleHeader header;
+                header.compressedNasmbSize = static_cast<uint32_t>(nasmData.size());
+                header.compressedSrcSize = static_cast<uint32_t>(sourceData.size());
+                header.compressedMetaSize = static_cast<uint32_t>(metaData.size());
+                auto compNasm = compressData(nasmData);
+                auto compSrc = compressData(sourceData);
+				auto compMeta = compressData(metaData);
+                std::ofstream out(filename, std::ios::binary);
+                if (!out) return false;
+                out.write(reinterpret_cast<const char*>(&header), sizeof(header));
+                writeBlock(out, compNasm);
+                writeBlock(out, compSrc);
+                writeBlock(out, compMeta);
+                return true;
+            }
+            std::vector<uint8_t> compressData(const std::vector<uint8_t>& data) {
+                uLongf compressedSize = compressBound(data.size());
+                std::vector<uint8_t> compressedData(compressedSize);
+                if (compress(compressedData.data(), &compressedSize, data.data(), data.size()) != Z_OK) {
+                    throw std::runtime_error("Compression failed");
+				}
+                compressedData.resize(compressedSize);
+                return compressedData;
+            }
+            void writeBlock(std::ostream& out, const std::vector<uint8_t>& data) {
+                if (data.empty()) return;
+                uint32_t size = static_cast<uint32_t>(data.size());
+                out.write(reinterpret_cast<const char*>(&size), sizeof(size));
+                out.write(reinterpret_cast<const char*>(data.data()), size);
+            }
+	};
+    class Env {
+        std::unordered_map<std::string, std::string> variables;
+    public:
+        void set(const std::string& name, const std::string& value) {
+            variables[name] = value;
+        }
+        std::string get(const std::string& name) const {
+            auto it = variables.find(name);
+            if (it == variables.end()) {
+                throw std::runtime_error("Variable not found: " + name);
+            }
+            return it->second;
+        }
+    };
+    class FuncImpl {
+    public:
+        std::vector<std::pair<std::string, std::string>> params; // name and type
+        std::unique_ptr<ASTBlock> body;
+        FuncImpl(std::vector<std::pair<std::string, std::string>> p, std::unique_ptr<ASTBlock> b)
+            : params(std::move(p)), body(std::move(b)) {}
+    };
+    class FunctionTable {
+        std::unordered_map<std::string, FuncImpl> functions;
+    public:
+        void addFunction(const std::string& name, FuncImpl func) {
+            functions[name] = std::move(func);
+        }
+        const FuncImpl& getFunction(const std::string& name) const {
+            auto it = functions.find(name);
+            if (it == functions.end()) {
+				throw std::runtime_error("Func
+                    tion not found: " + name);
+            }
+            return it->second;
+        }
+        bool hasFunction(const std::string& name) const {
+            return functions.find(name) != functions.end();
+        }
+	};
+    class Parser {
+        const std::vector<Token>& tokens;
+        int pos = 0;
+    public:
+        Parser(const std::vector<Token>& toks) : tokens(toks) {}
+        std::unique_ptr<ASTBlock> parseBlock() {
+            auto block = std::make_unique<ASTBlock>();
+            while (pos < tokens.size() && tokens[pos].type != TokenType::EOF_TOKEN) {
+                auto stmt = parse_stmt();
+                if (stmt) {
+                    block->statements.push_back(std::move(stmt));
+                }
+            }
+            return block;
+        }
+        std::unique_ptr<ASTNode> parse_stmt() {
+            if (pos >= tokens.size()) return nullptr;
+            const Token& tok = tokens[pos];
+            if (tok.type == TokenType::WHITESPACE || tok.type == TokenType::INDENT || tok.type == TokenType::DEDENT) {
+                pos++;
+                return nullptr; // Skip whitespace and indentation
+            }
+            if (tok.type == TokenType::VAL) {
+                pos++;
+                std::string name = consumeIdentifier();
+				expect(TokenType::AS);
+                std::string type = consumeIdentifier();
+                expect(TokenType::COLON);
+                std::unique_ptr<Expr> value = parse_expr();
+                return std::make_unique<StmtVal>(name, type, std::move(value));
+            }
+            if (tok.type == TokenType::FUNC) {
+                pos++;
+				std::string name = consumeIdentifier();
+                expect(TokenType::LPAREN);
+                std::vector<std::pair<std::string, std::string>> params; // name and type
+                while (pos < tokens.size() && tokens[pos].type != TokenType::RPAREN) {
+                    std::string paramName = consumeIdentifier();
+                    expect(TokenType::AS);
+                    std::string paramType = consumeIdentifier();
+                    params.emplace_back(paramName, paramType);
+                    if (!match(TokenType::RPAREN)) {
+                        expect(TokenType::COMMA);
+                    }
+                }
+                expect(TokenType::RPAREN);
+                expect(TokenType::COLON);
+                auto body = parseBlock();
+                return std::make_unique<StmtFunc>(name, std::move(params), std::move(body));
+            }
+            if (tok.type == TokenType::LOOP) {
+				pos++;
+                expect(TokenType::LPAREN);
+                std::unique_ptr<Expr> range = parse_expr();
+                expect(TokenType::RPAREN);
+                expect(TokenType::COLON);
+                auto body = parseBlock();
+                return std::make_unique<StmtLoop>(std::move(range), std::move(body));
+            }
+			if (tok.type == TokenType::MATCH) {
+                pos++;
+                std::unique_ptr<Expr> subject = parse_expr();
+                expect(TokenType::LBRACE);
+                std::vector<std::unique_ptr<StmtMatchCase>> cases;
+                while (!match(TokenType::RBRACE)) {
+                    std::unique_ptr<Expr> pattern = parse_expr();
+                    expect(TokenType::COLON);
+                    auto body = parseBlock();
+                    cases.push_back(std::make_unique<StmtMatchCase>(std::move(pattern), std::move(body)));
+                    if (!match(TokenType::RBRACE)) {
+                        expect(TokenType::COMMA);
+                    }
+                }
+                return std::make_unique<StmtMatch>(std::move(subject), std::move(cases));
+            }
+            if (tok.type == TokenType::STRUCT) {
+                pos++;
+                std::string name = consumeIdentifier();
+                expect(TokenType::LBRACE);
+                std::vector<std::pair<std::string, std::string>> fields; // name and type
+				while (!match(TokenType::RBRACE)) {
+                    std::string fieldName = consumeIdentifier();
+                    expect(TokenType::AS);
+                    std::string fieldType = consumeIdentifier();
+                    fields.emplace_back(fieldName, fieldType);
+                    if (!match(TokenType::RBRACE)) {
+                        expect(TokenType::COMMA);
+                    }
+                }
+                return std::make_unique<StmtStruct>(name, std::move(fields));
+            }
+            if (tok.type == TokenType::ENUM) {
+                pos++;
+                std::string name = consumeIdentifier();
+                expect(TokenType::LBRACE);
+				std::vector<std::string> values;
+                while (!match(TokenType::RBRACE)) {
+                    std::string value = consumeIdentifier();
+                    values.push_back(value);
+                    if (!match(TokenType::RBRACE)) {
+                        expect(TokenType::COMMA);
+                    }
+                }
+                return std::make_unique<StmtEnum>(name, std::move(values));
+            }
+            if (tok.type == TokenType::EXTERN) {
+                pos++;
+                std::string name = consumeIdentifier();
+				expect(TokenType::LBRACE);
+                std::vector<std::pair<std::string, std::string>> params; // name and type
+                while (!match(TokenType::RBRACE)) {
+                    std::string paramName = consumeIdentifier();
+                    expect(TokenType::AS);
+                    std::string paramType = consumeIdentifier();
+                    params.emplace_back(paramName, paramType);
+                    if (!match(TokenType::RBRACE)) {
+                        expect(TokenType::COMMA);
+                    }
+                }
+                return std::make_unique<StmtExtern>(name, std::move(params));
+            }
+            if (tok.type == TokenType::SAY) {
+                pos++;
+                std::unique_ptr<Expr> message = parse_expr();
+                return std::make_unique<StmtSay>(std::move(message));
+            }
+            if (tok.type == TokenType::PLUGIN) {
+				pos++;
+                std::string name = consumeIdentifier();
+                expect(TokenType::LBRACE);
+                std::vector<std::pair<std::string, std::string>> params; // name and type
+                while (!match(TokenType::RBRACE)) {
+                    std::string paramName = consumeIdentifier();
+                    expect(TokenType::AS);
+                    std::string paramType = consumeIdentifier();
+                    params.emplace_back(paramName, paramType);
+                    if (!match(TokenType::RBRACE)) {
+                        expect(TokenType::COMMA);
+                    }
+                }
+                return std::make_unique<StmtPlugin>(name, std::move(params));
+            }
+			if (tok.type == TokenType::ASM) {
+                pos++;
+                std::string asmCode;
+                expect(TokenType::LBRACE);
+                while (pos < tokens.size() && tokens[pos].type != TokenType::RBRACE) {
+                    asmCode += tokens[pos].text + " ";
+                    pos++;
+                }
+                expect(TokenType::RBRACE);
+                return std::make_unique<StmtAsm>(asmCode);
+            }
+            if (tok.type == TokenType::STAR) {
+                pos++;
+                return std::make_unique<StmtStar>();
+            }
+            if (tok.type == TokenType::END) {
+                pos++;
+                return std::make_unique<StmtEnd>();
+            }
+            throw std::runtime_error("Unexpected token: " + tok.text);
+        }
+        std::string consumeIdentifier() {
+            if (pos >= tokens.size() || tokens[pos].type != TokenType::IDENTIFIER) {
+                throw std::runtime_error("Expected identifier");
+            }
+            return tokens[pos++].text;
+        }
+		void expect(TokenType type) {
+            if (pos >= tokens.size() || tokens[pos].type != type) {
+                throw std::runtime_error("Expected token of type " + std::to_string(static_cast<int>(type)) +
+                                         " but found " + tokens[pos].text);
+            }
+            pos++;
+        }
+        bool match(TokenType type) {
+            if (pos < tokens.size() && tokens[pos].type == type) {
+                pos++;
+                return true;
+            }
+            return false;
+        }
+        int countIndent(const std::string& line) {
+            int count = 0;
+            for (char c : line) {
+                if (c == ' ') count++;
+                else break;
+            }
+            return count;
+        }
+        void handleIndentation(int indent, int lineNum, std::vector<Token>& tokens) {
+            // Handle indentation changes
+            if (indent > indentStack.back().col) {
+                indentStack.push(Token(TokenType::INDENT, "", lineNum));
+				tokens.push_back(Token(TokenType::INDENT, "", lineNum));
+                } else {
+                while (indent < indentStack.back().col) {
+                    indentStack.pop_back();
+                    tokens.push_back(Token(TokenType::DEDENT, "", lineNum));
+                }
+            }
+        }
+        void handleDedent(std::vector<Token>& tokens, std::vector<Token>& indentStack, int lineNum) {
+            // Handle dedentation
+            while (indentStack.size() > 1) {
+                if (indentStack.back().type == TokenType::INDENT) {
+                    indentStack.pop_back();
+                    tokens.push_back(Token(TokenType::DEDENT, "", lineNum));
+                } else {
+                    break; // No more dedents
+                }
+            }
+        }
+		int precedence(const TokenType& type
+            ) const {
+            auto it = precedences.find(type);
+            if (it != precedences.end()) {
+                return it->second;
+            }
+            return -1; // No precedence
+        }
+        std::string escapeString(const std::string& str) {
+            std::ostringstream oss;
+            for (char c : str) {
+                if (c == '\\') {
+                    oss << "\\\\"; // Escape backslash
+                } else if (c == '"') {
+					oss << "\\\""; // Escape double quote
+
+                    } else if (c == '\n') {
+                    oss << "\\n"; // Escape newline
+                } else if (c == '\t') {
+                    oss << "\\t"; // Escape tab
+                } else if (c == '\r') {
+                    oss << "\\r"; // Escape carriage return
+                } else if (c == '\a') {
+                    oss << "\\a"; // Escape alert sound
+                } else if (c == '\b') {
+                    oss << "\\b"; // Escape backspace
+                } else if (c == '\f') {
+                    oss << "\\f"; // Escape form feed
+				}
+				else if (c == '\v') {
+                    oss << "\\v"; // Escape vertical tab
+                } else if (c == ' ') {
+                    oss << "\\ "; // Escape space
+                } else {
+                    oss << c; // Just add the character
+                }
+            }
+            return oss.str();
+        }
+	};
+    std::vector<uint8_t> compressedNasmasm;
+        std::vector<uint8_t> compressedSource;
+        std::vector<uint8_t> compressedMetadata;
+        uint32_t version = 1;
+    public:
+        void setNASM(const std::string& nasm) {
+            compressedNasmasm.assign(nasm.begin(), nasm.end());
+        }
+        void setSource(const std::string& source) {
+            compressedSource.assign(source.begin(), source.end());
+        }
+        void setMetadata(const std::string& metadata) {
+            compressedMetadata.assign(metadata.begin(), metadata.end());
+		}
+        bool writeToFile(const std::string& filename) {
+            CapsuleHeader header;
+            header.version = version;
+            header.compressedNasmbSize = static_cast<uint32_t>(compressedNasmasm.size());
+            header.compressedSrcSize = static_cast<uint32_t>(compressedSource.size());
+            header.compressedMetaSize = static_cast<uint32_t>(compressedMetadata.size());
+            std::ofstream out(filename, std::ios::binary);
+            if (!out) return false;
+            out.write(reinterpret_cast<const char*>(&header), sizeof(header));
+            writeBlock(out, compressedNasmasm);
+			writeBlock(out, com
+                pressedSource);
+            writeBlock(out, compressedMetadata);
+            return true;
+        }
+        std::vector<uint8_t> compressData(const std::vector<uint8_t>& data) {
+            uLongf compressedSize = compressBound(data.size());
+            std::vector<uint8_t> compressedData(compressedSize);
+            if (compress(compressedData.data(), &compressedSize, data.data(), data.size()) != Z_OK) {
+                throw std::runtime_error("Compression failed");
+            }
+            compressedData.resize(compressedSize);
+            return compressedData;
+        }
+        void writeBlock(std::ostream& out, const std::vector<uint8_t>& data) {
+            if (data.empty()) return;
+            uint32_t size = static_cast<uint32_t>(data.size());
+            out.write(reinterpret_cast<const char*>(&size), sizeof(size));
+            out.write(reinterpret_cast<const char*>(data.data()), size);
+        }
+    };
+    class Lexer {
+        std::istream& input;
+        std::string currentLine;
+        int lineNum = 1;
+        int pos = 0;
+        std::vector<Token> indentStack = { Token(TokenType::INDENT, "", 0) }; // Start with one indent
+    public:
+		Lexer(std::istream& in) : input(in) {}
+        std::vector<Token> tokenize() {
+            std::vector<Token> tokens;
+            while (std::getline(input, currentLine)) {
+                pos = 0; // Reset position for each line
+                int indent = countIndent(currentLine);
+                handleIndentation(indent, lineNum, tokens);
+                while (pos < (int)currentLine.size()) {
+                    Token token = nextToken();
+                    if (token.type == TokenType::EOF_TOKEN) break;
+                    tokens.push_back(token);
+                }
+                handleDedent(tokens, indentStack, lineNum);
+                lineNum++;
+            }
+            tokens.push_back(Token(TokenType::EOF_TOKEN, "", lineNum));
+            return tokens;
+        }
+    private:
+        Token nextToken() {
+            // Skip whitespace
+            while (pos < (int)currentLine.size() && isspace(currentLine[pos])) {
+                pos++;
+            }
+			if (pos >= (int)currentLine.size()) return { TokenType::EOF_TOKEN, "", lineNum, 0 };
+            int start = pos;
+            char c = currentLine[pos];
+            switch (c) {
+            case ' ': case '\t': case '\n': case '\r':
+                pos++;
+                return { TokenType::WHITESPACE, std::string(1, c), lineNum, start };
+            case '+': pos++; return { TokenType::PLUS, "+", lineNum, start };
+            case '-': pos++; return { TokenType::MINUS, "-", lineNum, start };
+            case '*': pos++; return { TokenType::MUL, "*", lineNum, start };
+            case '/': pos++; return { TokenType::DIV, "/", lineNum, start };
+            case '(': pos++; return { TokenType::LPAREN, "(", lineNum, start };
+			case ')': pos++; return { TokenType::RPAREN, ")", lineNum, star
+                t };
+            case '{': pos++; return { TokenType::LBRACE, "{", lineNum, start };
+            case '}': pos++; return { TokenType::RBRACE, "}", lineNum, start };
+            case ',': pos++; return { TokenType::COMMA, ",", lineNum, start };
+            case ':': pos++; return { TokenType::COLON, ":", lineNum, start };
+            case ';': pos++; return { TokenType::SEMICOLON, ";", lineNum, start };
+            case '=':
+                if (pos + 1 < (int)currentLine.size() && currentLine[pos + 1] == '=') {
+                    pos += 2;
+                    return { TokenType::EQ, "==", lineNum, start };
+                }
+                pos++;
+                return { TokenType::EQ, "=", lineNum, start };
+            case '!':
+				if (pos + 1 < (int)currentLine.size() && curren
+                    tLine[pos + 1] == '=') {
+                    pos += 2;
+                    return { TokenType::NEQ, "!=", lineNum, start };
+                }
+                throw std::runtime_error("Unexpected character '!' at line " + std::to_string(lineNum));
+            case '<':
+                pos++;
+                return { TokenType::LT, "<", lineNum, start };
+            case '>':
+                pos++;
+                return { TokenType::GT, ">", lineNum, start };
+            case '&':
+                if (pos + 1 < (int)currentLine.size() && currentLine[pos + 1] == '&') {
+                    pos += 2;
+                    return { TokenType::AND, "&&", lineNum, start };
+                }
+                pos++;
+                return { TokenType::AND, "&", lineNum, start };
+            case '|':
+				if (pos + 1 <
+                    (int)currentLine.size() && currentLine[pos + 1] == '|') {
+                    pos += 2;
+                    return { TokenType::OR, "||", lineNum, start };
+                }
+                pos++;
+                return { TokenType::OR, "|", lineNum, start };
+            case '"':
+            case '\'':
+                // Handle string literals
+                return nextToken();
+            default:
+            if (isalpha(c) || c == '_') {
+                // Handle identifiers and keywords
+                while (pos < (int)currentLine.size() && (isalnum(currentLine[pos]) || currentLine[pos] == '_')) {
+                    pos++;
+                }
+				std::string text = currentLine.substr(start, pos - start);
+                if (text == "val") return { TokenType::VAL, text, lineNum, start };
+                if (text == "func") return { TokenType::FUNC, text, lineNum, start };
+                if (text == "loop") return { TokenType::LOOP, text, lineNum, start };
+                if (text == "match") return { TokenType::MATCH, text, lineNum, start };
+                if (text == "struct") return { TokenType::STRUCT, text, lineNum, start };
+                if (text == "enum") return { TokenType::ENUM, text, lineNum, start };
+                if (text == "extern") return { TokenType::EXTERN, text, lineNum, start };
+                if (text == "say") return { TokenType::SAY, text, lineNum, start };
+                if (text == "plugin") return { TokenType::PLUGIN, text, lineNum, start };
+				if (text == "asm") return { TokenType::ASM, text, lineNum, start };
+                if (text == "star") return { TokenType::STAR, text, lineNum, start };
+                if (text == "end") return { TokenType::END, text, lineNum, start };
+                return { TokenType::IDENTIFIER, text, lineNum, start };
+            }
+            if (isdigit(c)) {
+                // Handle digit literals
+                while (pos < (int)currentLine.size() && isdigit(currentLine[pos])) {
+                    pos++;
+				}
+                std::string num = currentLine.substr(start, pos - start);
+                return { TokenType::DIGIT_LITERAL, num, lineNum, start };
+            }
+            if (c == '\\') {
+                // Handle escape sequences in string literals
+                std::string str;
+                pos++; // consume the backslash
+                while (pos < (int)currentLine.size() && currentLine[pos] != '"') {
+                    if (currentLine[pos] == '\\' && pos + 1 < (int)currentLine.size()) {
+                        pos++; // consume the backslash
+                        if (currentLine[pos] == 'n') {
+                            str += '\n'; // handle newline
+                        } else if (currentLine[pos] == 't') {
+                            str += '\t'; // handle tab
+                        } else if (currentLine[pos] == 'r') {
+							str += '\r'; // handle
+                            } else if (currentLine[pos] == '"') {
+                            str += '"'; // handle double quote
+                        } else if (currentLine[pos] == '\\') {
+                            str += '\\'; // handle backslash
+                        } else {
+                            throw std::runtime_error("Unknown escape sequence at line " + std::to_string(lineNum));
+                        }
+                    } else {
+                        str += currentLine[pos]; // just add the character
+                    }
+                    pos++;
+                }
+                if (pos < (int)currentLine.size() && currentLine[pos] == '"') {
+                    pos++; // consume closing "
+                    return { TokenType::STRING_LITERAL, str, lineNum, start };
+                }
+                throw std::runtime_error("Unterminated string literal at line " + std::to_string(lineNum));
+            }
+            if (c == '"' || c == '\'') {
+                // Handle string literals
+                char quoteChar = c;
+                std::string str;
+                pos++; // consume opening quote
+                while (pos < (int)currentLine.size() && currentLine[pos] != quoteChar) {
+                    if (currentLine[pos] == '\\' && pos + 1 < (int)currentLine.size()) {
+                        pos++; // consume the backslash
+                        if (currentLine[pos] == 'n') {
+                            str += '\n'; // handle newline
+                        } else if (currentLine[pos] == 't') {
+                            str += '\t'; // handle tab
+						}
+						else if (currentLine[pos] == 'r') {
+                            str += '\r'; // handle carriage return
+                        } else if (currentLine[pos] == quoteChar) {
+                            str += quoteChar; // handle closing quote
+                        } else if (currentLine[pos] == '\\') {
+                            str += '\\'; // handle backslash
+                        } else {
+                            throw std::runtime_error("Unknown escape sequence at line " + std::to_string(lineNum));
+                        }
+                    } else {
+                        str += currentLine[pos]; // just add the character
+                    }
+                    pos++;
+                }
+                if (pos < (int)currentLine.size() && currentLine[pos] == quoteChar) {
+                    pos++; // consume closing quote
+                    return { TokenType::STRING_LITERAL, str, lineNum, start };
+                }
+                throw std::runtime_error("Unterminated string literal at line " + std::to_string(lineNum));
+            }
+            throw std::runtime_error("Unexpected character '" + std::string(1, c) + "' at line " + std::to_string(lineNum));
+        }
+        int countIndent(const std::string& line) {
+            int count = 0;
+            for (char c : line) {
+                if (c == ' ') count++;
+                else break;
+            }
+            return count;
+        }
+        void handleIndentation(int indent, int lineNum, std::vector<Token>& tokens) {
+            // Handle indentation changes
+            if (indent > indentStack.back().col) {
+				indentStack.push_back(Token(TokenType::INDENT, "", lineNum));
+                tokens.push_back(Token(TokenType::INDENT, "", lineNum));
+            } else {
+                while (indent < indentStack.back().col) {
+                    indentStack.pop_back();
+                    tokens.push_back(Token(TokenType::DEDENT, "", lineNum));
+                }
+            }
+        }
+        void handleDedent(std::vector<Token>& tokens, std::vector<Token>& indentStack, int lineNum) {
+            // Handle dedentation
+            while (indentStack.size() > 1) {
+                if (indentStack.back().type == TokenType::INDENT) {
+                    indentStack.pop_back();
+                    tokens.push_back(Token(TokenType::DEDENT, "", lineNum));
+                } else {
+                    break; // No more dedents
+                }
+            }
+        }
+	};
+
+    class REPL {
+        Lexer lexer;
+        Parser parser;
+        NASMCodeGen codegen;
+        // Runtime, debugger state...
+
+    public:
+        REPL(std::istream& in, std::ostream& out)
+            : lexer(in), parser(lexer.tokenize()), codegen(out) {
+        }
+
+        void run() {
+            std::string line;
+            while (true) {
+                std::cout << "quarter> ";
+                if (!std::getline(std::cin, line)) break;
+                // parse line (maybe multi-line)
+                // execute parsed AST
+                // support breakpoints, step, inspect
+            }
+        }
+    };
+
+#include <iostream>
+#include <string>
+#include <vector>
+#include <map>
+#include <memory>
+#include <variant>
+#include <optional>
+#include <functional>
+#include <set>
+
+    // Forward declarations
+    struct Type;
+    struct ASTNode;
+
+    // Smart pointer alias for AST nodes
+    using ASTNodePtr = std::unique_ptr<ASTNode>;
+
+    // Supported base types
+    enum class BaseType {
+        INT, STRING, DG, VOID, BOOL, STRUCT, ENUM, GENERIC_PARAM
+    };
+
+    // Type representation
+    struct Type {
+        BaseType base;
+        std::string name;                 // For structs/enums/generics
+        std::vector<Type> genericArgs;   // For generics instantiation
+
+        bool operator==(const Type& other) const {
+            return base == other.base && name == other.name && genericArgs == other.genericArgs;
+        }
+    };
+
+    // Symbol Table Entry for variables/functions/types
+    struct Symbol {
+        std::string name;
+        Type type;
+        bool isFunction = false;
+        // Function signature if applicable
+        std::vector<Type> paramTypes;
+        Type returnType;
+        ASTNodePtr funcBody;             // AST subtree for functions
+        bool isGeneric = false;
+        std::vector<std::string> genericParams;
+
+        Symbol() = default;
+        Symbol(const std::string& n, const Type& t) : name(n), type(t) {}
+    };
+
+    // Symbol Table with scope support
+    class SymbolTable {
+        std::vector<std::map<std::string, Symbol>> scopes;
+
+    public:
+        SymbolTable() {
+            pushScope(); // global scope
+        }
+
+        void pushScope() {
+            scopes.emplace_back();
+        }
+
+        void popScope() {
+            if (!scopes.empty()) scopes.pop_back();
+        }
+
+        bool declare(const Symbol& sym) {
+            if (scopes.empty()) pushScope();
+            auto& current = scopes.back();
+            if (current.count(sym.name)) return false; // duplicate in same scope
+            current[sym.name] = sym;
+            return true;
+        }
+
+        std::optional<Symbol> lookup(const std::string& name) const {
+            for (auto it = scopes.rbegin(); it != scopes.rend(); ++it) {
+                auto found = it->find(name);
+                if (found != it->end()) return found->second;
+            }
+            return {};
+        }
+    };
+
+    // Base AST Node
+    struct ASTNode {
+        virtual ~ASTNode() = default;
+        virtual void print(int indent = 0) const = 0;
+    };
+
+    // Expressions
+
+    struct ASTExpr : ASTNode {
+        // For example, variants of literals, binary ops, calls, etc.
+    };
+
+    struct ASTIntLiteral : ASTExpr {
+        int value;
+        ASTIntLiteral(int v) : value(v) {}
+        void print(int indent = 0) const override {
+            std::cout << std::string(indent, ' ') << "IntLiteral: " << value << "\n";
+        }
+    };
+
+    struct ASTVarRef : ASTExpr {
+        std::string name;
+        ASTVarRef(const std::string& n) : name(n) {}
+        void print(int indent = 0) const override {
+            std::cout << std::string(indent, ' ') << "VarRef: " << name << "\n";
+        }
+    };
+
+    struct ASTBinOp : ASTExpr {
+        std::string op;
+        ASTNodePtr lhs;
+        ASTNodePtr rhs;
+
+        ASTBinOp(std::string o, ASTNodePtr l, ASTNodePtr r)
+            : op(std::move(o)), lhs(std::move(l)), rhs(std::move(r)) {
+        }
+
+        void print(int indent = 0) const override {
+            std::cout << std::string(indent, ' ') << "BinOp: " << op << "\n";
+            lhs->print(indent + 2);
+            rhs->print(indent + 2);
+        }
+    };
+
+    struct ASTCall : ASTExpr {
+        std::string funcName;
+        std::vector<ASTNodePtr> args;
+        ASTCall(std::string n, std::vector<ASTNodePtr> a) : funcName(std::move(n)), args(std::move(a)) {}
+
+        void print(int indent = 0) const override {
+            std::cout << std::string(indent, ' ') << "Call: " << funcName << "\n";
+            for (auto& arg : args) arg->print(indent + 2);
+        }
+    };
+
+    class Parser {
+        const std::vector<Token>& tokens;
+        size_t pos = 0;
+
+    public:
+        Parser(const std::vector<Token>& toks) : tokens(toks) {}
+
+        ASTNodePtr parseProgram() {
+            expect(TokenType::STAR);
+            auto block = parseBlock();
+            expect(TokenType::END);
+            return block;
+        }
+
+    private:
+        ASTNodePtr parseBlock() {
+            // Implementation of block parsing with indentation
+            // Recursive parse statements, manage INDENT/DEDENT tokens
+            // For brevity, assume single statement here
+            return parseStatement();
+        }
+
+        ASTNodePtr parseStatement() {
+            // Detect statement type by token
+            if (match(TokenType::VAL)) return parseValDecl();
+            if (match(TokenType::FUNC)) return parseFunction();
+            if (match(TokenType::LOOP)) return parseLoop();
+            // more...
+
+            return nullptr;
+        }
+
+        ASTNodePtr parseValDecl() {
+            auto name = consumeIdentifier();
+            expect(TokenType::AS);
+            auto typeName = consumeIdentifier();
+            expect(TokenType::COLON);
+            auto expr = parseExpression();
+            // create variable declaration node (not shown)
+            return expr; // stub
+        }
+
+        ASTNodePtr parseExpression(int prec = 0) {
+            // Pratt parsing for expression with precedence handling
+            // Example for literals/identifiers and binary ops
+            Token token = next();
+            ASTNodePtr left = nullptr;
+            if (token.type == TokenType::INT_LITERAL) {
+                left = std::make_unique<ASTIntLiteral>(std::stoi(token.text));
+            }
+            else if (token.type == TokenType::IDENTIFIER) {
+                left = std::make_unique<ASTVarRef>(token.text);
+            }
+            else if (token.type == TokenType::LPAREN) {
+                left = parseExpression();
+                expect(TokenType::RPAREN);
+            }
+            else {
+                throw std::runtime_error("Unexpected token in expression");
+            }
+
+            while (true) {
+                TokenType t = peek().type;
+                int p = getPrecedence(t);
+                if (p <= prec) break;
+
+                Token op = next();
+                ASTNodePtr right = parseExpression(p);
+                left = std::make_unique<ASTBinOp>(op.text, std::move(left), std::move(right));
+            }
+            return left;
+        }
+
+        int getPrecedence(TokenType t) {
+            if (t == TokenType::PLUS || t == TokenType::MINUS) return 10;
+            if (t == TokenType::MUL || t == TokenType::DIV) return 20;
+            return 0;
+        }
+
+        // Token helpers
+        bool match(TokenType t) {
+            if (peek().type == t) { pos++; return true; }
+            return false;
+        }
+        Token expect(TokenType t) {
+            Token tok = next();
+            if (tok.type != t) throw std::runtime_error("Unexpected token");
+            return tok;
+        }
+        std::string consumeIdentifier() {
+            Token tok = next();
+            if (tok.type != TokenType::IDENTIFIER)
+                throw std::runtime_error("Expected identifier");
+            return tok.text;
+        }
+        Token peek() {
+            if (pos >= tokens.size()) return Token{ TokenType::EOF_TOKEN,"",0,0 };
+            return tokens[pos];
+        }
+        Token next() {
+            if (pos >= tokens.size()) return Token{ TokenType::EOF_TOKEN,"",0,0 };
+            return tokens[pos++];
+        }
+    };
+
+    // Intermediate Representation instructions (simplified)
+
+    enum class IRInstrType {
+        LOAD_CONST,
+        LOAD_VAR,
+        STORE_VAR,
+        ADD,
+        MUL,
+        CALL,
+        RETURN,
+        LABEL,
+        JUMP,
+        CMP,
+        // ...
+    };
+
+    struct IRInstr {
+        IRInstrType op;
+        std::vector<std::string> operands; // registers, labels, values, etc.
+    };
+
+    using IRFunction = std::vector<IRInstr>;
+
+    class IRModule {
+    public:
+        std::map<std::string, IRFunction> functions;
+
+        // Monomorphization cache
+        std::map<std::string, IRFunction> monomorphCache;
+
+        IRFunction& getFunction(const std::string& name) {
+            return functions[name];
+        }
+
+        IRFunction monomorphize(const ASTFunc* genericFunc, const std::vector<Type>& types) {
+            std::string mangledName = mangle(genericFunc->name, types);
+            if (monomorphCache.count(mangledName))
+                return monomorphCache[mangledName];
+            // Perform AST substitution of generic params with types
+            // Generate IR from substituted AST
+            IRFunction irfunc;
+            // ... fill irfunc ...
+            monomorphCache[mangledName] = irfunc;
+            return irfunc;
+        }
+    private:
+        std::string mangle(const std::string& name, const std::vector<Type>& types) {
+            std::string mangled = name;
+            for (const auto& t : types) mangled += "_" + t.name;
+            return mangled;
+        }
+    };
+
+    class NASMCodeGen {
+        std::ostream& out;
+
+    public:
+        NASMCodeGen(std::ostream& os) : out(os) {}
+
+        void emitPrologue() {
+            out << "section .text\n"
+                "global _start\n"
+                "_start:\n";
+        }
+
+        void emitEpilogue() {
+            out << "    mov rax, 60\n"
+                "    xor rdi, rdi\n"
+                "    syscall\n";
+        }
+
+        void emitInstr(const IRInstr& instr) {
+            switch (instr.op) {
+            case IRInstrType::LOAD_CONST:
+                out << "    mov rax, " << instr.operands[0] << "\n";
+                break;
+            case IRInstrType::ADD:
+                out << "    add rax, " << instr.operands[0] << "\n";
+                break;
+            case IRInstrType::MUL:
+                out << "    imul rax, " << instr.operands[0] << "\n";
+                break;
+                // More...
+            default:
+                break;
+            }
+        }
+
+        void generate(const IRFunction& irfunc) {
+            emitPrologue();
+            for (const auto& instr : irfunc) {
+                emitInstr(instr);
+            }
+            emitEpilogue();
+        }
+
+        // Capsule output: wrap NASM output + source + metadata into a binary format
+        void emitCapsule(const std::string& nasm, const std::string& source, const std::string& dgMeta) {
+            // Implement compression + header + sections
+            // Write to .qtrcapsule file
+        }
+    };
+
+    class Optimizer {
+    public:
+        void constantFold(IRFunction& func) {
+            for (auto& instr : func) {
+                if (instr.op == IRInstrType::ADD || instr.op == IRInstrType::MUL) {
+                    // Try folding if operands are constants (simplified example)
+                    // Replace with folded constant
+                }
+            }
+        }
+
+        void loopUnroll(IRFunction& func) {
+            // Detect loops in IR, unroll small loops
+            // This requires label tracking and CFG analysis
+        }
+    };
+
+    class REPL {
+        SymbolTable symtab;
+        Parser parser;
+        IRModule ir;
+        NASMCodeGen codegen;
+        Optimizer opt;
+
+    public:
+        REPL(std::istream& input, std::ostream& output)
+            : parser(tokenize(input)), codegen(output) {
+        }
+
+        void run() {
+            std::string line;
+            while (true) {
+                std::cout << "quarter> ";
+                if (!std::getline(std::cin, line)) break;
+
+                try {
+                    auto ast = parser.parseProgram();  // parse input block
+                    // Semantic Analysis
+                    // Type Checking
+                    // Monomorphize generics
+                    auto irfunc = ir.monomorphize(...);
+                    opt.constantFold(irfunc);
+                    opt.loopUnroll(irfunc);
+                    codegen.generate(irfunc);
+                    // Emit debug info for inspection
+                }
+                catch (std::exception& e) {
+                    std::cerr << "Error: " << e.what() << "\n";
+                }
+            }
+        }
+    };
+
+    enum class TokenType {
+        STAR, END,
+        VAL, VAR, AS,
+        ENUM, STRUCT, FUNC, DEFINE, RETURN,
+        LOOP, MATCH, CASE, WHEN,
+        PLUGIN, LOAD, EXTERN,
+        ASM, LBRACE, RBRACE, LPAREN, RPAREN,
+        IDENTIFIER, INT_LITERAL, STRING_LITERAL,
+        COLON, COMMA, DOT, SEMICOLON,
+        PLUS, MINUS, MUL, DIV,
+        LT, GT, EQ, NEQ, LTE, GTE,
+        INDENT, DEDENT,
+        EOF_TOKEN,
+        //...
+    };
+
+    class Parser {
+        const std::vector<Token>& tokens;
+        size_t pos = 0;
+
+    public:
+        Parser(const std::vector<Token>& toks) : tokens(toks) {}
+
+        ASTNodePtr parseProgram() {
+            expect(TokenType::STAR);
+            auto block = parseBlock();
+            expect(TokenType::END);
+            return block;
+        }
+
+    private:
+        ASTNodePtr parseBlock() {
+            expect(TokenType::INDENT);
+            std::vector<ASTNodePtr> statements;
+            while (!match(TokenType::DEDENT) && peek().type != TokenType::EOF_TOKEN) {
+                statements.push_back(parseStatement());
+            }
+            expect(TokenType::DEDENT);
+            return std::make_unique<ASTBlock>(std::move(statements));
+        }
+
+        ASTNodePtr parseStatement() {
+            switch (peek().type) {
+            case TokenType::VAL: return parseValDecl();
+            case TokenType::VAR: return parseVarDecl();
+            case TokenType::ENUM: return parseEnumDecl();
+            case TokenType::STRUCT: return parseStructDecl();
+            case TokenType::DEFINE: return parseFuncDecl();
+            case TokenType::PLUGIN: return parsePluginLoad();
+            case TokenType::EXTERN: return parseExternFunc();
+            case TokenType::ASM: return parseAsmBlock();
+            case TokenType::LOOP: return parseLoop();
+            case TokenType::MATCH: return parseMatch();
+            case TokenType::WHEN: return parseWhen();
+            case TokenType::RETURN: return parseReturn();
+            default: return parseExpressionStatement();
+            }
+        }
+
+        ASTNodePtr parseValDecl() {
+            expect(TokenType::VAL);
+            auto name = consumeIdentifier();
+            expect(TokenType::AS);
+            auto typeName = consumeIdentifier();
+            expect(TokenType::COLON);
+            auto expr = parseExpression();
+            return std::make_unique<ASTValDecl>(name, Type{ BaseType::INT, typeName }, std::move(expr));
+        }
+
+        // Similarly implement parseVarDecl(), parseEnumDecl(), parseStructDecl(), parseFuncDecl(), etc.
+
+        ASTNodePtr parsePluginLoad() {
+            expect(TokenType::PLUGIN);
+            expect(TokenType::LOAD);
+            auto libName = consumeStringLiteral();
+            return std::make_unique<ASTPluginLoad>(libName);
+        }
+
+        ASTNodePtr parseExternFunc() {
+            expect(TokenType::EXTERN);
+            expect(TokenType::FUNC);
+            auto name = consumeIdentifier();
+            expect(TokenType::LPAREN);
+            // parse parameters...
+            expect(TokenType::RPAREN);
+            expect(TokenType::COLON);
+            auto returnType = consumeIdentifier();
+            return std::make_unique<ASTExternFunc>(name, /*params*/, Type{ BaseType::INT, returnType });
+        }
+
+        ASTNodePtr parseAsmBlock() {
+            expect(TokenType::ASM);
+            expect(TokenType::LBRACE);
+            auto asmCode = consumeUntil(TokenType::RBRACE);
+            expect(TokenType::RBRACE);
+            return std::make_unique<ASTAsmBlock>(asmCode);
+        }
+
+        // ...
+
+        // Expression parsing: Pratt parser with full operator precedence, function calls, literals
+    };
+
+    class SemanticAnalyzer {
+        SymbolTable& symtab;
+        std::vector<CompilerError> errors;
+
+    public:
+        void analyze(ASTNode* node) {
+            // Dispatch on node types, recursive walk AST
+            // For declarations, insert symbols
+            // For expressions, check type compatibility
+            // For generics, perform substitution & type validation
+        }
+
+        bool hasErrors() const { return !errors.empty(); }
+        void reportErrors() const {
+            for (auto& err : errors) std::cerr << err.message << "\n";
+        }
+    };
+
+    enum class IROpcode {
+        LOAD_CONST,
+        LOAD_VAR,
+        STORE_VAR,
+        ADD, SUB, MUL, DIV,
+        CALL,
+        RETURN,
+        BRANCH,
+        LABEL,
+        CMP_EQ, CMP_LT, CMP_GT,
+        // ...
+    };
+
+    struct IRInstr {
+        IROpcode opcode;
+        std::vector<std::string> args; // registers, labels, constants
+        int resultReg = -1; // SSA virtual register id
+    };
+
+    class NASMEmitter {
+        std::ostream& out;
+
+    public:
+        void emitPrologue() {
+            out << "section .text\n"
+                << "global _start\n"
+                << "_start:\n";
+        }
+
+        void emitEpilogue() {
+            out << "    mov rax, 60\n"
+                << "    xor rdi, rdi\n"
+                << "    syscall\n";
+        }
+
+        void emitInstr(const IRInstr& instr) {
+            switch (instr.opcode) {
+            case IROpcode::LOAD_CONST:
+                out << "    mov r" << instr.resultReg << ", " << instr.args[0] << "\n";
+                break;
+            case IROpcode::ADD:
+                out << "    add r" << instr.args[0] << ", r" << instr.args[1] << "\n";
+                break;
+                // ... handle other opcodes
+            default:
+                throw std::runtime_error("Unknown IR opcode");
+            }
+        }
+
+        void generate(const IRFunction& func) {
+            emitPrologue();
+            for (const auto& instr : func) emitInstr(instr);
+            emitEpilogue();
+        }
+    };
+
+    struct DebugInfoEntry {
+        size_t instrOffset;
+        int sourceLine;
+        std::string varName;
+        int regAllocated;
+    };
+
+    class DebugInfoEmitter {
+        std::vector<DebugInfoEntry> entries;
+    public:
+        void addEntry(size_t offset, int line, const std::string& var, int reg) {
+            entries.push_back({ offset, line, var, reg });
+        }
+
+        void writeDebugSection(std::ostream& os) {
+            // Write custom debug info to file or embed in capsule
+        }
+    };
+
+    class Debugger {
+        std::set<int> breakpoints;
+        std::map<std::string, int64_t> variables;
+        size_t currentInstr = 0;
+        IRFunction* currentFunction = nullptr;
+
+    public:
+        void setBreakpoint(int line) { breakpoints.insert(line); }
+        bool isBreakpoint(size_t instr) {
+            // map instr to line using DebugInfo
+        }
+        void step() {
+            // execute next IR instruction, update variables
+        }
+        void inspectVar(const std::string& name) {
+            if (variables.count(name)) {
+                std::cout << name << " = " << variables[name] << "\n";
+            }
+        }
+    };
+
+enum class TokenType {
+    STAR, END,
+    VAL, VAR, AS,
+    ENUM, STRUCT, FUNC, DEFINE, RETURN,
+    LOOP, MATCH, CASE, WHEN,
+    PLUGIN, LOAD, EXTERN,
+    ASM, LBRACE, RBRACE, LPAREN, RPAREN,
+    IDENTIFIER, INT_LITERAL, STRING_LITERAL,
+    COLON, COMMA, DOT, SEMICOLON,
+    PLUS, MINUS, MUL, DIV,
+    LT, GT, EQ, NEQ, LTE, GTE,
+    INDENT, DEDENT,
+    EOF_TOKEN,
+    //...
+};
+
+class Parser {
+    const std::vector<Token>& tokens;
+    size_t pos = 0;
+
+public:
+    Parser(const std::vector<Token>& toks) : tokens(toks) {}
+
+    ASTNodePtr parseProgram() {
+        expect(TokenType::STAR);
+        auto block = parseBlock();
+        expect(TokenType::END);
+        return block;
+    }
+
+private:
+    ASTNodePtr parseBlock() {
+        expect(TokenType::INDENT);
+        std::vector<ASTNodePtr> statements;
+        while (!match(TokenType::DEDENT) && peek().type != TokenType::EOF_TOKEN) {
+            statements.push_back(parseStatement());
+        }
+        expect(TokenType::DEDENT);
+        return std::make_unique<ASTBlock>(std::move(statements));
+    }
+
+    ASTNodePtr parseStatement() {
+        switch (peek().type) {
+            case TokenType::VAL: return parseValDecl();
+            case TokenType::VAR: return parseVarDecl();
+            case TokenType::ENUM: return parseEnumDecl();
+            case TokenType::STRUCT: return parseStructDecl();
+            case TokenType::DEFINE: return parseFuncDecl();
+            case TokenType::PLUGIN: return parsePluginLoad();
+            case TokenType::EXTERN: return parseExternFunc();
+            case TokenType::ASM: return parseAsmBlock();
+            case TokenType::LOOP: return parseLoop();
+            case TokenType::MATCH: return parseMatch();
+            case TokenType::WHEN: return parseWhen();
+            case TokenType::RETURN: return parseReturn();
+            default: return parseExpressionStatement();
+        }
+    }
+
+    ASTNodePtr parseValDecl() {
+        expect(TokenType::VAL);
+        auto name = consumeIdentifier();
+        expect(TokenType::AS);
+        auto typeName = consumeIdentifier();
+        expect(TokenType::COLON);
+        auto expr = parseExpression();
+        return std::make_unique<ASTValDecl>(name, Type{BaseType::INT, typeName}, std::move(expr));
+    }
+
+    // Similarly implement parseVarDecl(), parseEnumDecl(), parseStructDecl(), parseFuncDecl(), etc.
+
+    ASTNodePtr parsePluginLoad() {
+        expect(TokenType::PLUGIN);
+        expect(TokenType::LOAD);
+        auto libName = consumeStringLiteral();
+        return std::make_unique<ASTPluginLoad>(libName);
+    }
+
+    ASTNodePtr parseExternFunc() {
+        expect(TokenType::EXTERN);
+        expect(TokenType::FUNC);
+        auto name = consumeIdentifier();
+        expect(TokenType::LPAREN);
+        // parse parameters...
+        expect(TokenType::RPAREN);
+        expect(TokenType::COLON);
+        auto returnType = consumeIdentifier();
+        return std::make_unique<ASTExternFunc>(name, /*params*/, Type{BaseType::INT, returnType});
+    }
+
+    ASTNodePtr parseAsmBlock() {
+        expect(TokenType::ASM);
+        expect(TokenType::LBRACE);
+        auto asmCode = consumeUntil(TokenType::RBRACE);
+        expect(TokenType::RBRACE);
+        return std::make_unique<ASTAsmBlock>(asmCode);
+    }
+
+    // ...
+
+    // Expression parsing: Pratt parser with full operator precedence, function calls, literals
+};
+
+class SemanticAnalyzer {
+    SymbolTable& symtab;
+    std::vector<CompilerError> errors;
+
+public:
+    void analyze(ASTNode* node) {
+        // Dispatch on node types, recursive walk AST
+        // For declarations, insert symbols
+        // For expressions, check type compatibility
+        // For generics, perform substitution & type validation
+    }
+
+    bool hasErrors() const { return !errors.empty(); }
+    void reportErrors() const {
+        for (auto& err : errors) std::cerr << err.message << "\n";
+    }
+};
+
+enum class IROpcode {
+    LOAD_CONST,
+    LOAD_VAR,
+    STORE_VAR,
+    ADD, SUB, MUL, DIV,
+    CALL,
+    RETURN,
+    BRANCH,
+    LABEL,
+    CMP_EQ, CMP_LT, CMP_GT,
+    // ...
+};
+
+struct IRInstr {
+    IROpcode opcode;
+    std::vector<std::string> args; // registers, labels, constants
+    int resultReg = -1; // SSA virtual register id
+};
+
+class NASMEmitter {
+    std::ostream& out;
+
+public:
+    void emitPrologue() {
+        out << "section .text\n"
+            << "global _start\n"
+            << "_start:\n";
+    }
+
+    void emitEpilogue() {
+        out << "    mov rax, 60\n"
+            << "    xor rdi, rdi\n"
+            << "    syscall\n";
+    }
+
+    void emitInstr(const IRInstr& instr) {
+        switch(instr.opcode) {
+            case IROpcode::LOAD_CONST:
+                out << "    mov r" << instr.resultReg << ", " << instr.args[0] << "\n";
+                break;
+            case IROpcode::ADD:
+                out << "    add r" << instr.args[0] << ", r" << instr.args[1] << "\n";
+                break;
+            // ... handle other opcodes
+            default:
+                throw std::runtime_error("Unknown IR opcode");
+        }
+    }
+
+    void generate(const IRFunction& func) {
+        emitPrologue();
+        for (const auto& instr : func) emitInstr(instr);
+        emitEpilogue();
+    }
+};
+
+struct DebugInfoEntry {
+    size_t instrOffset;
+    int sourceLine;
+    std::string varName;
+    int regAllocated;
+};
+
+class DebugInfoEmitter {
+    std::vector<DebugInfoEntry> entries;
+public:
+    void addEntry(size_t offset, int line, const std::string& var, int reg) {
+        entries.push_back({offset, line, var, reg});
+    }
+
+    void writeDebugSection(std::ostream& os) {
+        // Write custom debug info to file or embed in capsule
+    }
+};
+
+class Debugger {
+    std::set<int> breakpoints;
+    std::map<std::string, int64_t> variables;
+    size_t currentInstr = 0;
+    IRFunction* currentFunction = nullptr;
+
+public:
+    void setBreakpoint(int line) { breakpoints.insert(line); }
+    bool isBreakpoint(size_t instr) {
+        // map instr to line using DebugInfo
+    }
+    void step() {
+        // execute next IR instruction, update variables
+    }
+    void inspectVar(const std::string& name) {
+        if(variables.count(name)) {
+            std::cout << name << " = " << variables[name] << "\n";
+        }
+    }
+};
+
+#include <string>
+#include <vector>
+#include <cctype>
+#include <stdexcept>
+#include <iostream>
+#include <stack>
+
+enum class TokenType {
+    IDENTIFIER, INT_LITERAL, STRING_LITERAL,
+    STAR, END, VAL, VAR, AS, ENUM, STRUCT, DEFINE, RETURN,
+    LOOP, MATCH, CASE, WHEN, PLUGIN, LOAD, EXTERN, FUNC,
+    ASM, LBRACE, RBRACE, LPAREN, RPAREN,
+    COLON, COMMA, DOT, SEMICOLON,
+    PLUS, MINUS, MUL, DIV,
+    LT, GT, EQ, NEQ, LTE, GTE,
+    INDENT, DEDENT,
+    NEWLINE,
+    EOF_TOKEN,
+};
+
+struct Token {
+    TokenType type;
+    std::string lexeme;
+    int line, column;
+};
+
+class Lexer {
+    std::string source;
+    size_t pos = 0;
+    int line = 1;
+    int col = 0;
+
+    std::stack<int> indentStack;
+
+public:
+    explicit Lexer(std::string src) : source(std::move(src)) {
+        indentStack.push(0);
+    }
+
+    std::vector<Token> tokenize() {
+        std::vector<Token> tokens;
+        while (true) {
+            auto token = nextToken();
+            tokens.push_back(token);
+            if (token.type == TokenType::EOF_TOKEN) break;
+        }
+        return tokens;
+    }
+
+private:
+    char peek() const {
+        if (pos >= source.size()) return '\0';
+        return source[pos];
+    }
+
+    char advance() {
+        if (pos >= source.size()) return '\0';
+        char c = source[pos++];
+        if (c == '\n') { line++; col = 0; }
+        else col++;
+        return c;
+    }
+
+    void skipWhitespace() {
+        while (std::isspace(peek()) && peek() != '\n') advance();
+    }
+
+    Token nextToken() {
+        skipWhitespace();
+
+        // Handle indentation on new lines
+        if (col == 0) {
+            int countSpaces = 0;
+            size_t tempPos = pos;
+            while (tempPos < source.size() && (source[tempPos] == ' ' || source[tempPos] == '\t')) {
+                countSpaces += (source[tempPos] == '\t' ? 4 : 1);
+                tempPos++;
+            }
+            if (countSpaces > indentStack.top()) {
+                indentStack.push(countSpaces);
+                pos = tempPos;
+                return makeToken(TokenType::INDENT, "");
+            }
+            else {
+                while (countSpaces < indentStack.top()) {
+                    indentStack.pop();
+                    return makeToken(TokenType::DEDENT, "");
+                }
+            }
+        }
+
+        char c = peek();
+        if (c == '\0') return makeToken(TokenType::EOF_TOKEN, "");
+        if (c == '\n') {
+            advance();
+            return makeToken(TokenType::NEWLINE, "\n");
+        }
+
+        if (std::isalpha(c) || c == '_') return identifierOrKeyword();
+        if (std::isdigit(c)) return numberLiteral();
+        if (c == '"') return stringLiteral();
+
+        // Symbols & operators
+        switch (c) {
+        case '*': advance(); return makeToken(TokenType::STAR, "*");
+        case '{': advance(); return makeToken(TokenType::LBRACE, "{");
+        case '}': advance(); return makeToken(TokenType::RBRACE, "}");
+        case '(': advance(); return makeToken(TokenType::LPAREN, "(");
+        case ')': advance(); return makeToken(TokenType::RPAREN, ")");
+        case ':': advance(); return makeToken(TokenType::COLON, ":");
+        case ',': advance(); return makeToken(TokenType::COMMA, ",");
+        case '.': advance(); return makeToken(TokenType::DOT, ".");
+        case ';': advance(); return makeToken(TokenType::SEMICOLON, ";");
+        case '+': advance(); return makeToken(TokenType::PLUS, "+");
+        case '-': advance(); return makeToken(TokenType::MINUS, "-");
+        case '/': advance(); return makeToken(TokenType::DIV, "/");
+        case '<': advance(); if (peek() == '=') { advance(); return makeToken(TokenType::LTE, "<="); } return makeToken(TokenType::LT, "<");
+        case '>': advance(); if (peek() == '=') { advance(); return makeToken(TokenType::GTE, ">="); } return makeToken(TokenType::GT, ">");
+        case '=': advance(); if (peek() == '=') { advance(); return makeToken(TokenType::EQ, "=="); } return makeToken(TokenType::EQ, "=");
+        case '!': advance(); if (peek() == '=') { advance(); return makeToken(TokenType::NEQ, "!="); } throw std::runtime_error("Unexpected token !");
+        }
+
+        throw std::runtime_error(std::string("Unknown character: ") + c);
+    }
+
+    Token identifierOrKeyword() {
+        size_t start = pos;
+        while (std::isalnum(peek()) || peek() == '_') advance();
+        std::string text = source.substr(start, pos - start);
+        TokenType type = keywordToToken(text);
+        return makeToken(type, text);
+    }
+
+    TokenType keywordToToken(const std::string& word) {
+        static const std::unordered_map<std::string, TokenType> keywords = {
+            {"star", TokenType::STAR},
+            {"end", TokenType::END},
+            {"val", TokenType::VAL},
+            {"var", TokenType::VAR},
+            {"as", TokenType::AS},
+            {"enum", TokenType::ENUM},
+            {"struct", TokenType::STRUCT},
+            {"define", TokenType::DEFINE},
+            {"return", TokenType::RETURN},
+            {"loop", TokenType::LOOP},
+            {"match", TokenType::MATCH},
+            {"case", TokenType::CASE},
+            {"when", TokenType::WHEN},
+            {"plugin", TokenType::PLUGIN},
+            {"load", TokenType::LOAD},
+            {"extern", TokenType::EXTERN},
+            {"func", TokenType::FUNC},
+            {"asm", TokenType::ASM},
+            // add more as needed
+        };
+        auto it = keywords.find(word);
+        if (it != keywords.end()) return it->second;
+        return TokenType::IDENTIFIER;
+    }
+
+    Token numberLiteral() {
+        size_t start = pos;
+        while (std::isdigit(peek())) advance();
+        std::string numStr = source.substr(start, pos - start);
+        return makeToken(TokenType::INT_LITERAL, numStr);
+    }
+
+    Token stringLiteral() {
+        advance(); // consume opening "
+        size_t start = pos;
+        while (peek() != '"' && peek() != '\0') advance();
+        if (peek() != '"') throw std::runtime_error("Unterminated string literal");
+        std::string str = source.substr(start, pos - start);
+        advance(); // consume closing "
+        return makeToken(TokenType::STRING_LITERAL, str);
+    }
+
+    Token makeToken(TokenType type, std::string lexeme) {
+        return Token{ type, std::move(lexeme), line, col };
+    }
+};
+
+#include <memory>
+#include <vector>
+#include <string>
+#include <stdexcept>
+#include <iostream>
+#include <unordered_map>
+
+struct ASTNode {
+    virtual ~ASTNode() = default;
+};
+
+using ASTNodePtr = std::unique_ptr<ASTNode>;
+
+struct ASTProgram : ASTNode {
+    std::vector<ASTNodePtr> statements;
+};
+
+struct ASTValDecl : ASTNode {
+    std::string name;
+    std::string typeName;
+    ASTNodePtr expr;
+    ASTValDecl(std::string n, std::string t, ASTNodePtr e)
+        : name(std::move(n)), typeName(std::move(t)), expr(std::move(e)) {
+    }
+};
+
+struct ASTFuncDecl : ASTNode {
+    std::string name;
+    std::vector<std::pair<std::string, std::string>> params; // name, type
+    std::string returnType;
+    std::vector<ASTNodePtr> body;
+};
+
+class Parser {
+    const std::vector<Token>& tokens;
+    size_t pos = 0;
+
+public:
+    explicit Parser(const std::vector<Token>& toks) : tokens(toks) {}
+
+    ASTNodePtr parseProgram() {
+        expect(TokenType::STAR);
+        auto prog = std::make_unique<ASTProgram>();
+        while (!check(TokenType::END)) {
+            prog->statements.push_back(parseStatement());
+        }
+        expect(TokenType::END);
+        return prog;
+    }
+
+private:
+    ASTNodePtr parseStatement() {
+        if (match(TokenType::VAL)) return parseValDecl();
+        if (match(TokenType::DEFINE)) return parseFuncDecl();
+        // ... other statements
+        throw std::runtime_error("Unsupported statement or unexpected token");
+    }
+
+    ASTNodePtr parseValDecl() {
+        auto name = consumeIdentifier();
+        expect(TokenType::AS);
+        auto typeName = consumeIdentifier();
+        expect(TokenType::COLON);
+        auto expr = parseExpression();
+        return std::make_unique<ASTValDecl>(name, typeName, std::move(expr));
+    }
+
+    ASTNodePtr parseFuncDecl() {
+        auto name = consumeIdentifier();
+        expect(TokenType::LPAREN);
+        auto params = parseParamList();
+        expect(TokenType::RPAREN);
+        expect(TokenType::COLON);
+        auto returnType = consumeIdentifier();
+        expect(TokenType::INDENT);
+        std::vector<ASTNodePtr> body;
+        while (!check(TokenType::DEDENT)) {
+            body.push_back(parseStatement());
+        }
+        expect(TokenType::DEDENT);
+        auto func = std::make_unique<ASTFuncDecl>();
+        func->name = name;
+        func->params = std::move(params);
+        func->returnType = returnType;
+        func->body = std::move(body);
+        return func;
+    }
+
+    std::vector<std::pair<std::string, std::string>> parseParamList() {
+        std::vector<std::pair<std::string, std::string>> params;
+        if (check(TokenType::RPAREN)) return params;
+        do {
+            auto pname = consumeIdentifier();
+            expect(TokenType::AS);
+            auto ptype = consumeIdentifier();
+            params.emplace_back(pname, ptype);
+        } while (match(TokenType::COMMA));
+        return params;
+    }
+
+    ASTNodePtr parseExpression() {
+        // Pratt or recursive parser for full operator precedence (not fully shown)
+        return parsePrimary();
+    }
+
+    ASTNodePtr parsePrimary() {
+        if (match(TokenType::INT_LITERAL)) {
+            auto val = previous().lexeme;
+            // return ASTLiteralInt
+        }
+        if (match(TokenType::STRING_LITERAL)) {
+            auto val = previous().lexeme;
+            // return ASTLiteralString
+        }
+        if (match(TokenType::IDENTIFIER)) {
+            // variable or function call
+        }
+        // etc.
+        throw std::runtime_error("Invalid expression");
+    }
+
+    // Helper parse methods: match, check, expect, consumeIdentifier, previous
+
+    bool match(TokenType t) {
+        if (check(t)) {
+            pos++;
+            return true;
+        }
+        return false;
+    }
+
+    bool check(TokenType t) const {
+        if (pos >= tokens.size()) return false;
+        return tokens[pos].type == t;
+    }
+
+    void expect(TokenType t) {
+        if (!match(t)) throw std::runtime_error("Expected token not found");
+    }
+
+    std::string consumeIdentifier() {
+        if (check(TokenType::IDENTIFIER)) {
+            return tokens[pos++].lexeme;
+        }
+        throw std::runtime_error("Expected identifier");
+    }
+
+    const Token& previous() const { return tokens[pos - 1]; }
+};
+
+enum class IRInstType {
+    CONST_INT,
+    LOAD_VAR,
+    STORE_VAR,
+    ADD,
+    SUB,
+    MUL,
+    DIV,
+    CALL,
+    RETURN,
+    BRANCH,
+    LABEL,
+    PHI,
+};
+
+struct IRInst {
+    IRInstType op;
+    std::vector<int> args; // virtual registers or constants
+    int dest = -1; // virtual register destination
+
+    IRInst(IRInstType o, std::vector<int> a, int d) : op(o), args(std::move(a)), dest(d) {}
+};
+
+using IRFunction = std::vector<IRInst>;
+
+class IRBuilder {
+    int nextReg = 0;
+
+public:
+    int newReg() { return nextReg++; }
+
+    // Recursively generate IR from AST nodes
+    int generateExpr(ASTNode* node) {
+        // handle different AST nodes
+        // for example:
+        // if (auto val = dynamic_cast<ASTValDecl*>(node)) ...
+        return 0;
+    }
+
+    IRFunction generateFunction(ASTFuncDecl* func) {
+        IRFunction ir;
+        // create basic blocks, instructions, SSA form
+        return ir;
+    }
+};
+
+class RegAllocator {
+    int numRegs = 16; // general purpose x86_64 registers
+    std::vector<int> regAssignment; // virtual reg -> physical reg mapping
+
+public:
+    RegAllocator(int virtualRegs) : regAssignment(virtualRegs, -1) {}
+
+    void allocate(const IRFunction& ir) {
+        // Simple linear scan or graph coloring here
+        for (size_t i = 0; i < regAssignment.size(); ++i) {
+            regAssignment[i] = i % numRegs;
+        }
+    }
+
+    int physReg(int virtualReg) const {
+        return regAssignment[virtualReg];
+    }
+};
+
+#include <fstream>
+
+class DebugInfo {
+    struct VarInfo {
+        std::string name;
+        int reg;
+        int line;
+    };
+    std::vector<VarInfo> variables;
+
+public:
+    void addVariable(const std::string& name, int reg, int line) {
+        variables.push_back({ name, reg, line });
+    }
+
+    void writeDWARF(const std::string& filename) {
+        // Use libdwarf or emit raw DWARF sections (complex, stub here)
+        std::ofstream f(filename, std::ios::binary);
+        // Write headers, .debug_info, .debug_line sections
+        // ...
+    }
+};
+
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/ExecutionEngine/ExecutionEngine.h>
+#include <llvm/ExecutionEngine/MCJIT.h>
+#include <llvm/IR/Module.h>
+#include <llvm/IR/IRBuilder.h>
+#include <llvm/Support/TargetSelect.h>
+#include <llvm/Support/raw_ostream.h>
+
+class QuarterLangREPL {
+    llvm::LLVMContext context;
+    std::unique_ptr<llvm::Module> module;
+    llvm::IRBuilder<> builder;
+    std::unique_ptr<llvm::ExecutionEngine> engine;
+
+public:
+    QuarterLangREPL() : builder(context) {
+        llvm::InitializeNativeTarget();
+        llvm::InitializeNativeTargetAsmPrinter();
+        module = std::make_unique<llvm::Module>("qtr_module", context);
+        std::string errStr;
+        engine.reset(llvm::EngineBuilder(std::move(module))
+            .setErrorStr(&errStr)
+            .setEngineKind(llvm::EngineKind::JIT)
+            .create());
+        if (!engine) {
+            std::cerr << "Failed to create ExecutionEngine: " << errStr << "\n";
+            exit(1);
+        }
+    }
+
+    void compileAndRun(const std::string& source) {
+        // Parse, generate LLVM IR, then run with engine->runFunction
+        // Simplified example
+    }
+};
+
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <dlfcn.h>
+#endif
+#include <string>
+#include <iostream>
+
+class Plugin {
+    void* handle = nullptr;
+
+public:
+    bool load(const std::string& path) {
+#ifdef _WIN32
+        handle = LoadLibraryA(path.c_str());
+#else
+        handle = dlopen(path.c_str(), RTLD_NOW);
+#endif
+        if (!handle) {
+            std::cerr << "Failed to load plugin: " << path << "\n";
+            return false;
+        }
+        return true;
+    }
+
+    void* getSymbol(const std::string& name) {
+#ifdef _WIN32
+        return reinterpret_cast<void*>(GetProcAddress((HMODULE)handle, name.c_str()));
+#else
+        return dlsym(handle, name.c_str());
+#endif
+    }
+
+    ~Plugin() {
+        if (handle) {
+#ifdef _WIN32
+            FreeLibrary((HMODULE)handle);
+#else
+            dlclose(handle);
+#endif
+        }
+    }
+};
+
+#include <fstream>
+#include <vector>
+
+struct CapsuleHeader {
+    char magic[4] = { 'Q', 'T', 'R', 'C' };
+    uint32_t version = 0x00020001; // v2.1
+    uint32_t compressedSize = 0;
+    uint32_t uncompressedSize = 0;
+};
+
+class Capsule {
+    CapsuleHeader header;
+    std::vector<uint8_t> compressedData;
+
+public:
+    bool write(const std::string& filename, const std::vector<uint8_t>& data) {
+        header.uncompressedSize = (uint32_t)data.size();
+        // Compress data (stub)
+        compressedData = data; // pretend compressed
+
+        header.compressedSize = (uint32_t)compressedData.size();
+
+        std::ofstream ofs(filename, std::ios::binary);
+        if (!ofs) return false;
+        ofs.write(reinterpret_cast<char*>(&header), sizeof(header));
+        ofs.write(reinterpret_cast<char*>(compressedData.data()), compressedData.size());
+        return true;
+    }
+
+    bool read(const std::string& filename, std::vector<uint8_t>& outData) {
+        std::ifstream ifs(filename, std::ios::binary);
+        if (!ifs) return false;
+        ifs.read(reinterpret_cast<char*>(&header), sizeof(header));
+        compressedData.resize(header.compressedSize);
+        ifs.read(reinterpret_cast<char*>(compressedData.data()), header.compressedSize);
+        // Decompress (stub)
+        outData = compressedData; // pretend decompressed
+        return true;
+    }
+};
+
+// === QuarterLang Supreme Compiler Pipeline ===
+//     Language: C++17+
+//     Backend: LLVM / NASM
+//     Debug: DWARF
+//     Features: Full Grammar Support, SSA, CFG, REPL + JIT, Plugin ABI
+
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <memory>
+#include <unordered_map>
+#include <variant>
+#include <optional>
+#include <dlfcn.h> // POSIX dynamic loading
+
+//---------------------------------------------
+// TOKENIZER: Lexing with indentation tracking
+//---------------------------------------------
+
+enum class TokenType { Identifier, Number, Keyword, Symbol, Indent, Dedent, Newline, Eof };
+
+struct Token {
+    TokenType type;
+    std::string lexeme;
+    int line, col;
+};
+
+class Lexer {
+    std::string source;
+    size_t index = 0;
+    int line = 1, col = 0;
+    std::vector<int> indent_stack;
+public:
+    Lexer(const std::string& src) : source(src) {}
+    std::vector<Token> tokenize();
+};
+
+//---------------------------------------------
+// PARSER: Pratt parser with complex construct support
+//---------------------------------------------
+
+struct Expr;
+struct Stmt;
+using ExprPtr = std::shared_ptr<Expr>;
+using StmtPtr = std::shared_ptr<Stmt>;
+
+struct Expr {
+    virtual ~Expr() = default;
+};
+
+struct BinaryExpr : Expr {
+    ExprPtr lhs, rhs;
+    std::string op;
+};
+
+struct LiteralExpr : Expr {
+    std::variant<int, float, std::string> value;
+};
+
+struct Parser {
+    std::vector<Token> tokens;
+    size_t pos = 0;
+    ExprPtr parse_expression();
+    StmtPtr parse_statement();
+};
+
+//---------------------------------------------
+// AST → IR (SSA, CFG)
+//---------------------------------------------
+
+struct IRValue {
+    std::string name;
+};
+
+struct IRInstruction {
+    std::string op;
+    std::vector<IRValue> args;
+};
+
+struct BasicBlock {
+    std::string label;
+    std::vector<IRInstruction> instructions;
+};
+
+struct FunctionIR {
+    std::string name;
+    std::vector<BasicBlock> blocks;
+};
+
+class IRGenerator {
+public:
+    FunctionIR generate(const StmtPtr& stmt);
+};
+
+//---------------------------------------------
+// SSA and Register Allocation
+//---------------------------------------------
+
+class SSABuilder {
+public:
+    void build(FunctionIR& func);
+};
+
+class RegisterAllocator {
+public:
+    void allocate(FunctionIR& func);
+};
+
+//---------------------------------------------
+// DWARF Debug Info Emitter (via libdwarf or custom)
+//---------------------------------------------
+
+class DebugInfoEmitter {
+public:
+    void emit(const FunctionIR& func, const std::string& path);
+};
+
+//---------------------------------------------
+// LLVM Codegen Backend (JIT + AOT)
+//---------------------------------------------
+
+class LLVMBackend {
+public:
+    void compile_to_llvm(const FunctionIR& func);
+    void run_jit(const FunctionIR& func);
+};
+
+//---------------------------------------------
+// Plugin System: ABI Bridge + Loader
+//---------------------------------------------
+
+using PluginInitFn = void(*)(void);
+
+class PluginManager {
+public:
+    void load_plugin(const std::string& path) {
+        void* handle = dlopen(path.c_str(), RTLD_LAZY);
+        if (!handle) throw std::runtime_error(dlerror());
+        auto init_fn = (PluginInitFn)dlsym(handle, "plugin_init");
+        if (init_fn) init_fn();
+    }
+};
+
+//---------------------------------------------
+// Capsule Format: Save/Load Compiled Bytecode
+//---------------------------------------------
+
+class CapsuleIO {
+public:
+    void write(const FunctionIR& func, const std::string& path);
+    FunctionIR read(const std::string& path);
+};
+
+//---------------------------------------------
+// Runtime: QuarterOps Library (C++ + ASM)
+//---------------------------------------------
+
+extern "C" int q_add(int a, int b); // example runtime operation
+
+//---------------------------------------------
+// REPL with Debug Watchpoints
+//---------------------------------------------
+
+class QuarterRepl {
+public:
+    void loop();
+    void eval(const std::string& input);
+    void inspect_variables();
+};
+
+//---------------------------------------------
+// CLI / IDE Hook
+//---------------------------------------------
+
+int main(int argc, char** argv) {
+    QuarterRepl repl;
+    repl.loop();
+    return 0;
+}
+
+// === QuarterLang Logging System in Pure C++ ===
+
+#include <iostream>
+#include <vector>
+#include <string>
+#include <ctime>
+#include <unordered_map>
+#include <algorithm>
+#include <fstream>
+
+struct LogEntry {
+    std::string timestamp;
+    std::string level;
+    std::string message;
+    std::string context;
+};
+
+std::vector<LogEntry> log_entries;
+const std::vector<std::string> log_levels = { "DEBUG", "INFO", "WARN", "ERROR", "CRITICAL" };
+int max_log_size = 512;
+bool enable_logging = true;
+
+std::string get_time_stamp() {
+    std::time_t now = std::time(nullptr);
+    char buf[64];
+    std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", std::localtime(&now));
+    return buf;
+}
+
+std::string get_color_for_level(const std::string& level) {
+    if (level == "DEBUG") return "#8888AA";
+    if (level == "INFO") return "#22CC22";
+    if (level == "WARN") return "#FFAA00";
+    if (level == "ERROR") return "#FF4444";
+    if (level == "CRITICAL") return "#FF2222";
+    return "#CCCCCC";
+}
+
+void render_log_entry(const LogEntry& e) {
+    std::string clr = get_color_for_level(e.level);
+    std::string glyph = "⭑"; // Simulate Config.get("prompt_symbol")
+    std::cout << clr << " [" << e.timestamp << "] [" << e.level << "] "
+        << glyph << " " << e.context << " → " << e.message << std::endl;
+}
+
+void log(const std::string& msg, const std::string& level = "INFO", const std::string& context = "System") {
+    if (!enable_logging) return;
+    std::string lvl = (std::find(log_levels.begin(), log_levels.end(), level) != log_levels.end()) ? level : "INFO";
+    LogEntry entry{ get_time_stamp(), lvl, msg, context };
+    log_entries.push_back(entry);
+
+    if (log_entries.size() > static_cast<size_t>(max_log_size)) {
+        log_entries.erase(log_entries.begin(), log_entries.begin() + (log_entries.size() - max_log_size));
+    }
+
+    render_log_entry(entry);
+}
+
+void show_console(const std::string& filter = "ALL") {
+    std::string glyph = "⭑";
+    std::cout << "\n🔹 " << glyph << " Console Log Viewer 🔹\n";
+    std::cout << "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+    for (const auto& entry : log_entries) {
+        if (filter == "ALL" || entry.level == filter) {
+            render_log_entry(entry);
+        }
+    }
+    std::cout << "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+}
+
+void enable_logging_fn() { enable_logging = true; }
+void disable_logging_fn() { enable_logging = false; }
+void set_max_log_size_fn(int sz) { max_log_size = sz; }
+
+void export_logs_json(const std::string& path) {
+    std::ofstream file(path);
+    file << "[\n";
+    for (size_t i = 0; i < log_entries.size(); ++i) {
+        const auto& e = log_entries[i];
+        file << "  {\n"
+            << "    \"timestamp\": \"" << e.timestamp << "\",\n"
+            << "    \"level\": \"" << e.level << "\",\n"
+            << "    \"message\": \"" << e.message << "\",\n"
+            << "    \"context\": \"" << e.context << "\"\n"
+            << "  }" << (i + 1 < log_entries.size() ? ",\n" : "\n");
+    }
+    file << "]\n";
+}
+
+void search_logs(const std::string& term) {
+    for (const auto& e : log_entries) {
+        if (e.message.find(term) != std::string::npos || e.context.find(term) != std::string::npos) {
+            render_log_entry(e);
+        }
+    }
+}
+
+enum class TokenType { Identifier, Number, Indent, Dedent, EOL, EOF, ... };
+
+struct Token {
+    TokenType type;
+    std::string lexeme;
+    int line, column;
+};
+
+class Lexer {
+    std::istream& input;
+    std::vector<Token> tokens;
+    std::stack<int> indentStack;
+
+public:
+    Lexer(std::istream& in);
+    std::vector<Token> tokenize();
+};
+
+struct Expr;
+struct Stmt;
+
+class Parser {
+    std::vector<Token> tokens;
+    size_t current = 0;
+
+    std::unique_ptr<Expr> parseExpr(int precedence = 0);
+    std::unique_ptr<Stmt> parseStmt();
+
+public:
+    Parser(const std::vector<Token>& tokens);
+    std::vector<std::unique_ptr<Stmt>> parse();
+};
+
+struct Expr {
+    virtual ~Expr() = default;
+};
+
+struct BinaryExpr : Expr {
+    std::unique_ptr<Expr> left, right;
+    std::string op;
+};
+
+struct CallExpr : Expr {
+    std::string callee;
+    std::vector<std::unique_ptr<Expr>> args;
+};
+
+struct Stmt {
+    virtual ~Stmt() = default;
+};
+
+struct FunctionStmt : Stmt {
+    std::string name;
+    std::vector<std::string> params;
+    std::vector<std::unique_ptr<Stmt>> body;
+};
+
+struct IRInstruction {
+    std::string op;
+    std::string dest;
+    std::vector<std::string> args;
+};
+
+struct BasicBlock {
+    std::string name;
+    std::vector<IRInstruction> instructions;
+};
+
+struct ControlFlowGraph {
+    std::map<std::string, BasicBlock> blocks;
+};
+
+class SSABuilder {
+public:
+    ControlFlowGraph build(const std::vector<std::unique_ptr<Stmt>>& ast);
+};
+
+#include <llvm/IR/Module.h>
+#include <llvm/IR/IRBuilder.h>
+
+class LLVMEmitter {
+    llvm::LLVMContext ctx;
+    llvm::Module module;
+    llvm::IRBuilder<> builder;
+
+public:
+    LLVMEmitter();
+    void emit(const ControlFlowGraph& cfg);
+    void emitToFile(const std::string& path);
+};
+
+class DWARFWriter {
+public:
+    void attachDebugInfo(const std::string& sourcePath);
+    void mapVariable(const std::string& var, int line, int column);
+};
+
+class RuntimeVM {
+    std::map<std::string, int> memory;
+    std::stack<int> stack;
+    std::vector<IRInstruction> program;
+
+public:
+    void load(const std::vector<IRInstruction>&);
+    void run();
+    void inspect(const std::string& var);
+};
+
+class PluginLoader {
+public:
+    void* loadLibrary(const std::string& path);
+    void* getSymbol(void* handle, const std::string& name);
+    void unloadLibrary(void* handle);
+};
+
+struct Capsule {
+    std::vector<IRInstruction> ir;
+    std::map<std::string, std::string> metadata;
+};
+
+class CapsuleIO {
+public:
+    static void writeToFile(const Capsule&, const std::string& path);
+    static Capsule readFromFile(const std::string& path);
+};
+
+class REPL {
+    RuntimeVM vm;
+
+public:
+    void start();
+    void execute(const std::string& line);
+};
+
+int main(int argc, char** argv) {
+    if (argv[1] == "--repl") {
+        REPL repl;
+        repl.start();
+    }
+    else if (argv[1] == "--compile") {
+        // Compile to .capsule
+    }
+    else if (argv[1] == "--run") {
+        // Run directly
+    }
+}
+
+#pragma once
+#include <string>
+#include <vector>
+#include <unordered_map>
+#include <functional>
+#include <array>
+
+struct Vec2 {
+    float x = 0.0f, y = 0.0f;
+};
+
+using Config = std::unordered_map<std::string, std::string>;
+
+class QuarterUI {
+public:
+    QuarterUI();
+
+    void draw(const Config& config);
+    void zoomIn();
+    void zoomOut();
+    void pan(const Vec2& delta);
+
+private:
+    float zoomLevel = 1.0f;
+    Vec2 panOffset = { 0.0f, 0.0f };
+
+    Config config;
+
+    void drawInspector(const std::string& themeColor);
+    void drawScrollLog();
+    void drawDebugConsole();
+};
+
+#include "QuarterUI.hpp"
+#include "ColorUtils.hpp"
+#include "ScrollLog.hpp"
+#include "PluginStoreFetcher.hpp"
+#include "DebugConsole.hpp"
+
+#include <imgui.h>  // Assuming ImGui; replace with your backend if needed
+
+QuarterUI::QuarterUI() {}
+
+void QuarterUI::draw(const Config& cfg) {
+    config = cfg;
+    std::string theme = config.count("theme") ? config.at("theme") : "default";
+    std::string colorHex = get_color(theme); // Custom color fetcher
+
+    drawInspector(colorHex);
+    drawScrollLog();
+    drawDebugConsole();
+}
+
+void QuarterUI::zoomIn() {
+    zoomLevel *= 1.1f;
+}
+
+void QuarterUI::zoomOut() {
+    zoomLevel *= 0.9f;
+}
+
+void QuarterUI::pan(const Vec2& delta) {
+    panOffset.x += delta.x;
+    panOffset.y += delta.y;
+}
+
+void QuarterUI::drawInspector(const std::string& colorHex) {
+    ImGui::SetNextWindowPos(ImVec2(10, 10));
+    ImGui::SetNextWindowSize(ImVec2(200, 300));
+    ImGui::Begin("Settings Inspector");
+
+    ImGui::Text("Theme Color: %s", colorHex.c_str());
+    ImGui::SliderFloat("Zoom", &zoomLevel, 0.1f, 5.0f);
+
+    static int selected_theme = 0;
+    const char* items[] = { "galactic", "sunburst", "default" };
+    if (ImGui::Combo("Theme", &selected_theme, items, IM_ARRAYSIZE(items))) {
+        config["theme"] = items[selected_theme];
+    }
+
+    ImGui::End();
+}
+
+void QuarterUI::drawScrollLog() {
+    ScrollLog::renderBottom();
+}
+
+void QuarterUI::drawDebugConsole() {
+    DebugConsole::render();
+}
+
+#pragma once
+#include <string>
+#include <unordered_map>
+
+struct Theme {
+    std::unordered_map<std::string, std::string> colors;
+    float fontScale = 1.0f;
+};
+
+Theme loadTheme(const std::string& name);
+
+#include "ColorUtils.hpp"
+#include <nlohmann/json.hpp>
+#include <fstream>
+
+Theme loadTheme(const std::string& name) {
+    Theme t;
+    std::ifstream f("resources/themes/" + name + ".json");
+    if (f) {
+        nlohmann::json js;
+        f >> js;
+        t.fontScale = js.value("fontScale", 1.0f);
+        for (auto& [k, v] : js["colors"].items())
+            t.colors[k] = v;
+    }
+    return t;
+}
+
+void QuarterUI::draw(const Config& cfg) {
+    Theme theme = loadTheme(cfg.at("theme"));
+    ImGui::GetStyle().ScaleAllSizes(theme.fontScale);
+
+    ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
+
+    ImGui::Begin("Settings Inspector", nullptr, ImGuiWindowFlags_None);
+    drawInspector(theme);
+    ImGui::End();
+
+    ImGui::Begin("Scroll Log");
+    ScrollLog::renderBottom();
+    ImGui::End();
+
+    ImGui::Begin("Debug Console");
+    DebugConsole::render();
+    ImGui::End();
+}
+
+#pragma once
+#include <functional>
+#include <vector>
+#include <string>
+
+namespace Signals {
+    using LogListener = std::function<void(const std::string&)>;
+    using VMStateListener = std::function<void(const std::string&, const std::string&)>;
+
+    void connectLog(LogListener fn);
+    void emitLog(const std::string& msg);
+    void connectVMState(VMStateListener fn);
+    void emitVMState(const std::string& var, const std::string& value);
+}
+
+Signals::emitLog("Executing command: " + cmd);
+Signals::emitVMState("x", "42");
+
+namespace ScrollLog {
+    static std::vector<std::string> logs;
+    void init() {
+        Signals::connectLog([](auto msg) { logs.push_back(msg); });
+    }
+    void renderBottom() {
+        for (auto& line : logs) ImGui::TextUnformatted(line.c_str());
+        if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
+            ImGui::SetScrollHereY(1.0f);
+    }
+}
+
+#pragma once
+#include <string>
+#include <vector>
+#include <unordered_map>
+
+enum class TokenType {
+    Keyword,
+    String,
+    Comment,
+    Number,
+    Identifier,
+    Operator,
+    Whitespace,
+    Unknown
+};
+
+struct Token {
+    TokenType type;
+    std::string text;
+};
+
+class QuarterSyntaxHighlighter {
+public:
+    QuarterSyntaxHighlighter();
+    std::vector<Token> tokenize(const std::string& line);
+
+private:
+    std::unordered_map<std::string, TokenType> keywords;
+    bool isIdentifierStart(char c);
+    bool isIdentifierChar(char c);
+    bool isDigit(char c);
+};
+
+#include "QuarterSyntaxHighlighter.hpp"
+#include <cctype>
+
+QuarterSyntaxHighlighter::QuarterSyntaxHighlighter() {
+    keywords = {
+        {"import", TokenType::Keyword},
+        {"func", TokenType::Keyword},
+        {"var", TokenType::Keyword},
+        {"end", TokenType::Keyword},
+        {"fn", TokenType::Keyword},
+        {"if", TokenType::Keyword},
+        {"else", TokenType::Keyword},
+        {"for", TokenType::Keyword},
+        {"return", TokenType::Keyword},
+        {"true", TokenType::Keyword},
+        {"false", TokenType::Keyword},
+    };
+}
+
+bool QuarterSyntaxHighlighter::isIdentifierStart(char c) {
+    return std::isalpha(c) || c == '_';
+}
+
+bool QuarterSyntaxHighlighter::isIdentifierChar(char c) {
+    return std::isalnum(c) || c == '_';
+}
+
+bool QuarterSyntaxHighlighter::isDigit(char c) {
+    return std::isdigit(c);
+}
+
+std::vector<Token> QuarterSyntaxHighlighter::tokenize(const std::string& line) {
+    std::vector<Token> tokens;
+    size_t i = 0;
+
+    while (i < line.length()) {
+        char c = line[i];
+
+        if (std::isspace(c)) {
+            size_t start = i;
+            while (i < line.length() && std::isspace(line[i])) ++i;
+            tokens.push_back({ TokenType::Whitespace, line.substr(start, i - start) });
+        }
+        else if (c == '#') {
+            tokens.push_back({ TokenType::Comment, line.substr(i) });
+            break;
+        }
+        else if (c == '"') {
+            size_t start = i++;
+            while (i < line.length() && line[i] != '"') ++i;
+            if (i < line.length()) ++i; // consume closing quote
+            tokens.push_back({ TokenType::String, line.substr(start, i - start) });
+        }
+        else if (isDigit(c)) {
+            size_t start = i;
+            while (i < line.length() && (isDigit(line[i]) || line[i] == '.')) ++i;
+            tokens.push_back({ TokenType::Number, line.substr(start, i - start) });
+        }
+        else if (isIdentifierStart(c)) {
+            size_t start = i;
+            while (i < line.length() && isIdentifierChar(line[i])) ++i;
+            std::string word = line.substr(start, i - start);
+            auto it = keywords.find(word);
+            TokenType type = (it != keywords.end()) ? it->second : TokenType::Identifier;
+            tokens.push_back({ type, word });
+        }
+        else if (std::string("+-=*/:<>,.[]()").find(c) != std::string::npos) {
+            tokens.push_back({ TokenType::Operator, std::string(1, c) });
+            ++i;
+        }
+        else {
+            tokens.push_back({ TokenType::Unknown, std::string(1, c) });
+            ++i;
+        }
+    }
+
+    return tokens;
+}
+
+struct SyntaxColor {
+    uint8_t r, g, b, a;
+};
+
+struct SyntaxTheme {
+    SyntaxColor keyword = { 255, 128, 0, 255 };
+    SyntaxColor string = { 192, 64, 255, 255 };
+    SyntaxColor comment = { 96, 128, 96, 255 };
+    SyntaxColor number = { 255, 255, 0, 255 };
+    SyntaxColor identifier = { 255, 255, 255, 255 };
+    SyntaxColor operator_ = { 200, 200, 255, 255 };
+};
+
+QuarterSyntaxHighlighter highlighter;
+auto tokens = highlighter.tokenize(R"(func draw(): print("hello") end)");
+
+for (const auto& token : tokens) {
+    std::cout << "Token [" << token.text << "] of type " << static_cast<int>(token.type) << "\n";
+}
+
+#pragma once
+#include <string>
+#include <vector>
+#include <unordered_map>
+#include <tuple>
+#include <regex>
+
+enum class QTokenType {
+    Keyword, Identifier, String, Number, Comment,
+    Operator, Symbol, Unknown
+};
+
+struct QToken {
+    QTokenType type;
+    std::string lexeme;
+    size_t line;
+    size_t column;
+};
+
+struct QKeywordInfo {
+    std::string purpose;
+    std::string example;
+};
+
+class QuarterLangHighlighter {
+public:
+    QuarterLangHighlighter();
+    std::vector<QToken> tokenize(const std::string& source);
+    QTokenType classify(const std::string& word) const;
+    const QKeywordInfo* get_info(const std::string& keyword) const;
+
+private:
+    std::unordered_map<std::string, QKeywordInfo> keyword_db;
+
+    bool is_identifier_start(char c);
+    bool is_identifier(char c);
+    bool is_digit(char c);
+    bool is_operator(char c);
+};
+
+#include "QuarterLangHighlighter.hpp"
+#include <cctype>
+#include <sstream>
+
+QuarterLangHighlighter::QuarterLangHighlighter() {
+    keyword_db = {
+        {"val", {"Declare immutable variable", "val x as int: 5"}},
+        {"var", {"Declare mutable variable", "var score as float: 0.0"}},
+        {"bool", {"Declare a boolean value", "val is_valid as bool: true"}},
+        {"truths", {"Declare foundational truths for logic/proof", "truths: identity, motion"}},
+        {"proofs", {"Declare verifiable logical constructs", "proofs validate gravity against mass"}},
+        {"types", {"Define or annotate data types", "val t as types: numeric"}},
+        {"primatives", {"Declare raw values or low-level types", "val id as primative: 42"}},
+        {"dodecagrams", {"Declare DG values (base-12 SIMD symbols)", "val id as dodecagram: 9A3"}},
+        {"dg", {"Shorthand for DG declaration", "val x as dg: A9B"}},
+        {"dgvec", {"SIMD vector of DodecaGrams", "val v as dgvec: [9A1, 9A2, 9A3]"}},
+        {"loop", {"Create bounded loop", "loop from 1 to 10:"}},
+        {"while", {"Loop while condition is true", "while x < 10:"}},
+        {"when", {"Conditional branch", "when score > 90:"}},
+        {"else", {"Else branch", "else:"}},
+        {"elif", {"Else-if condition", "elif score == 80:"}},
+        {"stop", {"Immediate halt of program", "stop"}},
+        {"match", {"Pattern match multiple values", "match status:"}},
+        {"case", {"Case inside match", "case 200:"}},
+        {"say", {"Output to console or stdout", R"(say "Running")"}},
+        {"define", {"Named function definition", "define compute(x y):"}},
+        {"fn", {"Anonymous inline function", "fn a b -> a + b"}},
+        {"procedure", {"Side-effect driven named block", "procedure setup()"}},
+        {"yield", {"Yield from coroutine or generator", "yield data"}},
+        {"return", {"Return value from function", "return result: ok x"}},
+        {"thread", {"Launch parallel thread", "thread update_UI()"}},
+        {"spawn", {"Spawn new thread or unit", "spawn indexer()"}},
+        {"async", {"Define asynchronous task", "async define fetch_data()"}},
+        {"await", {"Await async result", "val output: await fetch_data()"}},
+        {"lock", {"Lock shared resource", "lock file_handler:"}},
+        {"sync", {"Synchronize threads or scopes", "sync:"}},
+        {"inline", {"Inline function or logic", "inline multiply()"}},
+        {"nest", {"Create encapsulated block", "nest config:"}},
+        {"pipe", {"Direct data stream", R"(val log as pipe: "debug.log")"}},
+        {"map", {"Transform collections", "map items with fn x -> x * 2"}},
+        {"filter", {"Filter collection by predicate", "filter nums with fn x -> x > 0"}},
+        {"reduce", {"Reduce collection to single result", "reduce nums with fn acc x -> acc + x"}},
+        {"bind", {"Bind value or result", "bind total to sum(x, y)"}},
+        {"derive", {"Create transformation of value", "derive z from x by 2"}},
+        {"from", {"Specify source in derivation/import", "derive b from a:"}},
+        {"by", {"Modifier in transformation", "derive size from area by 2"}},
+        {"entry", {"Insert key-value into table/map", R"(entry users: 101 => "admin")"}},
+        {"table", {"Declare associative map", "table lookup as map[int, string]:"}},
+        {"scope", {"Create a local isolated block", "scope buffer:"}},
+        {"decorate", {"Attach metadata to functions or types", "@trace define render()"}},
+        {"decorators", {"Define reusable annotations", "decorators: @trace, @inline"}},
+        {"class", {"Define a reusable object blueprint", "class Window:"}},
+        {"object", {"Instantiate or reference a class", "val main as Window: new()"}},
+        {"structs", {"Define structured record types", "struct Point: x as int, y as int"}},
+        {"module", {"Declare self-contained namespace", "module geometry:"}},
+        {"import", {"Import external module", "import crypto.qtr"}},
+        {"include", {"Include file into current source", R"(include "mathlib.qtr")"}},
+        {"textures", {"Reference graphical assets", R"(val tex as texture: "skin1.png")"}},
+        {"update", {"Declare update logic loop", "procedure update_state()"}},
+        {"frame", {"Single tick unit in rendering or sim loop", "frame render()"}},
+        {"tick", {"Frame timing & scheduling", "tickrate: 60hz"}},
+        {"unit", {"Declare atomic isolated operation", "unit ClearMemory:"}},
+        {"cycle", {"Timed loop or system trigger", "cycle heartbeat every 100ms:"}},
+        {"ref", {"Reference alias to variable", "ref current to settings.main:"}},
+        {"mutate", {"Explicit variable mutation", "mutate balance with fn x -> x - 5"}},
+        {"mirror", {"Reflect or observe structure", "mirror payload:"}},
+        {"lens", {"View/edit subset of structure", "lens position from obj:"}},
+        {"nodes", {"Declare DAG or graph-like node units", "node filter_gate:"}},
+        {"controls", {"Master flow-control structures", "controls: loop, match"}},
+        {"keywords", {"Inspect or print language keywords", "say keywords"}},
+        {"nasm", {"Inline NASM injection", "nasm { mov rdi, rax }"}},
+        {"hex", {"Inline hexadecimal encoding", "hex: 0x48 0x89 0xC7"}},
+        {"asm", {"Inline assembly block", "asm { mov rax, 5 }"}},
+        {"profile", {"Mark block for benchmarking", R"(profile "parser_speed":)"}},
+        {"assert", {"Runtime assertion check", "assert x == 5"}},
+        {"test", {"Declare unit test", R"(test "math add":)"}},
+        {"option", {"Optional value container", "val name as option[string]: none"}},
+        {"result", {"Success/error union result", "return result: ok 42"}},
+        {"error", {"Return error in union", R"(return result: error "bad op")"}},
+        {"try", {"Handle exceptions", "try: ... catch e:"}},
+        {"catch", {"Catch exception", "catch e:"}},
+        {"finally", {"Cleanup block", "finally:"}},
+        {"guard", {"Protected block", "guard:"}},
+        {"track", {"Monitor value at runtime", "track packet_id"}},
+        {"override", {"Override method in class/trait", "override define toString()"}},
+        {"implements", {"Satisfy contract/trait", "define draw(obj) implements Drawable"}},
+        {"concept", {"Define behavior constraint", "concept Equatable:"}}
+    };
+}
+
+bool QuarterLangHighlighter::is_identifier_start(char c) {
+    return std::isalpha(c) || c == '_';
+}
+
+bool QuarterLangHighlighter::is_identifier(char c) {
+    return std::isalnum(c) || c == '_';
+}
+
+bool QuarterLangHighlighter::is_digit(char c) {
+    return std::isdigit(c);
+}
+
+bool QuarterLangHighlighter::is_operator(char c) {
+    return std::string("+-*/=:><|&!").find(c) != std::string::npos;
+}
+
+std::vector<QToken> QuarterLangHighlighter::tokenize(const std::string& src) {
+    std::vector<QToken> tokens;
+    size_t line = 1, column = 0, i = 0;
+
+    while (i < src.size()) {
+        char c = src[i];
+
+        if (std::isspace(c)) {
+            if (c == '\n') { ++line; column = 0; }
+            ++i; ++column;
+            continue;
+        }
+
+        size_t start = i;
+        if (c == '#') {
+            while (i < src.size() && src[i] != '\n') ++i;
+            tokens.push_back({ QTokenType::Comment, src.substr(start, i - start), line, column });
+        }
+        else if (c == '"') {
+            ++i;
+            while (i < src.size() && src[i] != '"') ++i;
+            ++i;
+            tokens.push_back({ QTokenType::String, src.substr(start, i - start), line, column });
+        }
+        else if (is_digit(c)) {
+            while (i < src.size() && (is_digit(src[i]) || src[i] == '.')) ++i;
+            tokens.push_back({ QTokenType::Number, src.substr(start, i - start), line, column });
+        }
+        else if (is_identifier_start(c)) {
+            while (i < src.size() && is_identifier(src[i])) ++i;
+            std::string word = src.substr(start, i - start);
+            QTokenType type = classify(word);
+            tokens.push_back({ type, word, line, column });
+        }
+        else if (is_operator(c)) {
+            tokens.push_back({ QTokenType::Operator, std::string(1, c), line, column });
+            ++i;
+        }
+        else {
+            tokens.push_back({ QTokenType::Unknown, std::string(1, c), line, column });
+            ++i;
+        }
+        column += (i - start);
+    }
+
+    return tokens;
+}
+
+QTokenType QuarterLangHighlighter::classify(const std::string& word) const {
+    return keyword_db.count(word) ? QTokenType::Keyword : QTokenType::Identifier;
+}
+
+const QKeywordInfo* QuarterLangHighlighter::get_info(const std::string& keyword) const {
+    auto it = keyword_db.find(keyword);
+    return (it != keyword_db.end()) ? &it->second : nullptr;
+}
+
+#include <llvm/ExecutionEngine/ExecutionEngine.h>
+#include <llvm/ExecutionEngine/MCJIT.h>
+#include <llvm/ExecutionEngine/Orc/LLJIT.h>
+#include <llvm/Support/TargetSelect.h>
+#include <llvm/Support/SourceMgr.h>
+#include <llvm/Support/Error.h>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Module.h>
+#include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/LegacyPassManager.h>
+#include <llvm/IR/Verifier.h>
+#include <llvm/IR/LegacyPassManager.h>
+class QuarterLangJIT {
+    llvm::LLVMContext context;
+    std::unique_ptr<llvm::Module> module;
+	std::unique_ptr<llvm::ExecutionEngine> engine;
+    public:
+    QuarterLangJIT() {
+        llvm::InitializeNativeTarget();
+        llvm::InitializeNativeTargetAsmPrinter();
+        llvm::InitializeNativeTargetAsmParser();
+        module = std::make_unique<llvm::Module>("QuarterLangModule", context);
+    }
+    void addFunction(const std::string& name, llvm::FunctionType* type) {
+        llvm::Function::Create(type, llvm::Function::ExternalLinkage, name, module.get());
+    }
+    void compile() {
+        std::string error;
+        engine = std::unique_ptr<llvm::ExecutionEngine>(
+            llvm::EngineBuilder(std::move(module))
+                .setErrorStr(&error)
+                .setOptLevel(llvm::CodeGenOptLevel::Default)
+                .create()
+        );
+        if (!engine) {
+            throw std::runtime_error("Failed to create ExecutionEngine: " + error);
+        }
+    }
+    void* getFunctionPointer(const std::string& name) {
+        return engine->getFunctionAddress(name);
+	}
+    template<typename FuncType>
+    FuncType getFunction(const std::string& name) {
+        void* ptr = getFunctionPointer(name);
+        if (!ptr) throw std::runtime_error("Function not found: " + name);
+        return reinterpret_cast<FuncType>(ptr);
+	}
+    void runFunction(const std::string& name) {
+        auto func = getFunction<void()>(name);
+        func();
+	}
+    void runFunctionWithArgs(const std::string& name, int arg) {
+        auto func = getFunction<void(int)>(name);
+        func(arg);
+	}
+    void runFunctionWithArgs(const std::string& name, int arg1, int arg2) {
+        auto func = getFunction<void(int, int)>(name);
+        func(arg1, arg2);
+	}
+    void runFunctionWithArgs(const std::string& name, int arg1, int arg2, int arg3) {
+        auto func = getFunction<void(int, int, int)>(name);
+        func(arg1, arg2, arg3);
+	}
+    void runFunctionWithArgs(const std::string& name, const std::vector<int>& args) {
+        auto func = getFunction<void(const std::vector<int>&)>(name);
+        func(args);
+	}
+	bool loadCapsule(const std::string& path, std::vector<uint8_t>& outData) {
+        std::ifstream file(path, std::ios::binary);
+        if (!file) {
+            std::cerr << "Failed to open capsule file: " << path << std::endl;
+            return false;
+        }
+        std::vector<uint8_t> compressedData((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+        size_t compressedSize = compressedData.size();
+        // Decompress logic would go here (stubbed for now)
+		outData.resize(compre
+            ssedSize); // For now, just copy the compressed data
+        std::copy(compressedData.begin(), compressedData.end(), outData.begin());
+        return true;
+    }
+    void saveCapsule(const std::string& path, const std::vector<uint8_t>& data) {
+        std::ofstream file(path, std::ios::binary);
+        if (!file) {
+            std::cerr << "Failed to open capsule file for writing: " << path << std::endl;
+            return;
+        }
+        file.write(reinterpret_cast<const char*>(data.data()), data.size());
+	}
+}
+#include <iostream>
+#include <vector>
+#include <string>
+#include <unordered_map>
+#include <memory>
+#include <functional>
+#include <stdexcept>
+#include <dlfcn.h>
+#include <fstream>
+// QuarterLang Compiler and Runtime System
+class QuarterLang {
+    public:
+    QuarterLang() {
+        // Initialize components
+        initLexer();
+        initParser();
+        initIRGenerator();
+        initSSABuilder();
+        initRegisterAllocator();
+        initDebugInfoEmitter();
+        initLLVMBackend();
+        initPluginManager();
+        initCapsuleIO();
+    }
+    void compile(const std::string& source) {
+        auto tokens = lexer.tokenize(source);
+        auto ast = parser.parse(tokens);
+        auto ir = irGenerator.generate(ast);
+        ssaBuilder.build(ir);
+        registerAllocator.allocate(ir);
+        debugInfoEmitter.emit(ir, "debug_info.dwarf");
+        llvmBackend.compileToLLVM(ir);
+    }
+    void run(const std::string& capsulePath) {
+        std::vector<uint8_t> capsuleData;
+        if (!capsuleIO.read(capsulePath, capsuleData)) {
+            throw std::runtime_error("Failed to read capsule file: " + capsulePath);
+        }
+        llvmBackend.runJIT(capsuleData);
+	}
+    void loadPlugin(const std::string& pluginPath) {
+        pluginManager.loadPlugin(pluginPath);
+    }
+    void saveCapsule(const std::string& capsulePath, const FunctionIR& func) {
+        capsuleIO.write(func, capsulePath);
+	}
+    private:
+    void initLexer() { lexer = Lexer(inputStream); }
+    void initParser() { parser = Parser(tokens); }
+    void initIRGenerator() { irGenerator = IRGenerator(); }
+    void initSSABuilder() { ssaBuilder = SSABuilder(); }
+    void initRegisterAllocator() { registerAllocator = RegisterAllocator(); }
+    void initDebugInfoEmitter() { debugInfoEmitter = DebugInfoEmitter(); }
+    void initLLVMBackend() { llvmBackend = LLVMBackend(); }
+    void initPluginManager() { pluginManager = PluginManager(); }
+    void initCapsuleIO() { capsuleIO = CapsuleIO(); }
+    Lexer lexer;
+    Parser parser;
+    IRGenerator irGenerator;
+    SSABuilder ssaBuilder;
+    RegisterAllocator registerAllocator;
+    DebugInfoEmitter debugInfoEmitter;
+    LLVMBackend llvmBackend;
+    PluginManager pluginManager;
+	CapsuleIO capsuleIO;
+	std::istream& inputStream; // Input stream for lexer
+	std::vector<Token> tokens; // Tokens generated by lexer
+	std::unordered_map<std::string, FunctionIR> functionIRs; // IR for functions
+	std::function<void()> init_fn; // Optional initialization function
+	std::function<void()> cleanup_fn; // Optional cleanup function
+	std::unordered_map<std::string, std::function<void()>> commands; // Command registry
+	std::unordered_map<std::string, std::function<void(const std::string&)>> plugins; // Plugin registry
+    public:
+    void registerCommand(const std::string& name, std::function<void()> fn) {
+        commands[name] = fn;
+    }
+    void registerPlugin(const std::string& name, std::function<void(const std::string&)> fn) {
+        plugins[name] = fn;
+    }
+    void executeCommand(const std::string& name) {
+        if (commands.count(name)) {
+            commands[name]();
+        } else {
+            throw std::runtime_error("Command not found: " + name);
+        }
+    }
+    void executePlugin(const std::string& name, const std::string& arg) {
+        if (plugins.count(name)) {
+            plugins[name](arg);
+        } else {
+            throw std::runtime_error("Plugin not found: " + name);
+        }
+    }
+    void exportLogsToJson(const std::string& path);
+    void searchLogs(const std::string& term);
+    void enableLogging();
+    void disableLogging();
+    void setMaxLogSize(int size);
+	void exportLogsToFile(const std::string& path);
+	void importLogsFromFile(const std::string& path);
+    void clearLogs();
+    void showConsole(const std::string& filter = "ALL");
+    void renderLogEntry(const LogEntry& entry);
+    void log(const std::string& message, const std::string& level = "INFO", const std::string& context = "System");
+    private:
+    std::vector<LogEntry> logEntries; // Log entries
+    bool enableLogging = true; // Logging enabled/disabled
+	int maxLogSize = 1000; // Maximum log size
+	std::vector<std::string> logLevels = { "DEBUG", "INFO", "WARN", "ERROR", "CRITICAL" }; // Supported log levels
+    std::string get_time_stamp() {
+    std::time_t now = std::time(nullptr);
+    char buf[100];
+    std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", std::localtime(&now));
+	return buf;
+	}
+    void render_log_entry(const LogEntry& e) {
+    std::string clr = e.level == "ERROR" ? "\033[31m" : (e.level == "WARN" ? "\033[33m" : "\033[32m");
+	std::string glyph = e.level == "ERROR" ? "❗" : (e.level == "WARN" ? "⚠️" : "ℹ️");
+    std::cout << "\n" << clr << glyph << " [" << e.timestamp << "] "
+              << e.level << ": " << e.message << " (Context: " << e.context << ")\033[0m\n";
+    }
+    void log(const std::string& msg, const std::string& lvl = "INFO", const std::string& context = "System") {
+		if (!enable_logging) return;
+        if (logEntries.size() >= maxLogSize) {
+        logEntries.erase(logEntries.begin());
+    }
+    LogEntry entry;
+    entry.timestamp = get_time_stamp();
+    entry.level = lvl;
+    entry.message = msg;
+    entry.context = context;
+    if (std::find(logLevels.begin(), logLevels.end(), lvl) == logLevels.end()) {
+        std::cerr << "Unknown log level: " << lvl << ". Defaulting to INFO.\n";
+		entry.level = "INFO";
+        }
+    logEntries.push_back(entry);
+    render_log_entry(entry);
+    }
+    void showConsole(const std::string& filter = "ALL") {
+    std::cout << "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+    std::cout << "QuarterLang Console Log\n";
+    std::cout << "Filter: " << filter << "\n";
+    for (const auto& e : logEntries) {
+        if (filter == "ALL" || e.level == filter) {
+			render_log_entry(e);
+            }
+    }
+    std::cout << "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+	}
+    void export_logs_to_json(const std::string& path) {
+    std::ofstream file(path);
+    if (!file) {
+        std::cerr << "Failed to open log file for writing: " << path << std::endl;
+        return;
+    }
+    file << "[\n";
+    for (size_t i = 0; i < log_entries.size(); ++i) {
+        const auto& e = log_entries[i];
+        file << "  {\n"
+			<< "    \"timestamp\": \"" << e.timestamp << "\",\n"
+			<< "    \"level\": \"" << e.level << "\",\n"
+			<< "    \"message\": \"" << e.message << "\",\n"
+			<< "    \"context\": \"" << e.context << "\"\n"
+            << "  }" << (i < log_entries.size() - 1 ? "," : "") << "\n";
+    }
+    file << "]\n";
+    file.close();
+	std::cout << "Logs exported to " << path << "\n";
+    }
+    void import_logs_from_file(const std::string& path) {
+		std::ifstream
+            file(path);
+        if (!file) {
+            std::cerr << "Failed to open log file for reading: " << path << std::endl;
+            return;
+        }
+        nlohmann::json j;
+        file >> j;
+        for (const auto& entry : j) {
+            LogEntry e;
+            e.timestamp = entry["timestamp"];
+            e.level = entry["level"];
+            e.message = entry["message"];
+            e.context = entry["context"];
+            logEntries.push_back(e);
+		}
+        file.close();
+        std::cout << "Logs imported from " << path << "\n";
+    }
+    void clear_logs() {
+        logEntries.clear();
+        std::cout << "Logs cleared.\n";
+	}
+    void set_max_log_size(int size) {
+        maxLogSize = size;
+        std::cout << "Max log size set to " << size << "\n";
+	}
+    void enable_logging() {
+        enableLogging = true;
+        std::cout << "Logging enabled.\n";
+    }
+    void disable_logging() {
+        enableLogging = false;
+        std::cout << "Logging disabled.\n";
+	}
+    void render_log_entry(const LogEntry& entry) {
+        std::string color = entry.level == "ERROR" ? "\033[31m" : (entry.level == "WARN" ? "\033[33m" : "\033[32m");
+        std::cout << color << "[" << entry.timestamp << "] " << entry.level << ": " << entry.message
+                  << " (Context: " << entry.context << ")\033[0m\n";
+	}
+	};
+
+    // quarter_syntax_tools.cpp
+
+#include <iostream>
+#include <string>
+#include <vector>
+#include <unordered_map>
+#include <regex>
+#include <sstream>
+
+    enum TokenType {
+        Keyword,
+        Identifier,
+        Number,
+        String,
+        Symbol,
+        Comment,
+        Unknown
+    };
+
+    struct Token {
+        TokenType type;
+        std::string text;
+    };
+
+    const std::unordered_map<std::string, TokenType> keywordMap = {
+        {"func", Keyword}, {"end", Keyword}, {"var", Keyword}, {"import", Keyword},
+        {"module", Keyword}, {"return", Keyword}, {"if", Keyword}, {"else", Keyword}
+    };
+
+    std::vector<Token> tokenize(const std::string& code) {
+        std::vector<Token> tokens;
+        std::regex tokenRegex(R"((\bfunc\b|\bvar\b|\bend\b|\bimport\b|\bmodule\b|\breturn\b|\bif\b|\belse\b)|([a-zA-Z_][a-zA-Z0-9_]*)|(\d+(\.\d*)?)|("[^"]*")|([{}()=;:+\-*/<>\[\],])|(#[^\n]*))");
+        auto words_begin = std::sregex_iterator(code.begin(), code.end(), tokenRegex);
+        auto words_end = std::sregex_iterator();
+
+        for (auto it = words_begin; it != words_end; ++it) {
+            std::smatch match = *it;
+            if (match[1].matched) tokens.push_back({ Keyword, match[1] });
+            else if (match[2].matched) tokens.push_back({ Identifier, match[2] });
+            else if (match[3].matched) tokens.push_back({ Number, match[3] });
+            else if (match[4].matched) tokens.push_back({ String, match[4] });
+            else if (match[5].matched) tokens.push_back({ Symbol, match[5] });
+            else if (match[6].matched) tokens.push_back({ Comment, match[6] });
+            else tokens.push_back({ Unknown, match.str() });
+        }
+
+        return tokens;
+    }
+
+    void highlight(const std::string& code) {
+        std::vector<Token> tokens = tokenize(code);
+        for (const Token& token : tokens) {
+            switch (token.type) {
+            case Keyword: std::cout << "\033[1;34m" << token.text << "\033[0m "; break;
+            case Identifier: std::cout << token.text << " "; break;
+            case Number: std::cout << "\033[1;32m" << token.text << "\033[0m "; break;
+            case String: std::cout << "\033[1;35m" << token.text << "\033[0m "; break;
+            case Symbol: std::cout << "\033[1;33m" << token.text << "\033[0m "; break;
+            case Comment: std::cout << "\033[2;37m" << token.text << "\033[0m "; break;
+            default: std::cout << token.text << " "; break;
+            }
+        }
+        std::cout << std::endl;
+    }
+
+    bool syntax_check(const std::string& code) {
+        std::vector<Token> tokens = tokenize(code);
+        int openBraces = 0;
+        for (const Token& token : tokens) {
+            if (token.text == "{") ++openBraces;
+            else if (token.text == "}") --openBraces;
+        }
+        return openBraces == 0;
+    }
+
+    void interactive_viewer() {
+        std::string line, code;
+        std::cout << "QuarterLang REPL Syntax Viewer\nType \"exit\" to quit.\n";
+        while (true) {
+            std::cout << ">> ";
+            std::getline(std::cin, line);
+            if (line == "exit") break;
+            code += line + "\n";
+            highlight(line);
+            if (!syntax_check(code)) {
+                std::cout << "\033[1;31mSyntax Error: Unmatched braces.\033[0m\n";
+            }
+        }
+    }
+
+    int main() {
+        interactive_viewer();
+        return 0;
+    }
+
+    // === QuarterLang StandardLib in Pure C++ ===
+
+#include <iostream>
+#include <cmath>
+#include <vector>
+#include <algorithm>
+#include <functional>
+#include <string>
+
+    namespace QuarterLang::StandardLib {
+
+        // === I/O Utilities ===
+        inline int input() {
+            int x;
+            std::cin >> x;
+            return x;
+        }
+
+        inline void print(const auto& x) {
+            std::cout << x;
+        }
+
+        inline void println(const auto& x) {
+            std::cout << x << std::endl;
+        }
+
+        // === Arithmetic ===
+        inline int pow(int base, int exp) {
+            int result = 1;
+            while (exp) {
+                if (exp & 1) result *= base;
+                base *= base;
+                exp >>= 1;
+            }
+            return result;
+        }
+
+        inline int abs(int x) {
+            return x < 0 ? -x : x;
+        }
+
+        inline int mod(int x, int y) {
+            int r = x % y;
+            return r < 0 ? r + y : r;
+        }
+
+        inline int clamp(int x, int min, int max) {
+            return std::max(min, std::min(max, x));
+        }
+
+        inline bool is_even(int x) {
+            return (x & 1) == 0;
+        }
+
+        inline bool is_odd(int x) {
+            return (x & 1) == 1;
+        }
+
+        inline int factorial(int x) {
+            return x <= 1 ? 1 : x * factorial(x - 1);
+        }
+
+        inline int fibonacci(int n) {
+            int a = 0, b = 1;
+            for (int i = 0; i < n; ++i) {
+                int t = a + b;
+                a = b;
+                b = t;
+            }
+            return a;
+        }
+
+        // === Comparison ===
+        inline int min(int x, int y) {
+            return x < y ? x : y;
+        }
+
+        inline int max(int x, int y) {
+            return x > y ? x : y;
+        }
+
+        inline int compare(int x, int y) {
+            return x < y ? -1 : (x > y ? 1 : 0);
+        }
+
+        inline bool equals(int x, int y) {
+            return x == y;
+        }
+
+        inline bool not_equals(int x, int y) {
+            return x != y;
+        }
+
+        inline bool logical_and(bool x, bool y) {
+            return x && y;
+        }
+
+        inline bool logical_or(bool x, bool y) {
+            return x || y;
+        }
+
+        inline bool logical_not(bool x) {
+            return !x;
+        }
+
+        // === Range ===
+        inline bool in_range(int x, int min, int max) {
+            return x >= min && x <= max;
+        }
+
+        inline int range_length(int min, int max) {
+            return max - min + 1;
+        }
+
+        // === Math Extensions ===
+        inline int square(int x) {
+            return x * x;
+        }
+
+        inline int cube(int x) {
+            return x * x * x;
+        }
+
+        inline double average(double x, double y) {
+            return (x + y) / 2.0;
+        }
+
+        inline int median3(int a, int b, int c) {
+            if (a > b) std::swap(a, b);
+            if (b > c) std::swap(b, c);
+            if (a > b) std::swap(a, b);
+            return b;
+        }
+
+        inline double lerp(double a, double b, double t) {
+            return a + (b - a) * t;
+        }
+
+        inline int sign(int x) {
+            return (x > 0) - (x < 0);
+        }
+
+        // === Identity & Functional ===
+        inline int identity(int x) {
+            return x;
+        }
+
+        inline auto constant(int value) {
+            return [value]() { return value; };
+        }
+
+        inline auto compose(std::function<int(int)> f, std::function<int(int)> g) {
+            return [f, g](int x) { return f(g(x)); };
+        }
+
+        inline auto curry(std::function<int(int, int)> f, int x) {
+            return [f, x](int y) { return f(x, y); };
+        }
+
+        // === Safety Checks ===
+        inline double safe_div(double x, double y) {
+            if (y == 0) {
+                std::cerr << "[Warning] Division by zero. Returning 0.\n";
+                return 0;
+            }
+            return x / y;
+        }
+
+        inline double safe_sqrt(double x) {
+            if (x < 0) {
+                std::cerr << "[Warning] sqrt of negative number. Returning 0.\n";
+                return 0;
+            }
+            return std::sqrt(x);
+        }
+
+        inline double clamp_angle_degrees(double angle) {
+            double a = std::fmod(angle, 360.0);
+            return a < 0 ? a + 360 : a;
+        }
+
+        inline double radians_to_degrees(double rad) {
+            return rad * (180.0 / M_PI);
+        }
+
+        inline double degrees_to_radians(double deg) {
+            return deg * (M_PI / 180.0);
+        }
+
+        // === Statistics ===
+        inline double average_list(const std::vector<double>& xs) {
+            if (xs.empty()) return 0;
+            double sum = 0;
+            for (auto x : xs) sum += x;
+            return sum / xs.size();
+        }
+
+        inline double variance(const std::vector<double>& xs) {
+            if (xs.empty()) return 0;
+            double mean = average_list(xs);
+            double sum = 0;
+            for (auto x : xs) sum += (x - mean) * (x - mean);
+            return sum / xs.size();
+        }
+
+        // === Input Parsing ===
+        inline std::string read_line() {
+            std::string line;
+            std::getline(std::cin, line);
+            return line;
+        }
+
+        inline int read_int(const std::string& prompt = "") {
+            if (!prompt.empty()) std::cout << prompt;
+            int x;
+            std::cin >> x;
+            return x;
+        }
+
+        inline double read_float(const std::string& prompt = "") {
+            if (!prompt.empty()) std::cout << prompt;
+            double x;
+            std::cin >> x;
+            return x;
+        }
+
+        // === Debug ===
+        inline void print_debug(const auto& x) {
+            std::cout << "[DEBUG]: " << x << std::endl;
+        }
+
+        inline void swap(int& a, int& b) {
+            std::swap(a, b);
+        }
+
+    } // namespace QuarterLang::StandardLib
+
+	void render_token(const QToken& token) {
+        std::string color;
+    switch (token.type) {
+        case QTokenType::Keyword: color = "\033[1;34m"; break; // Blue
+        case QTokenType::Identifier: color = "\033[0m"; break; // Default
+        case QTokenType::String: color = "\033[1;35m"; break; // Magenta
+        case QTokenType::Number: color = "\033[1;32m"; break; // Green
+        case QTokenType::Comment: color = "\033[2;37m"; break; // Light Gray
+        case QTokenType::Operator: color = "\033[1;33m"; break; // Yellow
+        case QTokenType::Symbol: color = "\033[1;33m"; break; // Yellow
+        default: color = "\033[0m"; break; // Default for unknown
+    }
+	std::cout << color << token.lexeme << "\033[0m (" << token.line << ":" << token.column << ") ";
+    if (token.type == QTokenType::Keyword) {
+        const QKeywordInfo* info = highlighter.get_info(token.lexeme);
+        if (info) {
+            std::cout << " - " << info->description << " Example: " << info->example;
+        }
+    }
+    std::cout << std::endl;
+	}
+
+    // === QuarterLang StandardLib in Pure C++ ===
+
+#include <iostream>
+#include <cmath>
+#include <vector>
+#include <algorithm>
+#include <functional>
+#include <string>
+#include <map>
+
+    namespace QuarterLang::StandardLib {
+
+        // === I/O Utilities ===
+        inline int input() {
+            int x;
+            std::cin >> x;
+            return x;
+        }
+
+        inline void print(const auto& x) {
+            std::cout << x;
+        }
+
+        inline void println(const auto& x) {
+            std::cout << x << std::endl;
+        }
+
+        // === Arithmetic ===
+        inline int pow(int base, int exp) {
+            int result = 1;
+            while (exp) {
+                if (exp & 1) result *= base;
+                base *= base;
+                exp >>= 1;
+            }
+            return result;
+        }
+
+        inline int abs(int x) {
+            return x < 0 ? -x : x;
+        }
+
+        inline int mod(int x, int y) {
+            int r = x % y;
+            return r < 0 ? r + y : r;
+        }
+
+        inline int clamp(int x, int min, int max) {
+            return std::max(min, std::min(max, x));
+        }
+
+        inline bool is_even(int x) {
+            return (x & 1) == 0;
+        }
+
+        inline bool is_odd(int x) {
+            return (x & 1) == 1;
+        }
+
+        inline int factorial(int x) {
+            return x <= 1 ? 1 : x * factorial(x - 1);
+        }
+
+        inline int fibonacci(int n) {
+            int a = 0, b = 1;
+            for (int i = 0; i < n; ++i) {
+                int t = a + b;
+                a = b;
+                b = t;
+            }
+            return a;
+        }
+
+        // === Comparison ===
+        inline int min(int x, int y) {
+            return x < y ? x : y;
+        }
+
+        inline int max(int x, int y) {
+            return x > y ? x : y;
+        }
+
+        inline int compare(int x, int y) {
+            return x < y ? -1 : (x > y ? 1 : 0);
+        }
+
+        inline bool equals(int x, int y) {
+            return x == y;
+        }
+
+        inline bool not_equals(int x, int y) {
+            return x != y;
+        }
+
+        inline bool logical_and(bool x, bool y) {
+            return x && y;
+        }
+
+        inline bool logical_or(bool x, bool y) {
+            return x || y;
+        }
+
+        inline bool logical_not(bool x) {
+            return !x;
+        }
+
+        // === Range ===
+        inline bool in_range(int x, int min, int max) {
+            return x >= min && x <= max;
+        }
+
+        inline int range_length(int min, int max) {
+            return max - min + 1;
+        }
+
+        // === Math Extensions ===
+        inline int square(int x) {
+            return x * x;
+        }
+
+        inline int cube(int x) {
+            return x * x * x;
+        }
+
+        inline double average(double x, double y) {
+            return (x + y) / 2.0;
+        }
+
+        inline int median3(int a, int b, int c) {
+            if (a > b) std::swap(a, b);
+            if (b > c) std::swap(b, c);
+            if (a > b) std::swap(a, b);
+            return b;
+        }
+
+        inline double lerp(double a, double b, double t) {
+            return a + (b - a) * t;
+        }
+
+        inline int sign(int x) {
+            return (x > 0) - (x < 0);
+        }
+
+        // === Identity & Functional ===
+        inline int identity(int x) {
+            return x;
+        }
+
+        inline auto constant(int value) {
+            return [value]() { return value; };
+        }
+
+        inline auto compose(std::function<int(int)> f, std::function<int(int)> g) {
+            return [f, g](int x) { return f(g(x)); };
+        }
+
+        inline auto curry(std::function<int(int, int)> f, int x) {
+            return [f, x](int y) { return f(x, y); };
+        }
+
+        // === Safety Checks ===
+        inline double safe_div(double x, double y) {
+            if (y == 0) {
+                std::cerr << "[Warning] Division by zero. Returning 0.\n";
+                return 0;
+            }
+            return x / y;
+        }
+
+        inline double safe_sqrt(double x) {
+            if (x < 0) {
+                std::cerr << "[Warning] sqrt of negative number. Returning 0.\n";
+                return 0;
+            }
+            return std::sqrt(x);
+        }
+
+        inline double clamp_angle_degrees(double angle) {
+            double a = std::fmod(angle, 360.0);
+            return a < 0 ? a + 360 : a;
+        }
+
+        inline double radians_to_degrees(double rad) {
+            return rad * (180.0 / M_PI);
+        }
+
+        inline double degrees_to_radians(double deg) {
+            return deg * (M_PI / 180.0);
+        }
+
+        // === Statistics ===
+        inline double average_list(const std::vector<double>& xs) {
+            if (xs.empty()) return 0;
+            double sum = 0;
+            for (auto x : xs) sum += x;
+            return sum / xs.size();
+        }
+
+        inline double variance(const std::vector<double>& xs) {
+            if (xs.empty()) return 0;
+            double mean = average_list(xs);
+            double sum = 0;
+            for (auto x : xs) sum += (x - mean) * (x - mean);
+            return sum / xs.size();
+        }
+
+        // === Input Parsing ===
+        inline std::string read_line() {
+            std::string line;
+            std::getline(std::cin, line);
+            return line;
+        }
+
+        inline int read_int(const std::string& prompt = "") {
+            if (!prompt.empty()) std::cout << prompt;
+            int x;
+            std::cin >> x;
+            return x;
+        }
+
+        inline double read_float(const std::string& prompt = "") {
+            if (!prompt.empty()) std::cout << prompt;
+            double x;
+            std::cin >> x;
+            return x;
+        }
+
+        // === Debug ===
+        inline void print_debug(const auto& x) {
+            std::cout << "[DEBUG]: " << x << std::endl;
+        }
+
+        inline void swap(int& a, int& b) {
+            std::swap(a, b);
+        }
+
+        // === Seeder Core Module ===
+        using Module = std::function<void()>; // placeholder type
+
+        class Seeder {
+        public:
+            std::map<std::string, Module> registered_modules;
+            std::map<std::string, std::vector<std::string>> module_dependencies;
+            std::map<std::string, std::map<std::string, std::string>> module_metadata;
+
+            void register_module(const std::string& name, Module mod, const std::vector<std::string>& deps = {}, const std::map<std::string, std::string>& meta = {}) {
+                registered_modules[name] = mod;
+                module_dependencies[name] = deps;
+                module_metadata[name] = meta;
+                std::cout << "Seeder: Registered module '" << name << "'\n";
+            }
+
+            std::vector<Module> resolve_dependencies(const std::vector<std::string>& names) {
+                std::vector<std::string> resolved;
+                std::map<std::string, bool> seen;
+
+                std::function<void(const std::string&)> visit = [&](const std::string& name) {
+                    if (seen[name]) return;
+                    seen[name] = true;
+                    for (auto& dep : module_dependencies[name]) visit(dep);
+                    resolved.push_back(name);
+                    };
+
+                for (auto& n : names) visit(n);
+
+                std::vector<Module> result;
+                for (auto& mod_name : resolved) {
+                    if (registered_modules.count(mod_name)) result.push_back(registered_modules[mod_name]);
+                    else std::cout << "[Seeder Warning] Module '" << mod_name << "' not found.\n";
+                }
+
+                return result;
+            }
+
+            void print_seed_report(const std::vector<Module>& modules) {
+                std::cout << "Seeder: Seeded Modules Report\n";
+                for (auto& m : modules) {
+                    std::cout << " - Module loaded.\n";
+                }
+            }
+        };
+
+    } // namespace QuarterLang::StandardLib
+
+#include "QuarterLangHighlighter.h"
+#include <iostream>
+    QuarterLangHighlighter::QuarterLangHighlighter() {
+    // Initialize keyword database
+    keyword_db = {
+        {"func", {"func", "Defines a function", "func myFunc() { ... }"}},
+        {"end", {"end", "Ends a block or function", "end"}},
+        {"var", {"var", "Declares a variable", "var x = 10;"}},
+        {"import", {"import", "Imports a module or library", "import 'math';"}},
+        {"module", {"module", "Defines a module", "module MyModule { ... }"}},
+        {"return", {"return", "Returns a value from a function", "return x;"}},
+        {"if", {"if", "Conditional statement", "if (x > 0) { ... }"}},
+        {"else", {"else", "Alternative branch for if statement", "else { ... }"}}
+    };
+	}
+
+    void QuarterLangHighlighter::add_keyword(const std::string& keyword, const QKeywordInfo& info) {
+        keyword_db[keyword] = info;
+    }
+    const QKeywordInfo* QuarterLangHighlighter::get_info(const std::string& keyword) const {
+        auto it = keyword_db.find(keyword);
+        if (it != keyword_db.end()) {
+            return &it->second;
+        }
+        return nullptr;
+    }
+    void QuarterLangHighlighter::highlight(const std::string& code) const {
+        std::istringstream stream(code);
+        std::string line;
+        while (std::getline(stream, line)) {
+            std::vector<std::string> tokens = tokenize(line);
+            for (const auto& token : tokens) {
+                const QKeywordInfo* info = get_info(token);
+                if (info) {
+                    std::cout << "\033[1;34m" << token << "\033[0m "; // Highlight keywords in blue
+                } else {
+                    std::cout << token << " "; // Default color for other tokens
+                }
+            }
+            std::cout << std::endl;
+        }
+    }
+    std::vector<std::string> QuarterLangHighlighter::tokenize(const std::string& line) const {
+        std::vector<std::string> tokens;
+        std::istringstream stream(line);
+        std::string token;
+        while (stream >> token) {
+            tokens.push_back(token);
+        }
+        return tokens;
+	}
+
+#include <iostream>
+#include <string>
+#include <unordered_map>
+#include <vector>
+#include <memory>
+#include <optional>
+
+    // Forward declare ASTNode and AST
+    struct ASTNode;
+    struct AST {
+        std::shared_ptr<ASTNode> root;
+    };
+
+    // Simplified ASTNode structure
+    struct ASTNode {
+        std::string type;
+        std::string name;  // for identifiers, functions, vars
+        std::vector<std::shared_ptr<ASTNode>> children;
+        std::vector<std::shared_ptr<ASTNode>> params;     // for functions
+        std::vector<std::shared_ptr<ASTNode>> declarations; // for var decl
+        std::shared_ptr<ASTNode> body; // for functions or blocks
+        std::shared_ptr<ASTNode> init; // for var init
+        // Resolution info:
+        bool resolved = false;
+        std::weak_ptr<ASTNode> symbol_ref; // resolved symbol reference
+    };
+
+    class Scope {
+    public:
+        explicit Scope(std::shared_ptr<Scope> parent_scope = nullptr)
+            : parent(std::move(parent_scope)) {
+        }
+
+        // Define symbol in this scope. Return false if redeclared.
+        bool define_symbol(const std::string& name, std::shared_ptr<ASTNode> node) {
+            if (symbols.find(name) != symbols.end()) {
+                return false; // redeclaration
+            }
+            symbols[name] = node;
+            return true;
+        }
+
+        // Lookup symbol recursively in this and parent scopes
+        std::optional<std::shared_ptr<ASTNode>> lookup(const std::string& name) {
+            auto it = symbols.find(name);
+            if (it != symbols.end()) {
+                return it->second;
+            }
+            if (parent) {
+                return parent->lookup(name);
+            }
+            return std::nullopt; // not found
+        }
+
+    private:
+        std::unordered_map<std::string, std::shared_ptr<ASTNode>> symbols;
+        std::shared_ptr<Scope> parent;
+    };
+
+    class Scoper {
+    public:
+        static AST resolve_scopes(const AST& ast) {
+            // Start recursive walk with a null current scope (global)
+            walk(ast.root, nullptr);
+            return ast; // AST modified in-place
+        }
+
+    private:
+        static void walk(const std::shared_ptr<ASTNode>& node, std::shared_ptr<Scope> current_scope) {
+            if (!node) return;
+
+            if (node->type == "Program") {
+                // Create global scope
+                auto global_scope = std::make_shared<Scope>(nullptr);
+                for (auto& child : node->children) {
+                    walk(child, global_scope);
+                }
+            }
+            else if (node->type == "BlockStatement") {
+                // New nested block scope
+                auto block_scope = std::make_shared<Scope>(current_scope);
+                for (auto& stmt : node->children) {
+                    walk(stmt, block_scope);
+                }
+            }
+            else if (node->type == "FunctionDeclaration") {
+                // Define function name in current scope
+                const std::string& func_name = node->name;
+                if (!current_scope->define_symbol(func_name, node)) {
+                    std::cerr << "[Scope Error] Function '" << func_name << "' redeclared in same scope.\n";
+                }
+
+                // Create function scope for params and body
+                auto func_scope = std::make_shared<Scope>(current_scope);
+                for (auto& param : node->params) {
+                    const std::string& param_name = param->name;
+                    if (!func_scope->define_symbol(param_name, param)) {
+                        std::cerr << "[Scope Error] Parameter '" << param_name
+                            << "' redeclared in function '" << func_name << "'.\n";
+                    }
+                }
+
+                // Walk function body in function scope
+                walk(node->body, func_scope);
+            }
+            else if (node->type == "VariableDeclaration") {
+                // Define variables in current scope
+                for (auto& declarator : node->declarations) {
+                    const std::string& var_name = declarator->name;
+                    if (!current_scope->define_symbol(var_name, declarator)) {
+                        std::cerr << "[Scope Error] Variable '" << var_name << "' redeclared in same scope.\n";
+                    }
+                    // Walk initializer expression if present
+                    if (declarator->init) {
+                        walk(declarator->init, current_scope);
+                    }
+                }
+            }
+            else if (node->type == "Identifier") {
+                // Lookup symbol
+                auto symbol_node_opt = current_scope->lookup(node->name);
+                if (!symbol_node_opt.has_value()) {
+                    std::cerr << "[Scope Error] Undefined variable '" << node->name << "' referenced.\n";
+                    node->resolved = false;
+                }
+                else {
+                    node->resolved = true;
+                    node->symbol_ref = symbol_node_opt.value();
+                }
+            }
+            else {
+                // Generic recursion on children if any
+                for (auto& child : node->children) {
+                    walk(child, current_scope);
+                }
+                // Also walk function body or init if present
+                if (node->body) {
+                    walk(node->body, current_scope);
+                }
+                if (node->init) {
+                    walk(node->init, current_scope);
+                }
+            }
+        }
+    };
+
+#include <iostream>
+
+    namespace RangeAdjuster {
+
+        // Clamp value between min and max
+        template<typename T>
+        T clamp(T value, T min, T max) {
+            if (value < min) return min;
+            if (value > max) return max;
+            return value;
+        }
+
+        // Normalize value from [in_min, in_max] range to [out_min, out_max] range
+        template<typename T>
+        T normalize(T value, T in_min, T in_max, T out_min, T out_max) {
+            T ratio = (value - in_min) / (in_max - in_min);
+            return out_min + ratio * (out_max - out_min);
+        }
+
+        // Example stub for plugin registration interface
+        struct RuntimeEnv {
+            // Assume a generic register function taking name and function pointer
+            template<typename Func>
+            void register_function(const std::string& name, Func func) {
+                std::cout << "Registered function: " << name << std::endl;
+                // Actual registration logic here...
+            }
+        };
+
+        // Register functions to runtime environment
+        inline void register_plugin(RuntimeEnv& env) {
+            env.register_function("clamp", clamp<double>);
+            env.register_function("normalize", normalize<double>);
+        }
+
+    }
+
+#include <iostream>
+#include <string>
+
+    namespace RangeAdjuster {
+
+        // Clamp function: restrict value to [min, max]
+        template<typename T>
+        T clamp(T value, T min, T max) {
+            if (value < min) return min;
+            if (value > max) return max;
+            return value;
+        }
+
+        // Normalize function: map value from [in_min, in_max] to [out_min, out_max]
+        template<typename T>
+        T normalize(T value, T in_min, T in_max, T out_min, T out_max) {
+            T ratio = (value - in_min) / (in_max - in_min);
+            return out_min + ratio * (out_max - out_min);
+        }
+
+        // Hypothetical runtime environment interface
+        struct RuntimeEnv {
+            // Generic register function taking function pointer by reference
+            template<typename Func>
+            void register_function(const std::string& name, Func&& func) {
+                std::cout << "Registered function: " << name << std::endl;
+                // Actual registration logic here...
+            }
+        };
+
+        // Register functions to runtime environment
+        inline void register_plugin(RuntimeEnv& env) {
+            env.register_function("clamp", clamp<double>);
+            env.register_function("normalize", normalize<double>);
+        }
+
+    } // namespace RangeAdjuster
+
+#include <iostream>
+#include <string>
+#include <vector>
+#include <memory>
+#include <optional>
+
+// Forward declarations
+    struct Node;
+    struct AST;
+    struct Token;
+    class Cursor;
+    namespace Lexer { std::vector<Token> lex(const std::string& src); }
+    namespace ErrorHandler { void error(int code, const std::string& message); }
+    namespace ExpressionParser { std::shared_ptr<Node> parse_expression(Cursor& cur); }
+
+    //
+    // Token representation
+    //
+    struct Token {
+        std::string type;
+        std::string value;
+
+        Token() = default;
+        Token(std::string t, std::string v) : type(std::move(t)), value(std::move(v)) {}
+    };
+
+    //
+    // Cursor: manages token stream position and access
+    //
+    class Cursor {
+    public:
+        explicit Cursor(const std::vector<Token>& tokens)
+            : tokens(tokens), position(0) {
+        }
+
+        // Peek current token without advancing
+        Token peek() const {
+            if (position < tokens.size()) return tokens[position];
+            return Token("EOF", "");
+        }
+
+        // Return current token and advance cursor
+        Token next() {
+            Token tok = peek();
+            if (position < tokens.size()) ++position;
+            return tok;
+        }
+
+        // Check if at end of tokens
+        bool eof() const {
+            return position >= tokens.size();
+        }
+
+        // Expect a token type (and optional value), error if not matched
+        Token expect(const std::string& expected_type, const std::string& expected_value = "") {
+            Token tok = peek();
+            if (tok.type != expected_type || (!expected_value.empty() && tok.value != expected_value)) {
+                ErrorHandler::error(200, "Expected token " + expected_type + " '" + expected_value + "', got " + tok.type + " '" + tok.value + "'");
+                // Attempt recovery by returning token anyway
+            }
+            else {
+                next();
+            }
+            return tok;
+        }
+
+        // Match token type and optional value, advance if matched
+        bool match(const std::string& type, const std::string& value = "") {
+            Token tok = peek();
+            if (tok.type == type && (value.empty() || tok.value == value)) {
+                next();
+                return true;
+            }
+            return false;
+        }
+
+    private:
+        const std::vector<Token>& tokens;
+        size_t position;
+    };
+
+    //
+    // AST Node base structure
+    //
+    struct Node {
+        std::string type;
+        std::string value;
+        std::vector<std::shared_ptr<Node>> children;
+
+        Node(std::string t) : type(std::move(t)) {}
+        Node(std::string t, std::string v) : type(std::move(t)), value(std::move(v)) {}
+
+        static std::shared_ptr<Node> error(const std::string& message) {
+            auto n = std::make_shared<Node>("Error");
+            n->value = message;
+            return n;
+        }
+
+        static std::shared_ptr<Node> if_statement(std::shared_ptr<Node> cond, std::shared_ptr<Node> then_branch, std::shared_ptr<Node> else_branch = nullptr) {
+            auto n = std::make_shared<Node>("IfStatement");
+            n->children.push_back(cond);
+            n->children.push_back(then_branch);
+            if (else_branch) n->children.push_back(else_branch);
+            return n;
+        }
+
+        static std::shared_ptr<Node> while_statement(std::shared_ptr<Node> cond, std::shared_ptr<Node> body) {
+            auto n = std::make_shared<Node>("WhileStatement");
+            n->children.push_back(cond);
+            n->children.push_back(body);
+            return n;
+        }
+
+        static std::shared_ptr<Node> return_statement(std::shared_ptr<Node> val) {
+            auto n = std::make_shared<Node>("ReturnStatement");
+            n->children.push_back(val);
+            return n;
+        }
+
+        static std::shared_ptr<Node> block(const std::vector<std::shared_ptr<Node>>& stmts) {
+            auto n = std::make_shared<Node>("BlockStatement");
+            n->children = stmts;
+            return n;
+        }
+
+        static std::shared_ptr<Node> function(const std::string& name, const std::vector<std::string>& params, std::shared_ptr<Node> body) {
+            auto n = std::make_shared<Node>("FunctionDeclaration");
+            n->value = name;
+            // Store params as child nodes with type "Parameter"
+            for (const auto& p : params) {
+                n->children.push_back(std::make_shared<Node>("Parameter", p));
+            }
+            n->children.push_back(body);
+            return n;
+        }
+    };
+
+    //
+    // AST wrapper holding root nodes
+    //
+    struct AST {
+        std::vector<std::shared_ptr<Node>> root_nodes;
+
+        explicit AST(std::vector<std::shared_ptr<Node>> nodes) : root_nodes(std::move(nodes)) {}
+    };
+
+    //
+    // Error handler
+    //
+    namespace ErrorHandler {
+        inline void error(int code, const std::string& message) {
+            std::cerr << "[Parse Error " << code << "] " << message << std::endl;
+        }
+    }
+
+    //
+    // Stub Lexer - you should replace this with actual tokenization logic
+    //
+    namespace Lexer {
+        inline std::vector<Token> lex(const std::string& src) {
+            // Very basic example: tokenize by whitespace and treat as IDENT
+            std::vector<Token> tokens;
+            size_t pos = 0, len = src.size();
+            while (pos < len) {
+                while (pos < len && isspace(src[pos])) ++pos;
+                if (pos >= len) break;
+
+                size_t start = pos;
+                while (pos < len && !isspace(src[pos])) ++pos;
+                std::string word = src.substr(start, pos - start);
+                // Simplified token classification
+                if (word == "if" || word == "while" || word == "return" || word == "define") {
+                    tokens.emplace_back("KEYWORD", word);
+                }
+                else if (word == "{" || word == "}" || word == "(" || word == ")" || word == "," || word == ";") {
+                    tokens.emplace_back("SYMBOL", word);
+                }
+                else {
+                    tokens.emplace_back("IDENT", word);
+                }
+            }
+            return tokens;
+        }
+    }
+
+    //
+    // ExpressionParser stub - very simple
+    //
+    namespace ExpressionParser {
+        inline std::shared_ptr<Node> parse_expression(Cursor& cur) {
+            Token tok = cur.next();
+            if (tok.type == "NUMBER" || tok.type == "STRING")
+                return std::make_shared<Node>("Literal", tok.value);
+            if (tok.type == "IDENT")
+                return std::make_shared<Node>("Identifier", tok.value);
+
+            ErrorHandler::error(101, "Unexpected token in expression: " + tok.value);
+            return Node::error("Invalid expression");
+        }
+    }
+
+    //
+    // Parser implementation
+    //
+    namespace Parser {
+
+        // Forward declaration
+        std::shared_ptr<Node> parse_statement(Cursor& cur);
+
+        std::shared_ptr<AST> parse_program(Cursor& cur) {
+            std::vector<std::shared_ptr<Node>> nodes;
+            while (!cur.eof()) {
+                auto stmt = parse_statement(cur);
+                if (stmt) {
+                    nodes.push_back(stmt);
+                }
+            }
+            return std::make_shared<AST>(nodes);
+        }
+
+        std::shared_ptr<Node> parse_block(Cursor& cur) {
+            cur.expect("SYMBOL", "{");
+            std::vector<std::shared_ptr<Node>> stmts;
+            while (!cur.match("SYMBOL", "}")) {
+                auto stmt = parse_statement(cur);
+                if (stmt) stmts.push_back(stmt);
+            }
+            return Node::block(stmts);
+        }
+
+        std::shared_ptr<Node> parse_if_statement(Cursor& cur) {
+            cur.expect("KEYWORD", "if");
+            auto condition = ExpressionParser::parse_expression(cur);
+            auto then_branch = parse_block(cur);
+            std::shared_ptr<Node> else_branch = nullptr;
+            if (cur.match("KEYWORD", "else")) {
+                else_branch = parse_block(cur);
+            }
+            return Node::if_statement(condition, then_branch, else_branch);
+        }
+
+        std::shared_ptr<Node> parse_while_statement(Cursor& cur) {
+            cur.expect("KEYWORD", "while");
+            auto condition = ExpressionParser::parse_expression(cur);
+            auto body = parse_block(cur);
+            return Node::while_statement(condition, body);
+        }
+
+        std::shared_ptr<Node> parse_return_statement(Cursor& cur) {
+            cur.expect("KEYWORD", "return");
+            auto value = ExpressionParser::parse_expression(cur);
+            return Node::return_statement(value);
+        }
+
+        std::shared_ptr<Node> parse_function_declaration(Cursor& cur) {
+            cur.expect("KEYWORD", "define");
+            Token name_tok = cur.expect("IDENT");
+
+            cur.expect("SYMBOL", "(");
+            std::vector<std::string> params;
+            if (!cur.match("SYMBOL", ")")) {
+                while (true) {
+                    Token param_tok = cur.expect("IDENT");
+                    params.push_back(param_tok.value);
+                    if (cur.match("SYMBOL", ")")) break;
+                    cur.expect("SYMBOL", ",");
+                }
+            }
+            auto body = parse_block(cur);
+            return Node::function(name_tok.value, params, body);
+        }
+
+        std::shared_ptr<Node> parse_statement(Cursor& cur) {
+            Token tok = cur.peek();
+
+            if (tok.type == "IDENT") {
+                return ExpressionParser::parse_expression(cur);
+            }
+            if (tok.type == "KEYWORD") {
+                if (tok.value == "if") return parse_if_statement(cur);
+                if (tok.value == "while") return parse_while_statement(cur);
+                if (tok.value == "return") return parse_return_statement(cur);
+                if (tok.value == "define") return parse_function_declaration(cur);
+                // Add more keywords here as needed
+            }
+
+            ErrorHandler::error(100, "Unexpected token in statement: " + tok.value);
+            cur.next();  // attempt recovery by consuming token
+            return Node::error("Invalid statement");
+        }
+
+        // Entry point: parse from source code string
+        std::shared_ptr<AST> parse(const std::string& src) {
+            auto tokens = Lexer::lex(src);
+            Cursor cur(tokens);
+            return parse_program(cur);
+        }
+    }
+
+    //
+    // Example usage main
+    //
+    int main() {
+        std::string source = R"(
+        define foo(x, y) {
+            if x {
+                return y
+            } else {
+                return 0
+            }
+        }
+    )";
+
+        auto ast = Parser::parse(source);
+
+        std::cout << "Parsing completed. Root nodes count: " << ast->root_nodes.size() << "\n";
+
+        return 0;
+    }
+
+#include <iostream>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
+#include <string>
+#include <chrono>
+#include <optional>
+#include <algorithm>
+
+    // Simplify pointer type for simulation
+    using Pointer = size_t;
+
+    // --- Simulated system allocation / free ---
+    // In real-world, use malloc/free or new/delete.
+    // Here, simulate with dummy allocation counter.
+    Pointer sys_alloc(size_t size) {
+        static Pointer counter = 1000;
+        (void)size; // size ignored in simulation
+        return counter++;
+    }
+    void sys_free(Pointer ptr) {
+        // Simulated free: no-op for now
+        (void)ptr;
+    }
+
+    // --- Pointer metadata ---
+    struct PointerInfo {
+        Pointer ptr;
+        size_t size;
+        std::string type_tag;
+        bool marked = false;
+        size_t region_id = 0;
+        bool is_freed = false;
+    };
+
+    // --- MemoryHandler singleton ---
+    class MemoryHandler {
+    public:
+        static MemoryHandler& instance() {
+            static MemoryHandler inst;
+            return inst;
+        }
+
+        Pointer allocate_safe(size_t size, const std::string& type_tag) {
+            Pointer p = sys_alloc(size);
+            PointerInfo info{ p, size, type_tag, false, current_region, false };
+            heap_table[p] = info;
+            stats.total_allocated += size;
+            stats.live_objects++;
+            maybe_trigger_gc();
+            if (debug_gc) {
+                std::cout << "[MemoryHandler] Allocated ptr=" << p << ", size=" << size << ", type=" << type_tag << "\n";
+            }
+            return p;
+        }
+
+        void free_safe(Pointer p) {
+            auto it = heap_table.find(p);
+            if (it == heap_table.end()) {
+                std::cerr << "[MemoryHandler] Error: Attempt to free unknown pointer: " << p << "\n";
+                return;
+            }
+            if (it->second.is_freed) {
+                std::cerr << "[MemoryHandler] Error: Double free detected for pointer: " << p << "\n";
+                return;
+            }
+            sys_free(p);
+            stats.total_freed += it->second.size;
+            stats.live_objects--;
+            it->second.is_freed = true;
+            heap_table.erase(it);
+            if (debug_gc) {
+                std::cout << "[MemoryHandler] Freed ptr=" << p << "\n";
+            }
+        }
+
+        void register_root(Pointer p) {
+            roots.insert(p);
+        }
+
+        void unregister_root(Pointer p) {
+            roots.erase(p);
+        }
+
+        void gc_collect() {
+            if (debug_gc) std::cout << "=== GC COLLECT BEGIN ===\n";
+
+            // Mark phase
+            for (Pointer root_ptr : roots) {
+                mark_recursive(root_ptr);
+            }
+
+            // Sweep phase
+            sweep_unmarked();
+
+            if (debug_gc) std::cout << "=== GC COLLECT END ===\n";
+
+            stats.gc_cycles++;
+        }
+
+        void print_stats() const {
+            std::cout << "==== MemoryHandler Stats ====\n";
+            std::cout << "Allocated bytes: " << stats.total_allocated << "\n";
+            std::cout << "Freed bytes: " << stats.total_freed << "\n";
+            std::cout << "Live objects: " << stats.live_objects << "\n";
+            std::cout << "GC cycles: " << stats.gc_cycles << "\n";
+            std::cout << "=============================\n";
+        }
+
+        size_t region_begin() {
+            current_region++;
+            return current_region;
+        }
+
+        void region_free(size_t region_id) {
+            std::vector<Pointer> to_free;
+            for (auto& [ptr, info] : heap_table) {
+                if (info.region_id == region_id) to_free.push_back(ptr);
+            }
+            for (Pointer p : to_free) {
+                free_safe(p);
+            }
+        }
+
+        void set_debug_gc(bool flag) { debug_gc = flag; }
+
+    private:
+        MemoryHandler() : current_region(0), debug_gc(false) {}
+
+        void mark_recursive(Pointer p) {
+            auto it = heap_table.find(p);
+            if (it == heap_table.end()) return;
+            if (it->second.marked) return;
+
+            it->second.marked = true;
+
+            // TODO: If your heap objects store references, recursively mark them here.
+            // Since this is a simulation, we skip deep traversal.
+        }
+
+        void sweep_unmarked() {
+            std::vector<Pointer> to_free;
+            for (auto& [ptr, info] : heap_table) {
+                if (!info.marked) {
+                    to_free.push_back(ptr);
+                }
+                else {
+                    info.marked = false;  // unmark for next GC cycle
+                }
+            }
+            for (Pointer p : to_free) {
+                free_safe(p);
+            }
+        }
+
+        void maybe_trigger_gc() {
+            // Simple heuristic: trigger GC if live objects > threshold
+            constexpr size_t threshold = 10000;
+            if (heap_table.size() > threshold) {
+                gc_collect();
+            }
+        }
+
+    private:
+        std::unordered_map<Pointer, PointerInfo> heap_table;
+        std::unordered_set<Pointer> roots;
+        size_t current_region;
+        bool debug_gc;
+
+        struct {
+            size_t total_allocated = 0;
+            size_t total_freed = 0;
+            size_t live_objects = 0;
+            size_t gc_cycles = 0;
+        } stats;
+    };
+
+
+    // --- Example usage ---
+
+    int main() {
+        MemoryHandler& mem = MemoryHandler::instance();
+
+        mem.set_debug_gc(true);
+
+        // Allocate some simulated objects
+        Pointer p1 = mem.allocate_safe(64, "MyObject");
+        Pointer p2 = mem.allocate_safe(128, "MyObject");
+        Pointer p3 = mem.allocate_safe(256, "MyObject");
+
+        // Register roots
+        mem.register_root(p1);
+        mem.register_root(p3);
+
+        // Trigger GC (p2 is unreachable and should be freed)
+        mem.gc_collect();
+
+        mem.print_stats();
+
+        // Free manually
+        mem.free_safe(p1);
+        mem.free_safe(p3);
+
+        mem.print_stats();
+
+        return 0;
+    }
+
+#include <iostream>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
+#include <string>
+#include <mutex>
+#include <shared_mutex>
+#include <memory>
+#include <atomic>
+#include <thread>
+#include <chrono>
+#include <cassert>
+
+    // Pointer type (real pointer)
+    using Pointer = void*;
+
+    // Forward declaration for GCObject
+    struct GCObject;
+
+    // --- A GC-managed object ---
+    // Holds a vector of references to other GCObjects (simulating fields/refs)
+    struct GCObject {
+        size_t size; // size of payload
+        std::string type_tag;
+        std::vector<Pointer> references; // pointers to other GCObjects
+        bool marked = false;              // GC mark flag
+
+        // Payload data: in real use-case could be more complex
+        char* data = nullptr;
+
+        explicit GCObject(size_t sz, const std::string& tag)
+            : size(sz), type_tag(tag), references(), marked(false)
+        {
+            data = static_cast<char*>(malloc(sz));
+            if (!data) throw std::bad_alloc();
+        }
+
+        ~GCObject() {
+            free(data);
+            data = nullptr;
+        }
+
+        // Add a reference to another GCObject
+        void add_reference(Pointer ptr) {
+            references.push_back(ptr);
+        }
+    };
+
+    // --- Simulated VM stack frame holding root pointers ---
+    struct VMStackFrame {
+        std::vector<Pointer> roots;
+
+        void add_root(Pointer p) { roots.push_back(p); }
+        const std::vector<Pointer>& get_roots() const { return roots; }
+    };
+
+    // --- The Garbage Collector class ---
+    class GarbageCollector {
+    public:
+        GarbageCollector() : debug_gc(false), gc_cycles(0), allocated_bytes(0), freed_bytes(0), live_objects(0) {}
+
+        // Allocate a GCObject on heap, tracked and managed
+        Pointer allocate(size_t size, const std::string& type_tag) {
+            std::unique_lock lock(gc_mutex);
+
+            GCObject* obj = new GCObject(size, type_tag);
+            Pointer ptr = static_cast<Pointer>(obj);
+
+            heap_table[ptr] = std::unique_ptr<GCObject>(obj);
+
+            allocated_bytes += size;
+            live_objects++;
+
+            maybe_trigger_gc();
+
+            if (debug_gc) {
+                std::cout << "[GC] Allocated " << size << " bytes at " << ptr << " (type " << type_tag << ")\n";
+            }
+
+            return ptr;
+        }
+
+        // Free a pointer manually (should be rare, generally GC handles)
+        void free_manual(Pointer ptr) {
+            std::unique_lock lock(gc_mutex);
+
+            auto it = heap_table.find(ptr);
+            if (it == heap_table.end()) {
+                std::cerr << "[GC] Error: Attempt to free unknown pointer " << ptr << "\n";
+                return;
+            }
+            size_t size = it->second->size;
+            heap_table.erase(it);
+            freed_bytes += size;
+            live_objects--;
+
+            if (debug_gc) {
+                std::cout << "[GC] Manually freed pointer " << ptr << "\n";
+            }
+        }
+
+        // Register a root pointer (thread-safe)
+        void register_root(Pointer ptr) {
+            std::unique_lock lock(roots_mutex);
+            roots.insert(ptr);
+            if (debug_gc) std::cout << "[GC] Registered root " << ptr << "\n";
+        }
+
+        void unregister_root(Pointer ptr) {
+            std::unique_lock lock(roots_mutex);
+            roots.erase(ptr);
+            if (debug_gc) std::cout << "[GC] Unregistered root " << ptr << "\n";
+        }
+
+        // Mark phase: recursively mark reachable objects starting from roots
+        void mark_all_roots(const std::vector<VMStackFrame>& vm_stack) {
+            std::shared_lock roots_lock(roots_mutex);
+
+            // Mark VM stack roots
+            for (const auto& frame : vm_stack) {
+                for (Pointer root_ptr : frame.get_roots()) {
+                    mark_recursive(root_ptr);
+                }
+            }
+
+            // Mark global roots
+            for (Pointer root_ptr : roots) {
+                mark_recursive(root_ptr);
+            }
+        }
+
+        // Sweep phase: free all unmarked objects
+        void sweep() {
+            std::unique_lock lock(gc_mutex);
+
+            size_t freed_this_cycle = 0;
+
+            for (auto it = heap_table.begin(); it != heap_table.end();) {
+                GCObject* obj = it->second.get();
+                if (!obj->marked) {
+                    freed_bytes += obj->size;
+                    live_objects--;
+                    if (debug_gc) std::cout << "[GC] Sweeping unmarked object at " << it->first << "\n";
+                    it = heap_table.erase(it);
+                    freed_this_cycle++;
+                }
+                else {
+                    obj->marked = false; // reset mark for next GC cycle
+                    ++it;
+                }
+            }
+
+            if (debug_gc) std::cout << "[GC] Sweep freed " << freed_this_cycle << " objects\n";
+        }
+
+        // Trigger full GC cycle
+        void collect_garbage(const std::vector<VMStackFrame>& vm_stack) {
+            std::unique_lock lock(gc_mutex);
+
+            if (debug_gc) std::cout << "=== GC Cycle Begin ===\n";
+            auto start = std::chrono::steady_clock::now();
+
+            mark_all_roots(vm_stack);
+            sweep();
+
+            auto end = std::chrono::steady_clock::now();
+            std::chrono::duration<double, std::milli> dur = end - start;
+
+            gc_cycles++;
+            last_gc_time_ms = dur.count();
+
+            if (debug_gc) {
+                std::cout << "=== GC Cycle End (" << last_gc_time_ms << " ms) ===\n";
+            }
+        }
+
+        // Debug info and stats
+        void print_stats() const {
+            std::shared_lock lock(gc_mutex);
+            std::cout << "=== GC Stats ===\n";
+            std::cout << "Allocated bytes: " << allocated_bytes << "\n";
+            std::cout << "Freed bytes: " << freed_bytes << "\n";
+            std::cout << "Live objects: " << live_objects << "\n";
+            std::cout << "GC cycles: " << gc_cycles << "\n";
+            std::cout << "Last GC time (ms): " << last_gc_time_ms << "\n";
+            std::cout << "Heap size: " << heap_table.size() << " objects\n";
+        }
+
+        void set_debug(bool flag) {
+            debug_gc = flag;
+        }
+
+        // Access object references for mutation
+        std::vector<Pointer>& get_references(Pointer ptr) {
+            std::shared_lock lock(gc_mutex);
+            auto it = heap_table.find(ptr);
+            if (it == heap_table.end()) throw std::runtime_error("Invalid pointer");
+            return it->second->references;
+        }
+
+        GCObject* get_object(Pointer ptr) {
+            std::shared_lock lock(gc_mutex);
+            auto it = heap_table.find(ptr);
+            if (it == heap_table.end()) return nullptr;
+            return it->second.get();
+        }
+
+    private:
+        // Recursive mark helper
+        void mark_recursive(Pointer ptr) {
+            std::shared_lock lock(gc_mutex);
+            auto it = heap_table.find(ptr);
+            if (it == heap_table.end()) return;
+            GCObject* obj = it->second.get();
+            if (obj->marked) return;
+
+            obj->marked = true;
+
+            // Recursively mark references
+            for (Pointer child : obj->references) {
+                mark_recursive(child);
+            }
+        }
+
+        // GC heap storage
+        std::unordered_map<Pointer, std::unique_ptr<GCObject>> heap_table;
+
+        // Registered roots (global/static)
+        std::unordered_set<Pointer> roots;
+        mutable std::shared_mutex roots_mutex;
+
+        // Mutex protecting heap and GC operations
+        mutable std::shared_mutex gc_mutex;
+
+        // Stats
+        std::atomic<size_t> allocated_bytes{ 0 };
+        std::atomic<size_t> freed_bytes{ 0 };
+        std::atomic<size_t> live_objects{ 0 };
+        std::atomic<size_t> gc_cycles{ 0 };
+        std::atomic<double> last_gc_time_ms{ 0 };
+
+        // Debug toggle
+        bool debug_gc;
+        // Potential future: GC threshold heuristic here
+        void maybe_trigger_gc() {
+            if (live_objects.load() > 10000) {
+                // Trigger GC asynchronously (example)
+                // In this example, just print debug
+                if (debug_gc) std::cout << "[GC] GC threshold exceeded; manual trigger suggested.\n";
+            }
+        }
+    };
+
+
+    // --- Example usage ---
+
+    int main() {
+        GarbageCollector gc;
+        gc.set_debug(true);
+
+        // Simulated VM stack frames holding roots
+        std::vector<VMStackFrame> vm_stack;
+
+        // Create root frame
+        VMStackFrame frame1;
+        vm_stack.push_back(frame1);
+
+        // Allocate objects
+        Pointer objA = gc.allocate(32, "ObjectA");
+        Pointer objB = gc.allocate(64, "ObjectB");
+        Pointer objC = gc.allocate(128, "ObjectC");
+
+        // Setup references: objA -> objB, objB -> objC (object graph)
+        gc.get_references(objA).push_back(objB);
+        gc.get_references(objB).push_back(objC);
+
+        // Register objA as root in stack frame 0
+        vm_stack[0].add_root(objA);
+
+        // Also register objA globally (simulating static roots)
+        gc.register_root(objA);
+
+        // Do a GC cycle, objA, objB, objC remain alive
+        gc.collect_garbage(vm_stack);
+        gc.print_stats();
+
+        // Unregister global root (objA), remove stack roots
+        gc.unregister_root(objA);
+        vm_stack[0].roots.clear();
+
+        // Run GC again, all objects are unreachable and should be freed
+        gc.collect_garbage(vm_stack);
+        gc.print_stats();
+
+        return 0;
+	}
+
+#include <iostream>
+#include <string>
+#include <unordered_map>
+#include <shared_mutex>
+#include <chrono>
+#include <ctime>
+#include <optional>
+#include <stdexcept>
+#include <functional>
+
+    // Forward declaration for Module
+    struct Module {
+        std::string name;
+        std::string content; // Serialized string content
+
+        Module() = default;
+        Module(std::string n, std::string c) : name(std::move(n)), content(std::move(c)) {}
+
+        std::string to_string() const {
+            return content;
+        }
+
+        // Simulate reload support
+        void reload() {
+            std::cout << "[Module] Reloading " << name << std::endl;
+        }
+    };
+
+    // Simple error and warning handler
+    struct ErrorHandler {
+        static void error(int code, const std::string& msg) {
+            throw std::runtime_error("Error " + std::to_string(code) + ": " + msg);
+        }
+        static void warn(const std::string& msg) {
+            std::cerr << "Warning: " << msg << std::endl;
+        }
+    };
+
+    // Simple Codex Logger simulation
+    struct CodexLogger {
+        static void log(const std::string& msg) {
+            std::cout << "[CodexLogger] " << msg << std::endl;
+        }
+    };
+
+    // Stub SHA256 checksum (just a hash of string length + content hash)
+    static size_t simple_checksum(const std::string& s) {
+        std::hash<std::string> hasher;
+        return hasher(s) ^ s.size();
+    }
+
+    // Get current timestamp string
+    static std::string current_timestamp() {
+        auto now = std::chrono::system_clock::now();
+        std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+        char buf[32];
+        std::strftime(buf, sizeof(buf), "%F %T", std::localtime(&now_c));
+        return std::string(buf);
+    }
+
+    class LibrarySystem {
+    public:
+        // Metadata stored per module
+        struct Metadata {
+            std::string info;
+            size_t checksum;
+            std::string timestamp;
+        };
+
+        // Register a module with optional info and optional backup tracking
+        void register_module(const std::string& name, const Module& mod,
+            const std::string& info = "",
+            bool track_backup = true)
+        {
+            std::unique_lock lock(mutex_);
+            if (track_backup && libs_.count(name)) {
+                rollback_[name] = libs_[name]; // Save last good version
+            }
+            libs_[name] = mod;
+            metadata_[name] = Metadata{ info, checksum(mod), current_timestamp() };
+            CodexLogger::log("📚 Library Registered: " + name);
+        }
+
+        // Hot patch module with rollback support
+        void hot_patch(const std::string& name, const Module& mod) {
+            std::unique_lock lock(mutex_);
+            if (!libs_.count(name)) {
+                ErrorHandler::error(404, "Module not found for hot-patch: " + name);
+            }
+            rollback_[name] = libs_[name];
+            libs_[name] = mod;
+            metadata_[name].checksum = checksum(mod);
+            metadata_[name].timestamp = current_timestamp();
+            CodexLogger::log("♻️ Patched: " + name);
+        }
+
+        // Revert module to last backup
+        void revert(const std::string& name) {
+            std::unique_lock lock(mutex_);
+            if (!rollback_.count(name)) {
+                ErrorHandler::warn("⚠️ No rollback version found for " + name);
+                return;
+            }
+            libs_[name] = rollback_[name];
+            metadata_[name].checksum = checksum(libs_[name]);
+            metadata_[name].timestamp = current_timestamp();
+            CodexLogger::log("↩️ Rolled back: " + name);
+        }
+
+        // Inspect library registry - thread-safe
+        void inspect() const {
+            std::shared_lock lock(mutex_);
+            std::cout << "\n📘 Library Registry Overview:\n";
+            for (const auto& [name, mod] : libs_) {
+                auto it = metadata_.find(name);
+                if (it != metadata_.end()) {
+                    std::cout << "  • " << name << " ✅ Checksum: " << it->second.checksum
+                        << " Info: " << it->second.info << "\n";
+                }
+                else {
+                    std::cout << "  • " << name << " (no metadata)\n";
+                }
+            }
+            std::cout << "🏛 Total Modules: " << libs_.size() << std::endl;
+        }
+
+        // Get module with integrity check
+        Module get(const std::string& name) const {
+            std::shared_lock lock(mutex_);
+            auto it = libs_.find(name);
+            if (it == libs_.end()) {
+                ErrorHandler::error(404, "Library not found: " + name);
+            }
+            size_t check = checksum(it->second);
+            auto meta_it = metadata_.find(name);
+            if (meta_it != metadata_.end() && check != meta_it->second.checksum) {
+                ErrorHandler::warn("⚠️ Module checksum mismatch for " + name);
+            }
+            return it->second;
+        }
+
+    private:
+        size_t checksum(const Module& mod) const {
+            return simple_checksum(mod.to_string());
+        }
+
+        mutable std::shared_mutex mutex_;
+        std::unordered_map<std::string, Module> libs_;
+        std::unordered_map<std::string, Metadata> metadata_;
+        std::unordered_map<std::string, Module> rollback_;
+    };
+
+
+    // Example usage
+    int main() {
+        try {
+            LibrarySystem libs;
+
+            Module mod1("mod1", "print('Hello World')");
+            libs.register_module("hello", mod1, "Initial hello module");
+
+            Module mod2("mod2", "print('Goodbye')");
+            libs.register_module("bye", mod2);
+
+            libs.inspect();
+
+            // Hot patch hello module
+            Module mod1_patch("mod1", "print('Hello Patched')");
+            libs.hot_patch("hello", mod1_patch);
+
+            libs.inspect();
+
+            // Revert hello to previous version
+            libs.revert("hello");
+            libs.inspect();
+
+            // Fetch a module
+            Module m = libs.get("hello");
+            std::cout << "Fetched module content: " << m.to_string() << std::endl;
+
+        }
+        catch (const std::exception& ex) {
+            std::cerr << "Fatal error: " << ex.what() << std::endl;
+        }
+        return 0;
+    }
+
+#include <iostream>
+#include <string>
+#include <vector>
+#include <unordered_set>
+#include <stdexcept>
+#include <cctype>
+
+    struct Token {
+        enum class Type {
+            IDENTIFIER,
+            NUMBER,
+            FLOAT,
+            STRING,
+            MACRO,
+            OPERATOR,
+            SYMBOL,
+            EOF_TOKEN
+        };
+
+        Type type;
+        std::string value;
+        int line;
+        int column;
+
+        Token(Type t, std::string v, int l, int c) : type(t), value(std::move(v)), line(l), column(c) {}
+
+        std::string typeName() const {
+            switch (type) {
+            case Type::IDENTIFIER: return "IDENTIFIER";
+            case Type::NUMBER:     return "NUMBER";
+            case Type::FLOAT:      return "FLOAT";
+            case Type::STRING:     return "STRING";
+            case Type::MACRO:      return "MACRO";
+            case Type::OPERATOR:   return "OPERATOR";
+            case Type::SYMBOL:     return "SYMBOL";
+            case Type::EOF_TOKEN:  return "EOF";
+            }
+            return "UNKNOWN";
+        }
+    };
+
+    class LexerError : public std::runtime_error {
+    public:
+        int line, column;
+        LexerError(const std::string& msg, int l, int c)
+            : std::runtime_error(msg + " at line " + std::to_string(l) + ", column " + std::to_string(c)), line(l), column(c) {}
+    };
+
+    class Lexer {
+        const std::string& src;
+        size_t pos = 0;
+        int line = 1;
+        int column = 1;
+
+        const std::unordered_set<std::string> OPERATORS = {
+            "+", "-", "*", "/", "%", "=", "==", "!=", "<", ">", "<=", ">=", "&&", "||"
+        };
+
+        const std::unordered_set<char> SYMBOLS = {
+            '(', ')', '{', '}', '[', ']', ',', ':', '.', ';'
+        };
+
+    public:
+        explicit Lexer(const std::string& input) : src(input) {}
+
+        std::vector<Token> tokenize() {
+            std::vector<Token> tokens;
+            while (true) {
+                skipWhitespaceAndComments();
+                if (isAtEnd()) {
+                    tokens.emplace_back(Token::Type::EOF_TOKEN, "", line, column);
+                    break;
+                }
+                char c = peek();
+
+                if (isAlpha(c)) {
+                    tokens.push_back(readIdentifierOrKeyword());
+                }
+                else if (isdigit(c)) {
+                    tokens.push_back(readNumber());
+                }
+                else if (c == '"' || c == '\'') {
+                    tokens.push_back(readString());
+                }
+                else if (c == '#' || c == '@') {
+                    tokens.push_back(readMacro());
+                }
+                else {
+                    // Operators can be up to length 2 (like ==, !=, <=, >=, &&, ||)
+                    // Try to match longest operator first
+                    Token opTok = tryReadOperatorOrSymbol();
+                    tokens.push_back(opTok);
+                }
+            }
+            return tokens;
+        }
+
+    private:
+        bool isAtEnd() const {
+            return pos >= src.size();
+        }
+
+        char peek() const {
+            return isAtEnd() ? '\0' : src[pos];
+        }
+
+        char peekNext() const {
+            return (pos + 1 < src.size()) ? src[pos + 1] : '\0';
+        }
+
+        char advance() {
+            char c = peek();
+            pos++;
+            if (c == '\n') {
+                line++;
+                column = 1;
+            }
+            else {
+                column++;
+            }
+            return c;
+        }
+
+        void skipWhitespaceAndComments() {
+            while (!isAtEnd()) {
+                char c = peek();
+                if (isspace(c)) {
+                    advance();
+                }
+                else if (c == '#') {
+                    // skip comment till end of line
+                    while (!isAtEnd() && peek() != '\n') advance();
+                }
+                else {
+                    break;
+                }
+            }
+        }
+
+        bool isAlpha(char c) const {
+            return std::isalpha(static_cast<unsigned char>(c)) || c == '_';
+        }
+
+        bool isAlnum(char c) const {
+            return isAlpha(c) || std::isdigit(static_cast<unsigned char>(c));
+        }
+
+        Token readIdentifierOrKeyword() {
+            int startLine = line;
+            int startCol = column;
+            std::string val;
+            while (!isAtEnd() && isAlnum(peek())) {
+                val += advance();
+            }
+            // Keywords not implemented here, treat all as IDENTIFIER
+            return Token(Token::Type::IDENTIFIER, val, startLine, startCol);
+        }
+
+        Token readNumber() {
+            int startLine = line;
+            int startCol = column;
+            std::string val;
+            bool isFloat = false;
+
+            while (!isAtEnd() && std::isdigit(peek())) {
+                val += advance();
+            }
+            if (!isAtEnd() && peek() == '.') {
+                isFloat = true;
+                val += advance();
+                while (!isAtEnd() && std::isdigit(peek())) {
+                    val += advance();
+                }
+            }
+            return Token(isFloat ? Token::Type::FLOAT : Token::Type::NUMBER, val, startLine, startCol);
+        }
+
+        Token readString() {
+            int startLine = line;
+            int startCol = column;
+            char quote = advance(); // consume opening quote
+            std::string val;
+            while (!isAtEnd() && peek() != quote) {
+                if (peek() == '\\') { // handle escape
+                    advance();
+                    if (isAtEnd()) break;
+                    char esc = advance();
+                    switch (esc) {
+                    case 'n': val += '\n'; break;
+                    case 't': val += '\t'; break;
+                    case '\\': val += '\\'; break;
+                    case '"': val += '"'; break;
+                    case '\'': val += '\''; break;
+                    default: val += esc; break;
+                    }
+                }
+                else {
+                    val += advance();
+                }
+            }
+            if (isAtEnd()) {
+                throw LexerError("Unterminated string literal", startLine, startCol);
+            }
+            advance(); // consume closing quote
+            return Token(Token::Type::STRING, val, startLine, startCol);
+        }
+
+        Token readMacro() {
+            int startLine = line;
+            int startCol = column;
+            std::string val;
+            val += advance(); // consume '#' or '@'
+            while (!isAtEnd() && !isspace(peek())) {
+                val += advance();
+            }
+            return Token(Token::Type::MACRO, val, startLine, startCol);
+        }
+
+        Token tryReadOperatorOrSymbol() {
+            int startLine = line;
+            int startCol = column;
+            // Try 2-char operators first
+            if (pos + 1 < src.size()) {
+                std::string twoChars = src.substr(pos, 2);
+                if (OPERATORS.count(twoChars)) {
+                    pos += 2;
+                    column += 2;
+                    return Token(Token::Type::OPERATOR, twoChars, startLine, startCol);
+                }
+            }
+            // Try 1-char operator
+            char oneChar = advance();
+            std::string oneStr(1, oneChar);
+            if (OPERATORS.count(oneStr)) {
+                return Token(Token::Type::OPERATOR, oneStr, startLine, startCol);
+            }
+            // Check symbols
+            if (SYMBOLS.count(oneChar)) {
+                return Token(Token::Type::SYMBOL, oneStr, startLine, startCol);
+            }
+
+            throw LexerError(std::string("Unknown character: ") + oneChar, startLine, startCol);
+        }
+    };
+
+
+    // --- Simple test driver ---
+    int main() {
+        std::string testInput = R"(
+#define MAX 100
+var x = 42
+var π = 3.14
+@inline func test() { return x + π }
+# This is a comment
+)";
+
+        try {
+            Lexer lexer(testInput);
+            auto tokens = lexer.tokenize();
+
+            for (const auto& t : tokens) {
+                std::cout << "[" << t.typeName() << "] '" << t.value
+                    << "' (line " << t.line << ", col " << t.column << ")\n";
+            }
+            std::cout << "Lexing complete. Total tokens: " << tokens.size() << std::endl;
+        }
+        catch (const LexerError& err) {
+            std::cerr << "Lexer error: " << err.what() << std::endl;
+        }
+        return 0;
+    }
+
+#include <iostream>
+#include <string>
+#include <vector>
+#include <unordered_set>
+#include <stdexcept>
+#include <memory>
+#include <sstream>
+#include <cctype>
+#include <algorithm>
+#include "utf8.h"  // Include UTF-8 iterator header from utf8cpp
+
+    // --- Token definitions ---
+    struct Token {
+        enum class Type {
+            IDENTIFIER,
+            KEYWORD,
+            NUMBER,
+            FLOAT,
+            STRING,
+            MACRO,
+            OPERATOR,
+            SYMBOL,
+            BOOLEAN,
+            NULL_LITERAL,
+            COMMENT,
+            WHITESPACE,
+            EOF_TOKEN
+        };
+
+        Type type;
+        std::string value;
+        int line;
+        int column;
+
+        Token(Type t, std::string v, int l, int c)
+            : type(t), value(std::move(v)), line(l), column(c) {
+        }
+
+        std::string typeName() const {
+            switch (type) {
+            case Type::IDENTIFIER: return "IDENTIFIER";
+            case Type::KEYWORD: return "KEYWORD";
+            case Type::NUMBER: return "NUMBER";
+            case Type::FLOAT: return "FLOAT";
+            case Type::STRING: return "STRING";
+            case Type::MACRO: return "MACRO";
+            case Type::OPERATOR: return "OPERATOR";
+            case Type::SYMBOL: return "SYMBOL";
+            case Type::BOOLEAN: return "BOOLEAN";
+            case Type::NULL_LITERAL: return "NULL";
+            case Type::COMMENT: return "COMMENT";
+            case Type::WHITESPACE: return "WHITESPACE";
+            case Type::EOF_TOKEN: return "EOF";
+            }
+            return "UNKNOWN";
+        }
+    };
+
+    // --- Exception for Lexer errors ---
+    class LexerError : public std::runtime_error {
+    public:
+        int line, column;
+        LexerError(const std::string& msg, int l, int c)
+            : std::runtime_error(msg + " at line " + std::to_string(l) + ", column " + std::to_string(c)),
+            line(l), column(c) {
+        }
+    };
+
+    // --- Lexer class ---
+    class Lexer {
+        const std::string& src;
+        size_t bytePos = 0;    // position in bytes (utf8 string)
+        int line = 1;
+        int column = 1;
+
+        // UTF-8 iterator types
+        using Utf8Iterator = utf8::iterator<std::string::const_iterator>;
+
+        Utf8Iterator utf8It;
+        Utf8Iterator utf8End;
+
+        std::vector<Token> tokens;
+        size_t tokenPos = 0;
+
+        // Keywords, booleans, nulls
+        const std::unordered_set<std::string> keywords = {
+            "if", "else", "while", "return", "module", "define", "end", "var", "func", "true", "false", "null"
+        };
+        const std::unordered_set<std::string> booleans = { "true", "false" };
+        const std::string nullLiteral = "null";
+
+        // Operators (including multi-char)
+        const std::unordered_set<std::string> operators = {
+            "+", "-", "*", "/", "%", "=", "==", "!=", "<", ">", "<=", ">=", "&&", "||", "!", "++", "--"
+        };
+
+        // Symbols
+        const std::unordered_set<char32_t> symbols = {
+            U'(', U')', U'{', U'}', U'[', U']', U',', U':', U'.', U';'
+        };
+
+    public:
+        explicit Lexer(const std::string& input)
+            : src(input),
+            utf8It(src.begin()),
+            utf8End(src.end())
+        {
+        }
+
+        // Entry point: tokenize entire source and prepare for stream usage
+        void tokenize() {
+            tokens.clear();
+            tokenPos = 0;
+            line = 1;
+            column = 1;
+            utf8It = Utf8Iterator(src.begin());
+            while (true) {
+                skipWhitespaceAndComments();
+                if (isAtEnd()) {
+                    tokens.emplace_back(Token::Type::EOF_TOKEN, "", line, column);
+                    break;
+                }
+                Token tok = nextToken();
+                tokens.push_back(tok);
+            }
+        }
+
+        // Token stream API: peek token without consuming
+        const Token& peek() const {
+            if (tokenPos >= tokens.size()) throw std::runtime_error("Peek beyond end of tokens");
+            return tokens[tokenPos];
+        }
+
+        // Consume and return next token
+        const Token& advance() {
+            if (tokenPos >= tokens.size()) throw std::runtime_error("Advance beyond end of tokens");
+            return tokens[tokenPos++];
+        }
+
+        // Expect a token type, throw if mismatch, else consume
+        const Token& expect(Token::Type type) {
+            if (peek().type != type) {
+                throw LexerError("Expected token of type " + typeToString(type) + " but got " + peek().typeName(),
+                    peek().line, peek().column);
+            }
+            return advance();
+        }
+
+        // Reset lexing to start (for VM/parser reuse)
+        void reset() {
+            tokenPos = 0;
+        }
+
+        // Print tokens (debug)
+        void printTokens() const {
+            for (const auto& t : tokens) {
+                std::cout << "[" << t.typeName() << "] '" << t.value << "' (line " << t.line << ", col " << t.column << ")\n";
+            }
+        }
+
+    private:
+        std::string typeToString(Token::Type t) const {
+            switch (t) {
+            case Token::Type::IDENTIFIER: return "IDENTIFIER";
+            case Token::Type::KEYWORD: return "KEYWORD";
+            case Token::Type::NUMBER: return "NUMBER";
+            case Token::Type::FLOAT: return "FLOAT";
+            case Token::Type::STRING: return "STRING";
+            case Token::Type::MACRO: return "MACRO";
+            case Token::Type::OPERATOR: return "OPERATOR";
+            case Token::Type::SYMBOL: return "SYMBOL";
+            case Token::Type::BOOLEAN: return "BOOLEAN";
+            case Token::Type::NULL_LITERAL: return "NULL";
+            case Token::Type::COMMENT: return "COMMENT";
+            case Token::Type::WHITESPACE: return "WHITESPACE";
+            case Token::Type::EOF_TOKEN: return "EOF";
+            }
+            return "UNKNOWN";
+        }
+
+        bool isAtEnd() const {
+            return utf8It == utf8End;
+        }
+
+        // UTF-8 helpers
+        char32_t peekChar() const {
+            if (isAtEnd()) return 0;
+            return *utf8It;
+        }
+
+        char32_t peekNextChar() const {
+            auto nextIt = utf8It;
+            if (nextIt != utf8End) ++nextIt;
+            if (nextIt == utf8End) return 0;
+            return *nextIt;
+        }
+
+        char32_t advanceChar() {
+            if (isAtEnd()) return 0;
+            char32_t c = *utf8It;
+            ++utf8It;
+            if (c == U'\n') {
+                line++;
+                column = 1;
+            }
+            else {
+                column++;
+            }
+            return c;
+        }
+
+        // Unicode-aware helpers
+        bool isWhitespace(char32_t c) const {
+            // simple check, add unicode spaces as needed
+            return c == U' ' || c == U'\t' || c == U'\n' || c == U'\r' || c == 0x00A0 || c == 0x200B;
+        }
+
+        bool isAlpha(char32_t c) const {
+            // This covers ASCII letters and underscore; extend with unicode if desired
+            return (c >= U'a' && c <= U'z') || (c >= U'A' && c <= U'Z') || (c == U'_');
+        }
+
+        bool isDigit(char32_t c) const {
+            return (c >= U'0' && c <= U'9');
+        }
+
+        bool isAlnum(char32_t c) const {
+            return isAlpha(c) || isDigit(c);
+        }
+
+        bool isSymbol(char32_t c) const {
+            return symbols.count(c) > 0;
+        }
+
+        // Skip whitespace and comments (single line starting with #)
+        void skipWhitespaceAndComments() {
+            while (!isAtEnd()) {
+                char32_t c = peekChar();
+                if (isWhitespace(c)) {
+                    advanceChar();
+                    continue;
+                }
+                if (c == U'#') {
+                    // Skip comment until newline or end
+                    while (!isAtEnd() && peekChar() != U'\n') advanceChar();
+                    continue;
+                }
+                break;
+            }
+        }
+
+        // Lex next token
+        Token nextToken() {
+            char32_t c = peekChar();
+            int tokLine = line;
+            int tokCol = column;
+
+            if (isAlpha(c)) return readIdentifierOrKeyword(tokLine, tokCol);
+            if (isDigit(c)) return readNumber(tokLine, tokCol);
+            if (c == U'"' || c == U'\'') return readString(tokLine, tokCol);
+            if (c == U'#' || c == U'@') return readMacro(tokLine, tokCol);
+            return readOperatorOrSymbol(tokLine, tokCol);
+        }
+
+        // Read identifier or keyword
+        Token readIdentifierOrKeyword(int startLine, int startCol) {
+            std::u32string val;
+            while (!isAtEnd() && isAlnum(peekChar())) {
+                val.push_back(advanceChar());
+            }
+            std::string valUtf8 = utf32ToUtf8(val);
+            if (keywords.count(valUtf8)) {
+                if (booleans.count(valUtf8)) {
+                    return Token(Token::Type::BOOLEAN, valUtf8, startLine, startCol);
+                }
+                if (valUtf8 == nullLiteral) {
+                    return Token(Token::Type::NULL_LITERAL, valUtf8, startLine, startCol);
+                }
+                return Token(Token::Type::KEYWORD, valUtf8, startLine, startCol);
+            }
+            return Token(Token::Type::IDENTIFIER, valUtf8, startLine, startCol);
+        }
+
+        // Read number (int or float)
+        Token readNumber(int startLine, int startCol) {
+            std::string val;
+            bool isFloat = false;
+
+            while (!isAtEnd() && isDigit(peekChar())) {
+                val += static_cast<char>(advanceChar());
+            }
+            if (!isAtEnd() && peekChar() == U'.') {
+                isFloat = true;
+                val += static_cast<char>(advanceChar());
+                while (!isAtEnd() && isDigit(peekChar())) {
+                    val += static_cast<char>(advanceChar());
+                }
+            }
+            return Token(isFloat ? Token::Type::FLOAT : Token::Type::NUMBER, val, startLine, startCol);
+        }
+
+        // Read string literal, supporting escape sequences
+        Token readString(int startLine, int startCol) {
+            char32_t quote = advanceChar();
+            std::string val;
+            while (!isAtEnd() && peekChar() != quote) {
+                if (peekChar() == U'\\') {
+                    advanceChar();
+                    if (isAtEnd()) break;
+                    char32_t esc = advanceChar();
+                    switch (esc) {
+                    case U'n': val += '\n'; break;
+                    case U't': val += '\t'; break;
+                    case U'\\': val += '\\'; break;
+                    case U'"': val += '"'; break;
+                    case U'\'': val += '\''; break;
+                    default: val += static_cast<char>(esc); break;
+                    }
+                }
+                else {
+                    // Convert char32_t to UTF-8
+                    val += utf32ToUtf8Char(peekChar());
+                    advanceChar();
+                }
+            }
+            if (isAtEnd()) throw LexerError("Unterminated string literal", startLine, startCol);
+            advanceChar(); // Consume closing quote
+            return Token(Token::Type::STRING, val, startLine, startCol);
+        }
+
+        // Read macro token starting with '#' or '@'
+        Token readMacro(int startLine, int startCol) {
+            std::string val;
+            val += static_cast<char>(advanceChar()); // '#' or '@'
+            while (!isAtEnd() && !isWhitespace(peekChar())) {
+                // convert char32_t to UTF-8 string
+                val += utf32ToUtf8Char(peekChar());
+                advanceChar();
+            }
+            return Token(Token::Type::MACRO, val, startLine, startCol);
+        }
+
+        // Read operator or symbol token
+        Token readOperatorOrSymbol(int startLine, int startCol) {
+            // Attempt longest operator match (2 chars)
+            if (!isAtEnd()) {
+                std::string twoChars;
+                if (utf8It != utf8End) {
+                    char32_t first = peekChar();
+                    // peek second char
+                    auto savedIt = utf8It;
+                    char32_t second = 0;
+                    ++savedIt;
+                    if (savedIt != utf8End) second = *savedIt;
+
+                    if (first && second) {
+                        twoChars = utf32ToUtf8Char(first) + utf32ToUtf8Char(second);
+                        if (operators.count(twoChars)) {
+                            advanceChar();
+                            advanceChar();
+                            return Token(Token::Type::OPERATOR, twoChars, startLine, startCol);
+                        }
+                    }
+                }
+            }
+            // Single char operator or symbol
+            char32_t c = advanceChar();
+            std::string cStr = utf32ToUtf8Char(c);
+            if (operators.count(cStr)) {
+                return Token(Token::Type::OPERATOR, cStr, startLine, startCol);
+            }
+            if (symbols.count(c)) {
+                return Token(Token::Type::SYMBOL, cStr, startLine, startCol);
+            }
+            throw LexerError("Unknown character: " + cStr, startLine, startCol);
+        }
+
+        // UTF-32 string to UTF-8 std::string
+        static std::string utf32ToUtf8(const std::u32string& input) {
+            std::string out;
+            utf8::utf32to8(input.begin(), input.end(), std::back_inserter(out));
+            return out;
+        }
+
+        // UTF-32 char32_t to UTF-8 string
+        static std::string utf32ToUtf8Char(char32_t c) {
+            std::string out;
+            utf8::append(c, std::back_inserter(out));
+            return out;
+        }
+    };
+
+
+    // --- Example integration with a parser or VM stub ---
+    class
+
+		SimpleParser {
+        Lexer lexer;
+    public:
+        explicit SimpleParser(const std::string& input) : lexer(input) {
+            lexer.tokenize();
+        }
+        void parse() {
+            while (true) {
+                const Token& tok = lexer.peek();
+                if (tok.type == Token::Type::EOF_TOKEN) break;
+                std::cout << "Parsed token: " << tok.typeName() << " with value '" << tok.value << "'\n";
+                lexer.advance(); // consume token
+            }
+        }
+	};
+
+    // --- Example usage ---
+    int main() {
+        std::string testInput = R"(
+            # This is a comment
+            var x = 42
+            var π = 3.14
+            if (x > 10) {
+                print("Hello, World!")
+            } else {
+                print("Goodbye!")
+            }
+        )";
+        try {
+            SimpleParser parser(testInput);
+            parser.parse();
+        }
+        catch (const LexerError& err) {
+            std::cerr << "Lexer error: " << err.what() << std::endl;
+        }
+        return 0;
+	}
+
+#include <iostream>
+#include <vector>
+#include <string>
+#include <stdexcept>
+#include <chrono>
+#include <sstream>
+#include <functional>
+
+    // --- Forward declarations for types assumed ---
+    struct Node;
+    struct AST;
+    struct IR;
+    struct IRContext;
+
+    // --- ErrorHandler stub ---
+    struct ErrorHandler {
+        static void warn(const std::string& msg) {
+            std::cerr << "[Warning] " << msg << std::endl;
+        }
+    };
+
+    // --- IRContext: metadata for IR generation ---
+    struct IRContext {
+        int node_id;
+        std::string source;
+        std::string phase;
+        std::string lineage;
+
+        IRContext with_phase(const std::string& new_phase) const {
+            return IRContext{ node_id, source, new_phase, lineage };
+        }
+    };
+
+    // --- IR class: symbolic IR units with factory functions ---
+    struct IR {
+        std::string opcode;
+        std::string lineage;
+        std::string operand1;
+        std::string operand2;
+        std::string phase;
+
+        IR(std::string op, std::string lin, std::string op1 = "", std::string op2 = "", std::string ph = "")
+            : opcode(std::move(op)), lineage(std::move(lin)), operand1(std::move(op1)), operand2(std::move(op2)), phase(std::move(ph))
+        {
+        }
+
+        static IR declare(const std::string& lineage, const std::string& name, const std::string& value, const std::string& phase) {
+            return IR("DECLARE", lineage, name, value, phase);
+        }
+
+        static IR func_start(const std::string& lineage, const std::string& name) {
+            return IR("FUNC_START", lineage, name);
+        }
+
+        static IR func_end(const std::string& lineage, const std::string& name) {
+            return IR("FUNC_END", lineage, name);
+        }
+
+        static IR loop_start(const std::string& lineage, const std::string& condition) {
+            return IR("LOOP_START", lineage, condition);
+        }
+
+        static IR loop_end(const std::string& lineage) {
+            return IR("LOOP_END", lineage);
+        }
+
+        static IR expr(const std::string& lineage, const std::string& code) {
+            return IR("EXPR", lineage, code);
+        }
+
+        static IR unknown(const std::string& lineage, const std::string& node_type) {
+            return IR("UNKNOWN", lineage, node_type);
+        }
+
+        static IR error_stub(const IRContext& ctx) {
+            return IR("ERROR_STUB", ctx.lineage, ctx.source, "", ctx.phase);
+        }
+    };
+
+    // --- Node and AST structures (simplified) ---
+    struct Node {
+        std::string type;
+        std::string name;       // for Declaration, Function
+        std::string value;      // for Declaration
+        std::string condition;  // for Loop
+        std::string code;       // for Expression
+        std::vector<Node> body; // for Function, Loop
+
+        // Mock to_source()
+        std::string to_source() const {
+            return "source_of_" + type + "_" + name;
+        }
+    };
+
+    struct AST {
+        std::vector<Node> nodes;
+    };
+
+    // --- Helper: current time string for lineage hash ---
+    std::string now_str() {
+        using namespace std::chrono;
+        auto now = system_clock::now();
+        auto now_c = system_clock::to_time_t(now);
+        std::stringstream ss;
+        ss << std::ctime(&now_c);
+        std::string s = ss.str();
+        s.erase(std::remove(s.begin(), s.end(), '\n'), s.end());
+        return s;
+    }
+
+    // --- Simple hash function for demo (std::hash) ---
+    std::string hash_str(const std::string& s) {
+        std::hash<std::string> hasher;
+        size_t hashed = hasher(s);
+        std::stringstream ss;
+        ss << std::hex << hashed;
+        return ss.str();
+    }
+
+    // --- Lineage hash generator ---
+    std::string generate_lineage_hash(const Node& node) {
+        return hash_str(node.to_source() + ":" + node.type + ":" + now_str());
+    }
+
+    // --- Emit IR recursively from Node with context ---
+    std::vector<IR> emit_ir_from_node(const Node& node, const IRContext& ctx) {
+        std::vector<IR> output;
+
+        if (node.type == "Declaration") {
+            output.push_back(IR::declare(ctx.lineage, node.name, node.value, ctx.phase));
+        }
+        else if (node.type == "Function") {
+            output.push_back(IR::func_start(ctx.lineage, node.name));
+            for (const auto& stmt : node.body) {
+                auto inner_ctx = ctx.with_phase("func");
+                auto irs = emit_ir_from_node(stmt, inner_ctx);
+                output.insert(output.end(), irs.begin(), irs.end());
+            }
+            output.push_back(IR::func_end(ctx.lineage, node.name));
+        }
+        else if (node.type == "Loop") {
+            output.push_back(IR::loop_start(ctx.lineage, node.condition));
+            for (const auto& stmt : node.body) {
+                auto inner_ctx = ctx.with_phase("loop");
+                auto irs = emit_ir_from_node(stmt, inner_ctx);
+                output.insert(output.end(), irs.begin(), irs.end());
+            }
+            output.push_back(IR::loop_end(ctx.lineage));
+        }
+        else if (node.type == "Expression") {
+            output.push_back(IR::expr(ctx.lineage, node.code));
+        }
+        else {
+            ErrorHandler::warn("Unhandled node type: " + node.type);
+            output.push_back(IR::unknown(ctx.lineage, node.type));
+        }
+
+        return output;
+    }
+
+    // --- Main generate() function ---
+    std::vector<IR> generate(const AST& ast) {
+        std::vector<IR> irs;
+        int node_index = 0;
+
+        for (const auto& node : ast.nodes) {
+            IRContext context{
+                node_index,
+                node.to_source(),
+                "emit",
+                generate_lineage_hash(node)
+            };
+
+            try {
+                auto ir_unit = emit_ir_from_node(node, context);
+                irs.insert(irs.end(), ir_unit.begin(), ir_unit.end());
+            }
+            catch (const std::exception& err) {
+                ErrorHandler::warn("IR emission failed for node " + std::to_string(node_index) + ": " + err.what());
+                irs.push_back(IR::error_stub(context));
+            }
+
+            ++node_index;
+        }
+
+        return irs;
+    }
+
+    // --- Example usage ---
+    int main() {
+        AST ast;
+        ast.nodes = {
+            {"Declaration", "x", "42", "", "", {}},
+            {"Function", "foo", "", "", "", {
+                {"Declaration", "y", "10", "", "", {}},
+                {"Expression", "", "", "", "y + x", {}}
+            }},
+            {"Loop", "", "", "i < 10", "", {
+                {"Expression", "", "", "", "print(i)", {}}
+            }}
+        };
+
+        auto irs = generate(ast);
+        for (const auto& ir : irs) {
+            std::cout << "[" << ir.opcode << "] " << ir.operand1
+                << (ir.operand2.empty() ? "" : (", " + ir.operand2))
+                << " (lineage: " << ir.lineage << ", phase: " << ir.phase << ")\n";
+        }
+        return 0;
+    }
+
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <sstream>
+#include <mutex>
+#include <chrono>
+#include <ctime>
+#include <algorithm>
+
+    class ErrorHandler {
+    public:
+        static void error(int code, const std::string& message) {
+            std::cerr << "[Error " << code << "] " << message << std::endl;
+        }
+    };
+
+    // Thread-safe console output helper
+    class Console {
+        static std::mutex mtx;
+    public:
+        static void write(const std::string& text) {
+            std::lock_guard<std::mutex> lock(mtx);
+            std::cout << text;
+            std::cout.flush();
+        }
+    };
+    std::mutex Console::mtx;
+
+    class IO {
+        static std::vector<std::string> buffer;
+
+    public:
+        // ── File I/O ──────────────────────────────
+
+        static std::string read_file(const std::string& path) {
+            if (path.empty()) {
+                ErrorHandler::error(301, "Missing path to file");
+                return "";
+            }
+            std::ifstream file(path, std::ios::in | std::ios::binary);
+            if (!file) {
+                ErrorHandler::error(303, "Cannot open file for reading: " + path);
+                return "";
+            }
+            std::ostringstream contents;
+            contents << file.rdbuf();
+            return contents.str();
+        }
+
+        static void write_file(const std::string& path, const std::string& data) {
+            if (path.empty()) {
+                ErrorHandler::error(302, "Missing path for write");
+                std::terminate();  // stop
+            }
+            std::ofstream file(path, std::ios::out | std::ios::binary);
+            if (!file) {
+                ErrorHandler::error(304, "Cannot open file for writing: " + path);
+                std::terminate();
+            }
+            file << data;
+        }
+
+        static std::vector<std::string> read_file_lines(const std::string& path) {
+            std::string content = read_file(path);
+            std::vector<std::string> lines;
+            std::istringstream ss(content);
+            std::string line;
+            while (std::getline(ss, line)) {
+                lines.push_back(line);
+            }
+            return lines;
+        }
+
+        static void append_file(const std::string& path, const std::string& data) {
+            std::string current = read_file(path);
+            if (!current.empty() && current.back() != '\n') {
+                current += "\n";
+            }
+            current += data;
+            write_file(path, current);
+        }
+
+
+        // ── Console Output ─────────────────────────
+
+        static void print(const std::string& text) {
+            Console::write(text);
+        }
+
+        static void println(const std::string& text) {
+            Console::write(text + "\n");
+        }
+
+        // Prompts user and returns input line
+        static std::string prompt(const std::string& message) {
+            Console::write(message + " > ");
+            std::string result;
+            std::getline(std::cin, result);
+            return result;
+        }
+
+
+        // ── Buffered & Styled Output ───────────────
+
+        static void buffer_write(const std::string& text) {
+            buffer.push_back(text);
+        }
+
+        static void flush() {
+            for (const auto& line : buffer) {
+                println(line);
+            }
+            buffer.clear();
+        }
+
+        // Simplified color print (no real color escape codes)
+        static void print_colored(const std::string& text, const std::string& color) {
+            println("<" + color + ">" + text + "</" + color + ">");
+        }
+
+
+        // ── Logging & Session Hooks ────────────────
+
+        static int now() {
+            using namespace std::chrono;
+            return static_cast<int>(duration_cast<seconds>(system_clock::now().time_since_epoch()).count());
+        }
+
+        static void log(const std::string& text, const std::string& level = "info") {
+            int stamp = now();
+            std::string upper_level = level;
+            std::transform(upper_level.begin(), upper_level.end(), upper_level.begin(), ::toupper);
+            std::string tag = "[" + upper_level + " " + std::to_string(stamp) + "]";
+            println(tag + " " + text);
+        }
+
+        static void session_output(const std::string& user, const std::string& msg) {
+            println("🗣 " + user + ": " + msg);
+        }
+
+
+        // ── DG-Aware Streams ───────────────────────
+        // Here dg and dgvec types are unknown, so using placeholder types:
+
+        // Example dg placeholder type and helpers (you will replace these)
+        struct dg {
+            int value;
+        };
+
+        static std::string to_dg(const dg& d) {
+            return "dg(" + std::to_string(d.value) + ")";
+        }
+
+        static int from_dg(const dg& d) {
+            return d.value;
+        }
+
+        static void print_dg(const dg& d) {
+            std::string dg_str = to_dg(d);
+            std::string color;
+            int val = from_dg(d);
+            if (val < 12) color = "#AA12FF";
+            else if (val < 144) color = "#FFD700";
+            else color = "#FF4444";
+            print_colored("DG Emit: " + dg_str, color);
+        }
+
+        static void print_dgvec(const std::vector<dg>& stream) {
+            for (const auto& val : stream) {
+                print_dg(val);
+            }
+        }
+
+
+        // ── Diagnostics & Tracing ──────────────────
+
+        static void io_trace(const std::string& tag, const std::string& payload) {
+            int time = now();
+            println("🔎 I/O Trace — [" + tag + "] @ " + std::to_string(time) + ": " + payload);
+        }
+
+        static void dump_buffer() {
+            println("🧾 Buffer Dump:");
+            for (const auto& line : buffer) {
+                println("• " + line);
+            }
+        }
+    };
+
+    // Static member initialization
+    std::vector<std::string> IO::buffer;
+
+#include <iostream>
+#include <string>
+#include <vector>
+#include <ctime>
+#include <sstream>
+#include <functional>
+#include <iomanip>
+
+    // --- Stub AST and Node classes to illustrate ---
+    // Replace with your actual AST & Node implementations
+
+    struct Node {
+        std::string type;
+        std::string source_code;
+
+        std::string to_source() const {
+            return source_code;
+        }
+    };
+
+    struct AST {
+        std::vector<Node> nodes;
+    };
+
+    // --- Utility hash function (simple placeholder) ---
+    std::string hash_string(const std::string& input) {
+        // Simple hash placeholder: you can replace with SHA1, MD5, etc.
+        std::hash<std::string> hasher;
+        size_t hashed = hasher(input);
+        std::stringstream ss;
+        ss << std::hex << hashed;
+        return ss.str();
+    }
+
+    // --- Utility: current timestamp as string ---
+    std::string now_str() {
+        std::time_t t = std::time(nullptr);
+        std::stringstream ss;
+        ss << t;
+        return ss.str();
+    }
+
+    // --- FormatterContext to carry formatting metadata ---
+    struct FormatterContext {
+        int line;
+        std::string node_type;
+        std::string lineage;
+        std::string phase;
+
+        FormatterContext(int l, std::string nt, std::string lin, std::string ph)
+            : line(l), node_type(std::move(nt)), lineage(std::move(lin)), phase(std::move(ph)) {
+        }
+    };
+
+    // --- The Formatter module ---
+    class Formatter {
+    public:
+
+        // Format entire AST to source code string with annotations
+        static std::string format(const AST& ast) {
+            std::string out;
+            int line_index = 0;
+
+            for (const Node& node : ast.nodes) {
+                FormatterContext ctx(
+                    line_index,
+                    node.type,
+                    generate_lineage_id(node),
+                    detect_phase(node)
+                );
+
+                out += format_node(node, ctx) + "\n";
+                ++line_index;
+            }
+
+            return out;
+        }
+
+        // Format single node with glyph and comment
+        static std::string format_node(const Node& node, const FormatterContext& ctx) {
+            std::string glyph = node_type_glyph(ctx.node_type);
+            std::string comment = "# [" + ctx.phase + "] Lineage: " + ctx.lineage;
+            std::string source = node.to_source();
+
+            return glyph + " " + source + " " + comment;
+        }
+
+        // Summarize AST nodes briefly
+        static void summarize(const AST& ast) {
+            std::cout << "📄 Formatter Summary — Nodes: " << ast.nodes.size() << "\n";
+            for (const Node& node : ast.nodes) {
+                std::string preview = node.to_source();
+                if (preview.size() > 42) preview = preview.substr(0, 42) + "...";
+                std::cout << "• " << preview << "\n";
+            }
+        }
+
+        // Diagnostics: print node types and glyphs
+        static void diagnostics(const AST& ast) {
+            std::cout << "🔍 AST Diagnostics\n";
+            for (const Node& node : ast.nodes) {
+                FormatterContext ctx(0, node.type, "", "");
+                std::string glyph = format_node(node, ctx);
+                std::cout << node.type << ": " << glyph << "\n";
+            }
+        }
+
+    private:
+        static std::string generate_lineage_id(const Node& node) {
+            return hash_string(node.to_source() + "::" + node.type + "::" + now_str());
+        }
+
+        static std::string detect_phase(const Node& node) {
+            if (node.type == "Function") return "func";
+            if (node.type == "Loop") return "loop";
+            if (node.type == "Declaration") return "bind";
+            return "emit";
+        }
+
+        static std::string node_type_glyph(const std::string& node_type) {
+            if (node_type == "Function") return "ƒ";
+            if (node_type == "Loop") return "⟳";
+            if (node_type == "Declaration") return "Δ";
+            if (node_type == "Expression") return "»";
+            return "·";
+        }
+    };
+
+    int main() {
+        AST ast;
+        ast.nodes.push_back({ "Function", "func foo() { return 42; }" });
+        ast.nodes.push_back({ "Declaration", "int x = 5;" });
+        ast.nodes.push_back({ "Loop", "while(x > 0) { x--; }" });
+        ast.nodes.push_back({ "Expression", "x + y" });
+
+        std::string formatted = Formatter::format(ast);
+        std::cout << formatted << "\n";
+
+        Formatter::summarize(ast);
+        Formatter::diagnostics(ast);
+
+        return 0;
+    }
+
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <unordered_map>
+#include <ctime>
+#include <vector>
+
+    // --- Stub IO and Parser modules -- replace with actual implementations ---
+    namespace IO {
+        std::string read_file(const std::string& path) {
+            std::ifstream file(path, std::ios::in | std::ios::binary);
+            if (!file) return "";
+            std::ostringstream contents;
+            contents << file.rdbuf();
+            return contents.str();
+        }
+
+        void log(const std::string& level, const std::string& message) {
+            std::cout << "[" << level << "] " << message << std::endl;
+        }
+
+        void println(const std::string& text) {
+            std::cout << text << std::endl;
+        }
+    }
+
+    namespace ErrorHandler {
+        void error(int code, const std::string& message) {
+            std::cerr << "[Error " << code << "] " << message << std::endl;
+        }
+        void warn(const std::string& message) {
+            std::cerr << "[Warning] " << message << std::endl;
+        }
+    }
+
+    // Stub Module and Parser - replace with your real parser and module type
+    struct Module {
+        std::string content;
+
+        static Module empty() {
+            return Module{ "" };
+        }
+    };
+
+    namespace Parser {
+        Module parse(const std::string& src) {
+            // stub parse returns Module with source as content
+            return Module{ src };
+        }
+    }
+
+    // --- Utility hash function (simple placeholder) ---
+    std::string hash_string(const std::string& input) {
+        std::hash<std::string> hasher;
+        size_t hashed = hasher(input);
+        std::stringstream ss;
+        ss << std::hex << hashed;
+        return ss.str();
+    }
+
+    // --- Utility: current timestamp ---
+    std::string now_str() {
+        std::time_t t = std::time(nullptr);
+        std::stringstream ss;
+        ss << t;
+        return ss.str();
+    }
+
+    // --- Filer Module ---
+    class Filer {
+    public:
+        struct ModuleMeta {
+            std::string path;
+            std::string timestamp;
+            std::string lineage;
+            size_t size;
+        };
+
+        // Load a module from disk, parse it, track metadata
+        static Module load_module(const std::string& name) {
+            std::string path = "modules/" + name + ".qtr";
+            std::string src = IO::read_file(path);
+
+            if (src.empty()) {
+                ErrorHandler::error(601, "Module file not found: " + name);
+                return Module::empty();
+            }
+
+            Module mod = Parser::parse(src);
+
+            ModuleMeta meta{
+                path,
+                now_str(),
+                generate_lineage_id(src),
+                src.size()
+            };
+
+            loaded_modules[name] = mod;
+            module_metadata[name] = meta;
+
+            IO::log("info", "Loaded module '" + name + "' from " + path);
+            return mod;
+        }
+
+        // Require a module, load if not cached
+        static Module require(const std::string& name) {
+            if (loaded_modules.find(name) != loaded_modules.end()) {
+                return loaded_modules[name];
+            }
+            return load_module(name);
+        }
+
+        // Reload a module explicitly
+        static void reload(const std::string& name) {
+            load_module(name);
+            IO::log("info", "Reloaded module '" + name + "'");
+        }
+
+        // List all loaded modules with metadata
+        static void list_modules() {
+            IO::println("📦 Loaded Modules:");
+            for (const auto& pair : loaded_modules) {
+                const std::string& name = pair.first;
+                const ModuleMeta& meta = module_metadata[name];
+                IO::println("• " + name + " @ " + meta.path +
+                    " [" + std::to_string(meta.size) + "b] — " + meta.lineage);
+            }
+        }
+
+        // Probe a module's metadata
+        static void probe(const std::string& name) {
+            if (module_metadata.find(name) != module_metadata.end()) {
+                const ModuleMeta& meta = module_metadata[name];
+                IO::println("🔍 Module Probe: " + name);
+                IO::println("↪ Path: " + meta.path);
+                IO::println("↪ Size: " + std::to_string(meta.size) + " bytes");
+                IO::println("↪ Loaded @ " + meta.timestamp);
+                IO::println("↪ Lineage: " + meta.lineage);
+            }
+            else {
+                ErrorHandler::warn("No metadata found for module '" + name + "'");
+            }
+        }
+
+        // Export module as capsule block string
+        static std::string export_module(const std::string& name) {
+            if (loaded_modules.find(name) != loaded_modules.end()) {
+                std::string src = IO::read_file("modules/" + name + ".qtr");
+                std::string capsule_block = "QTRC2.1::" + name + "::" + src;
+                return capsule_block;
+            }
+            else {
+                ErrorHandler::warn("Module '" + name + "' not loaded");
+                return "";
+            }
+        }
+
+    private:
+        static std::string generate_lineage_id(const std::string& source) {
+            return hash_string(source + "::" + now_str());
+        }
+
+        static inline std::unordered_map<std::string, Module> loaded_modules;
+        static inline std::unordered_map<std::string, ModuleMeta> module_metadata;
+    };
+
+	// --- Example usage ---
+
+    int main() {
+        // Load a module
+        Module mod = Filer::load_module("example");
+        // List loaded modules
+        Filer::list_modules();
+        // Probe a specific module
+        Filer::probe("example");
+        // Export a module as capsule block
+        std::string capsule = Filer::export_module("example");
+        if (!capsule.empty()) {
+            IO::println("Exported Capsule Block:\n" + capsule);
+        }
+        return 0;
+	}
+
+    int main() {
+        Filer::load_module("core");   // Loads modules/core.qtr
+        Filer::list_modules();
+
+        auto mod = Filer::require("core"); // Uses cached version if loaded
+        Filer::probe("core");
+
+        std::string exported = Filer::export_module("core");
+        std::cout << "Exported capsule block:\n" << exported << "\n";
+
+        Filer::reload("core");
+
+        return 0;
+    }
+
+    int main() {
+        Filer::load_module("core");   // Loads modules/core.qtr
+        Filer::list_modules();
+
+        auto mod = Filer::require("core"); // Uses cached version if loaded
+        Filer::probe("core");
+
+        std::string exported = Filer::export_module("core");
+        std::cout << "Exported capsule block:\n" << exported << "\n";
+
+        Filer::reload("core");
+
+        return 0;
+    }
+
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <unordered_map>
+#include <ctime>
+#include <cstdlib>  // for std::exit
+#include <functional>
+
+    // --- ErrorHandler Module ---
+    namespace ErrorHandler {
+
+        void error(int code, const std::string& message) {
+            std::cerr << "[Error " << code << "]: " << message << std::endl;
+            std::exit(code);
+        }
+
+        void warn(const std::string& message) {
+            std::cerr << "[Warning]: " << message << std::endl;
+        }
+
+        void info(const std::string& message) {
+            std::cout << "[Info]: " << message << std::endl;
+        }
+    }
+
+    // --- Stub IO Module ---
+    namespace IO {
+        std::string read_file(const std::string& path) {
+            std::ifstream file(path, std::ios::in | std::ios::binary);
+            if (!file) return "";
+            std::ostringstream contents;
+            contents << file.rdbuf();
+            return contents.str();
+        }
+
+        void println(const std::string& text) {
+            std::cout << text << std::endl;
+        }
+
+        void log(const std::string& level, const std::string& message) {
+            std::cout << "[" << level << "] " << message << std::endl;
+        }
+    }
+
+    // --- Stub Module and Parser ---
+    struct Module {
+        std::string content;
+
+        static Module empty() {
+            return Module{ "" };
+        }
+    };
+
+    namespace Parser {
+        Module parse(const std::string& src) {
+            // Stub: in reality, parse source code into a Module object
+            return Module{ src };
+        }
+    }
+
+    // --- Utility: Get current timestamp as string ---
+    std::string now() {
+        std::time_t t = std::time(nullptr);
+        return std::to_string(t);
+    }
+
+    // --- Utility: Simple hash function for lineage (placeholder) ---
+    std::string hash(const std::string& input) {
+        std::hash<std::string> hasher;
+        size_t hashed = hasher(input);
+        std::stringstream ss;
+        ss << std::hex << hashed;
+        return ss.str();
+    }
+
+    // --- Filer Module ---
+    class Filer {
+    public:
+        struct Metadata {
+            std::string path;
+            std::string timestamp;
+            std::string lineage;
+            size_t size;
+        };
+
+        static Module load_module(const std::string& name) {
+            std::string path = "modules/" + name + ".qtr";
+            std::string src = IO::read_file(path);
+
+            if (src.empty()) {
+                ErrorHandler::error(601, "Module file not found: " + name);
+                return Module::empty();
+            }
+
+            Module mod = Parser::parse(src);
+
+            Metadata meta{
+                path,
+                now(),
+                generate_lineage_id(src),
+                src.size()
+            };
+
+            loaded_modules()[name] = mod;
+            module_metadata()[name] = meta;
+
+            IO::log("info", "Loaded module '" + name + "' from " + path);
+            return mod;
+        }
+
+        static Module require(const std::string& name) {
+            if (loaded_modules().find(name) != loaded_modules().end()) {
+                return loaded_modules()[name];
+            }
+            return load_module(name);
+        }
+
+        static void reload(const std::string& name) {
+            load_module(name);
+            IO::log("info", "Reloaded module '" + name + "'");
+        }
+
+        static void list_modules() {
+            IO::println("📦 Loaded Modules:");
+            for (const auto& pair : loaded_modules()) {
+                const std::string& name = pair.first;
+                const Metadata& meta = module_metadata()[name];
+                IO::println("• " + name + " @ " + meta.path +
+                    " [" + std::to_string(meta.size) + "b] — " + meta.lineage);
+            }
+        }
+
+        static void probe(const std::string& name) {
+            if (module_metadata().find(name) != module_metadata().end()) {
+                const Metadata& meta = module_metadata()[name];
+                IO::println("🔍 Module Probe: " + name);
+                IO::println("↪ Path: " + meta.path);
+                IO::println("↪ Size: " + std::to_string(meta.size) + " bytes");
+                IO::println("↪ Loaded @ " + meta.timestamp);
+                IO::println("↪ Lineage: " + meta.lineage);
+            }
+            else {
+                ErrorHandler::warn("No metadata found for module '" + name + "'");
+            }
+        }
+
+        static std::string export_module(const std::string& name) {
+            if (loaded_modules().find(name) != loaded_modules().end()) {
+                std::string src = IO::read_file("modules/" + name + ".qtr");
+                std::string capsule_block = "QTRC2.1::" + name + "::" + src;
+                return capsule_block;
+            }
+            else {
+                ErrorHandler::warn("Module '" + name + "' not loaded");
+                return "";
+            }
+        }
+
+    private:
+        static std::string generate_lineage_id(const std::string& source) {
+            return hash(source + "::" + now());
+        }
+
+        // Using function static variables to avoid static initialization order fiasco
+        static std::unordered_map<std::string, Module>& loaded_modules() {
+            static std::unordered_map<std::string, Module> map;
+            return map;
+        }
+
+        static std::unordered_map<std::string, Metadata>& module_metadata() {
+            static std::unordered_map<std::string, Metadata> map;
+            return map;
+        }
+    };
+
+    int main() {
+        // Load a module (must exist in modules/core.qtr)
+        Filer::load_module("core");
+
+        // List all loaded modules
+        Filer::list_modules();
+
+        // Probe a specific module
+        Filer::probe("core");
+
+        // Export module as capsule block string
+        std::string capsule = Filer::export_module("core");
+        std::cout << "Exported capsule block:\n" << capsule << "\n";
+
+        // Reload module
+        Filer::reload("core");
+
+        return 0;
+    }
+
+#include <string>
+#include <unordered_map>
+#include <vector>
+#include <iostream>
+#include <sstream>
+#include <stdexcept>
+#include <ctime>
+#include <algorithm>
+
+    // Forward declarations for used components:
+    namespace ErrorHandler {
+        void error(int code, const std::string& message);
+        void warn(const std::string& message);
+    }
+    namespace IO {
+        void println(const std::string& text);
+        void print_dgvec(const std::vector<int>& dgvec);
+    }
+    namespace Parser {
+        struct Module {
+            std::string to_string() const;
+        };
+        Module parse(const std::string& source);
+    }
+    using Module = Parser::Module;
+
+    // Stub implementations for cryptographic and compression functions:
+    std::string compress(const std::string& data) {
+        // Stub: replace with actual compression
+        return data;
+    }
+    std::string decompress(const std::string& data) {
+        // Stub: replace with actual decompression
+        return data;
+    }
+    std::string crypto_encrypt(const std::string& data, const std::string& key) {
+        // Stub: replace with actual encryption
+        return data;
+    }
+    std::string crypto_decrypt(const std::string& data, const std::string& key) {
+        // Stub: replace with actual decryption
+        return data;
+    }
+    std::string crypto_sign(const std::string& data, const std::string& key) {
+        // Stub: replace with actual signing
+        return "SIGNATURE";
+    }
+    bool crypto_verify(const std::string& data, const std::string& pub_key) {
+        // Stub: replace with actual verification
+        return true;
+    }
+
+    // Utility function to get current timestamp as int
+    int now() {
+        return static_cast<int>(std::time(nullptr));
+    }
+
+    // Simple hash function stub for lineage string generation
+    std::string hash(const std::string& input) {
+        std::hash<std::string> hasher;
+        size_t hashed = hasher(input);
+        std::stringstream ss;
+        ss << std::hex << hashed;
+        return ss.str();
+    }
+
+    // A simple map type alias for configuration
+    using ConfigMap = std::unordered_map<std::string, std::string>;
+
+    // Serialize map to string (key=value;key2=value2;)
+    std::string serialize_map(const ConfigMap& meta) {
+        std::string out;
+        for (const auto& [key, value] : meta) {
+            out += key + "=" + value + ";";
+        }
+        return out;
+    }
+
+    // Extract metadata from capsule header - very simplified
+    ConfigMap parse_map(const std::string& header) {
+        ConfigMap meta;
+        size_t pos = 0, end;
+        while ((end = header.find(';', pos)) != std::string::npos) {
+            std::string pair = header.substr(pos, end - pos);
+            size_t eq = pair.find('=');
+            if (eq != std::string::npos) {
+                meta[pair.substr(0, eq)] = pair.substr(eq + 1);
+            }
+            pos = end + 1;
+        }
+        return meta;
+    }
+
+    // Remove signature block from capsule
+    std::string remove_signature(const std::string& data) {
+        size_t sig_pos = data.find("\n<signature>");
+        if (sig_pos == std::string::npos)
+            return data;
+        return data.substr(0, sig_pos);
+    }
+
+    // Chunk string into pieces of chunk_size
+    std::vector<std::string> chunk_capsule(const std::string& capsule, size_t chunk_size) {
+        std::vector<std::string> chunks;
+        for (size_t i = 0; i < capsule.size(); i += chunk_size) {
+            chunks.push_back(capsule.substr(i, chunk_size));
+        }
+        return chunks;
+    }
+
+    namespace Encapsulation {
+
+        // Generate lineage string based on source + timestamp
+        std::string generate_lineage(const std::string& src) {
+            return hash(src + "::" + std::to_string(now()));
+        }
+
+        // Generate dg id stub (returns int here)
+        int generate_dg_id(const std::string& src) {
+            return static_cast<int>(std::hash<std::string>{}(src + "::dg") % 1728);
+        }
+
+        // Build header string
+        std::string build_header(const std::string& lineage, int ts, int dgver, const ConfigMap& cfg) {
+            std::string theme = "default";
+            auto it = cfg.find("theme");
+            if (it != cfg.end()) theme = it->second;
+
+            std::string meta_str = serialize_map(cfg);
+            std::stringstream ss;
+            ss << "<module lineage='" << lineage << "' timestamp='" << ts
+                << "' dg='" << dgver << "' theme='" << theme << "' meta='" << meta_str << "'>\n";
+            return ss.str();
+        }
+
+        // Build footer string
+        std::string build_footer() {
+            return "\n</module>";
+        }
+
+        // Wrap module into capsule with optional compression/encryption/signing
+        std::string wrap(const Module& module, const ConfigMap& config) {
+            std::string src = module.to_string();
+            std::string lineage = generate_lineage(src);
+            int timestamp = now();
+            int dg_version = generate_dg_id(src);
+
+            // Override dg_version from config if present
+            auto it_dg = config.find("dg_version");
+            if (it_dg != config.end()) {
+                dg_version = std::stoi(it_dg->second);
+            }
+
+            std::string header = build_header(lineage, timestamp, dg_version, config);
+            std::string footer = build_footer();
+            std::string payload = header + src + footer;
+
+            // Compression
+            if (config.find("compress") != config.end() && config.at("compress") == "1") {
+                try {
+                    payload = compress(payload);
+                }
+                catch (const std::exception& e) {
+                    ErrorHandler::warn(std::string("Compression failed: ") + e.what());
+                }
+            }
+
+            // Encryption
+            if (config.find("encrypt") != config.end() && config.at("encrypt") == "1") {
+                std::string key = "";
+                auto it_key = config.find("enc_key");
+                if (it_key != config.end()) key = it_key->second;
+                payload = crypto_encrypt(payload, key);
+            }
+
+            // Signing
+            if (config.find("sign") != config.end() && config.at("sign") == "1") {
+                std::string sign_key = "";
+                auto it_sign_key = config.find("sign_key");
+                if (it_sign_key != config.end()) sign_key = it_sign_key->second;
+                std::string sig = crypto_sign(payload, sign_key);
+                payload += "\n<signature>" + sig + "</signature>";
+            }
+
+            return payload;
+        }
+
+        // Unwrap capsule back into Module with verification, decryption, decompression
+        Module unwrap(const std::string& capsule, const ConfigMap& config) {
+            std::string content = capsule;
+
+            if (config.find("verify") != config.end() && config.at("verify") == "1") {
+                std::string pub_key = "";
+                auto it_pub_key = config.find("pub_key");
+                if (it_pub_key != config.end()) pub_key = it_pub_key->second;
+                if (!crypto_verify(content, pub_key)) {
+                    ErrorHandler::error(701, "Signature verification failed");
+                }
+                content = remove_signature(content);
+            }
+
+            if (config.find("decrypt") != config.end() && config.at("decrypt") == "1") {
+                std::string dec_key = "";
+                auto it_dec_key = config.find("dec_key");
+                if (it_dec_key != config.end()) dec_key = it_dec_key->second;
+                content = crypto_decrypt(content, dec_key);
+            }
+
+            if (config.find("decompress") != config.end() && config.at("decompress") == "1") {
+                try {
+                    content = decompress(content);
+                }
+                catch (const std::exception& e) {
+                    ErrorHandler::warn(std::string("Decompression failed: ") + e.what());
+                }
+            }
+
+            return Parser::parse(content);
+        }
+
+        // Chunk capsule into smaller pieces
+        std::vector<std::string> chunk_capsule(const std::string& capsule, int chunk_size) {
+            return ::chunk_capsule(capsule, static_cast<size_t>(chunk_size));
+        }
+
+        // Stream wrap module in chunks with DG outputs (stub)
+        void stream_wrap(const Module& module, const ConfigMap& cfg) {
+            std::string cap = wrap(module, cfg);
+            int chunk_size = 1024;
+            auto it_chunk = cfg.find("stream_chunk");
+            if (it_chunk != cfg.end()) {
+                chunk_size = std::stoi(it_chunk->second);
+            }
+
+            std::vector<std::string> chunks = chunk_capsule(cap, chunk_size);
+
+            for (const auto& segment : chunks) {
+                int dg_id = generate_dg_id(segment);
+                IO::print_dgvec({ dg_id });
+                IO::println(segment);
+            }
+        }
+
+        // Capsule preview (print first N lines)
+        void preview_capsule(const std::string& capsule, int lines = 10) {
+            IO::println("📦 Capsule Preview:");
+            std::istringstream iss(capsule);
+            std::string row;
+            int count = 0;
+            while (count < lines && std::getline(iss, row)) {
+                IO::println(row);
+                count++;
+            }
+            if (std::getline(iss, row)) {
+                IO::println("... (" + std::to_string(count) + " more lines)");
+            }
+        }
+
+        // Validate capsule by attempting unwrap
+        bool validate(const std::string& capsule) {
+            try {
+                ConfigMap cfg = { {"verify", "1"}, {"decrypt", "1"}, {"decompress", "1"} };
+                unwrap(capsule, cfg);
+                return true;
+            }
+            catch (const std::exception& e) {
+                ErrorHandler::error(702, std::string("Capsule validation failed: ") + e.what());
+                return false;
+            }
+        }
+    } // namespace Encapsulation
+
+#include <string>
+#include <vector>
+#include <unordered_map>
+#include <unordered_set>
+#include <functional>
+#include <algorithm>
+#include <mutex>
+#include <chrono>
+#include <random>
+#include <sstream>
+#include <iostream>
+
+// Forward declarations for types and utilities used
+    struct IR {
+        std::string type;
+        struct Context {
+            std::string phase;
+            std::string parent_id;
+            std::string lineage;
+            std::string dg_tag;
+        } context;
+
+        std::string to_string() const;   // Serialize IR node
+        std::string signature() const;   // Unique signature for deduplication
+    };
+
+    using IRList = std::vector<IR>;
+
+    struct ComposeContext {
+        std::string id;
+        std::string phase;
+        std::string fingerprint;
+        std::unordered_map<std::string, std::string> options;
+
+        // Timing for stats
+        std::chrono::steady_clock::time_point start_time;
+        std::chrono::steady_clock::time_point end_time;
+
+        static ComposeContext new_context(const std::string& id,
+            const std::string& phase,
+            const std::string& fingerprint,
+            const std::unordered_map<std::string, std::string>& options) {
+            ComposeContext ctx;
+            ctx.id = id;
+            ctx.phase = phase;
+            ctx.fingerprint = fingerprint;
+            ctx.options = options;
+            ctx.start_time = std::chrono::steady_clock::now();
+            return ctx;
+        }
+    };
+
+    namespace Composer {
+
+        // Cache and registries
+        static std::unordered_map<std::string, IRList> composition_cache;
+        static std::vector<std::function<void(ComposeContext&, const std::vector<IRList>&)>> before_hooks;
+        static std::vector<std::function<void(ComposeContext&, IRList&)>> after_hooks;
+        static std::unordered_map<std::string, std::unordered_map<std::string, int>> stats_registry;
+
+        // Utility functions
+        inline std::string now_str() {
+            auto now = std::chrono::system_clock::now();
+            auto epoch = now.time_since_epoch();
+            auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(epoch).count();
+            return std::to_string(millis);
+        }
+
+        inline std::string hash(const std::string& input) {
+            std::hash<std::string> hasher;
+            size_t h = hasher(input);
+            std::stringstream ss;
+            ss << std::hex << h;
+            return ss.str();
+        }
+
+        inline std::string to_hex(uint64_t val) {
+            std::stringstream ss;
+            ss << std::hex << val;
+            return ss.str();
+        }
+
+        inline uint64_t rand64() {
+            static std::mt19937_64 rng(std::random_device{}());
+            return rng();
+        }
+
+        inline std::string generate_uuid() {
+            return to_hex(rand64()) + "-" + to_hex(rand64());
+        }
+
+        // Flatten (compose) list of IR lists into a single list
+        IRList compose(const std::vector<IRList>& list_of_irs,
+            const std::unordered_map<std::string, std::string>& opts = {}) {
+            std::string fingerprint;
+            auto it_fp = opts.find("fingerprint");
+            if (it_fp != opts.end()) {
+                fingerprint = it_fp->second;
+            }
+            else {
+                // Generate fingerprint from concatenated IR strings + now
+                std::string concat;
+                for (const auto& lst : list_of_irs) {
+                    for (const auto& ir : lst) {
+                        concat += ir.to_string() + "|";
+                    }
+                    concat += "||";
+                }
+                fingerprint = hash(concat + "::" + now_str());
+            }
+
+            // Cache hit
+            auto cache_it = composition_cache.find(fingerprint);
+            if (cache_it != composition_cache.end()) {
+                return cache_it->second;
+            }
+
+            ComposeContext ctx = ComposeContext::new_context(generate_uuid(), "compose", fingerprint, opts);
+
+            // Before hooks
+            for (auto& hook : before_hooks) {
+                hook(ctx, list_of_irs);
+            }
+
+            IRList out;
+
+            // Parallel compose stub (just serial here)
+            bool parallel = false;
+            auto it_parallel = opts.find("parallel");
+            if (it_parallel != opts.end() && it_parallel->second == "1") {
+                parallel = true;
+            }
+            if (parallel) {
+                // TODO: implement thread pool parallel flattening if desired
+                // For now, just flatten serially
+                for (const auto& segment : list_of_irs) {
+                    out.insert(out.end(), segment.begin(), segment.end());
+                }
+            }
+            else {
+                for (const auto& segment : list_of_irs) {
+                    out.insert(out.end(), segment.begin(), segment.end());
+                }
+            }
+
+            // Deduplicate if requested
+            auto it_dedupe = opts.find("dedupe");
+            if (it_dedupe != opts.end() && it_dedupe->second == "1") {
+                std::unordered_set<std::string> seen;
+                IRList unique;
+                for (const auto& ir : out) {
+                    std::string key = ir.signature();
+                    if (seen.find(key) == seen.end()) {
+                        unique.push_back(ir);
+                        seen.insert(key);
+                    }
+                }
+                out = std::move(unique);
+            }
+
+            // Filter by phase tag if provided
+            auto it_phase = opts.find("phase");
+            if (it_phase != opts.end() && !it_phase->second.empty()) {
+                IRList filtered;
+                for (const auto& ir : out) {
+                    if (ir.context.phase == it_phase->second) {
+                        filtered.push_back(ir);
+                    }
+                }
+                out = std::move(filtered);
+            }
+
+            // Annotate lineage if requested
+            auto it_annotate_lineage = opts.find("annotate_lineage");
+            if (it_annotate_lineage != opts.end() && it_annotate_lineage->second == "1") {
+                for (auto& ir : out) {
+                    ir.context.parent_id = ctx.id;
+                    ir.context.lineage = ctx.fingerprint;
+                }
+            }
+
+            // Annotate DG tag if requested
+            auto it_annotate_dg = opts.find("annotate_dg");
+            if (it_annotate_dg != opts.end() && it_annotate_dg->second == "1") {
+                int dg_base = 12;
+                auto it_dg_base = opts.find("dg_base");
+                if (it_dg_base != opts.end()) {
+                    dg_base = std::stoi(it_dg_base->second);
+                }
+                for (auto& ir : out) {
+                    // Simple DG annotation based on hash mod base^2
+                    size_t h = std::hash<std::string>{}(ir.to_string());
+                    int dg_val = static_cast<int>(h % (dg_base * dg_base));
+                    ir.context.dg_tag = "DG" + std::to_string(dg_val); // example tag
+                }
+            }
+
+            // Cache result
+            composition_cache[fingerprint] = out;
+
+            // After hooks
+            for (auto& hook : after_hooks) {
+                hook(ctx, out);
+            }
+
+            ctx.end_time = std::chrono::steady_clock::now();
+
+            // Record stats
+            std::unordered_map<std::string, int> counts;
+            for (const auto& ir : out) {
+                counts[ir.type]++;
+            }
+            stats_registry[ctx.id] = counts;
+
+            return out;
+        }
+
+        // Register hooks
+        void register_before_hook(std::function<void(ComposeContext&, const std::vector<IRList>&)> hook_fn) {
+            before_hooks.push_back(std::move(hook_fn));
+        }
+
+        void register_after_hook(std::function<void(ComposeContext&, IRList&)> hook_fn) {
+            after_hooks.push_back(std::move(hook_fn));
+        }
+
+        // Get stats for a composition run
+        std::unordered_map<std::string, int> get_stats(const std::string& compose_id) {
+            auto it = stats_registry.find(compose_id);
+            if (it != stats_registry.end()) {
+                return it->second;
+            }
+            return {};
+        }
+
+        // Cache control
+        void clear_cache() {
+            composition_cache.clear();
+        }
+
+        std::vector<std::string> cache_entries() {
+            std::vector<std::string> keys;
+            keys.reserve(composition_cache.size());
+            for (const auto& kv : composition_cache) {
+                keys.push_back(kv.first);
+            }
+            return keys;
+        }
+
+    } // namespace Composer
+
+#include <string>
+#include <vector>
+#include <unordered_map>
+#include <unordered_set>
+#include <functional>
+#include <algorithm>
+#include <mutex>
+#include <chrono>
+#include <random>
+#include <sstream>
+#include <iostream>
+#include <future>       // For std::async, futures
+#include <numeric>      // For std::accumulate
+
+// --- IR Struct Definition ---
+    struct IR {
+        std::string type;    // Node type, e.g., "Function", "Expression"
+        std::string code;    // Code representation or serialized form
+
+        struct Context {
+            std::string phase;
+            std::string parent_id;
+            std::string lineage;
+            std::string dg_tag;
+        } context;
+
+        // Serialize IR node to string
+        std::string to_string() const {
+            return type + ":" + code;
+        }
+
+        // Unique signature for deduplication (hash of to_string())
+        std::string signature() const {
+            std::hash<std::string> hasher;
+            size_t h = hasher(to_string());
+            std::stringstream ss;
+            ss << std::hex << h;
+            return ss.str();
+        }
+    };
+
+    using IRList = std::vector<IR>;
+
+    struct ComposeContext {
+        std::string id;
+        std::string phase;
+        std::string fingerprint;
+        std::unordered_map<std::string, std::string> options;
+
+        std::chrono::steady_clock::time_point start_time;
+        std::chrono::steady_clock::time_point end_time;
+
+        static ComposeContext new_context(const std::string& id,
+            const std::string& phase,
+            const std::string& fingerprint,
+            const std::unordered_map<std::string, std::string>& options) {
+            ComposeContext ctx;
+            ctx.id = id;
+            ctx.phase = phase;
+            ctx.fingerprint = fingerprint;
+            ctx.options = options;
+            ctx.start_time = std::chrono::steady_clock::now();
+            return ctx;
+        }
+    };
+
+    namespace Composer {
+
+        static std::unordered_map<std::string, IRList> composition_cache;
+        static std::vector<std::function<void(ComposeContext&, const std::vector<IRList>&)>> before_hooks;
+        static std::vector<std::function<void(ComposeContext&, IRList&)>> after_hooks;
+        static std::unordered_map<std::string, std::unordered_map<std::string, int>> stats_registry;
+
+        // Utility functions
+        inline std::string now_str() {
+            auto now = std::chrono::system_clock::now();
+            auto epoch = now.time_since_epoch();
+            auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(epoch).count();
+            return std::to_string(millis);
+        }
+
+        inline std::string hash(const std::string& input) {
+            std::hash<std::string> hasher;
+            size_t h = hasher(input);
+            std::stringstream ss;
+            ss << std::hex << h;
+            return ss.str();
+        }
+
+        inline std::string to_hex(uint64_t val) {
+            std::stringstream ss;
+            ss << std::hex << val;
+            return ss.str();
+        }
+
+        inline uint64_t rand64() {
+            static std::mt19937_64 rng(std::random_device{}());
+            return rng();
+        }
+
+        inline std::string generate_uuid() {
+            return to_hex(rand64()) + "-" + to_hex(rand64());
+        }
+
+
+        // --- Parallel compose helper ---
+        IRList parallel_compose(const std::vector<IRList>& list_of_lists, ComposeContext& ctx) {
+            // Number of threads
+            int thread_pool_size = 4; // default
+            auto it = ctx.options.find("threads");
+            if (it != ctx.options.end()) {
+                try {
+                    thread_pool_size = std::stoi(it->second);
+                    if (thread_pool_size < 1) thread_pool_size = 1;
+                }
+                catch (...) { thread_pool_size = 4; }
+            }
+
+            // Chunk input lists into roughly equal parts per thread
+            size_t total_segments = list_of_lists.size();
+            size_t chunk_size = (total_segments + thread_pool_size - 1) / thread_pool_size;
+
+            std::vector<std::future<IRList>> futures;
+
+            for (int t = 0; t < thread_pool_size; ++t) {
+                size_t start_idx = t * chunk_size;
+                size_t end_idx = std::min(start_idx + chunk_size, total_segments);
+
+                if (start_idx >= end_idx)
+                    break; // no more chunks
+
+                // Launch async task to flatten this chunk
+                futures.push_back(std::async(std::launch::async, [start_idx, end_idx, &list_of_lists]() -> IRList {
+                    IRList partial;
+                    for (size_t i = start_idx; i < end_idx; ++i) {
+                        partial.insert(partial.end(), list_of_lists[i].begin(), list_of_lists[i].end());
+                    }
+                    return partial;
+                    }));
+            }
+
+            // Collect partial results and concatenate
+            IRList result;
+            for (auto& fut : futures) {
+                IRList partial = fut.get();
+                result.insert(result.end(), partial.begin(), partial.end());
+            }
+
+            return result;
+        }
+
+
+        // --- Compose function ---
+        IRList compose(const std::vector<IRList>& list_of_irs,
+            const std::unordered_map<std::string, std::string>& opts = {}) {
+            std::string fingerprint;
+            auto it_fp = opts.find("fingerprint");
+            if (it_fp != opts.end()) {
+                fingerprint = it_fp->second;
+            }
+            else {
+                // Generate fingerprint from concatenated IR strings + now
+                std::string concat;
+                for (const auto& lst : list_of_irs) {
+                    for (const auto& ir : lst) {
+                        concat += ir.to_string() + "|";
+                    }
+                    concat += "||";
+                }
+                fingerprint = hash(concat + "::" + now_str());
+            }
+
+            // Cache hit
+            auto cache_it = composition_cache.find(fingerprint);
+            if (cache_it != composition_cache.end()) {
+                return cache_it->second;
+            }
+
+            ComposeContext ctx = ComposeContext::new_context(generate_uuid(), "compose", fingerprint, opts);
+
+            // Before hooks
+            for (auto& hook : before_hooks) {
+                hook(ctx, list_of_irs);
+            }
+
+            IRList out;
+
+            // Parallel compose or serial flatten
+            bool parallel = false;
+            auto it_parallel = opts.find("parallel");
+            if (it_parallel != opts.end() && it_parallel->second == "1") {
+                parallel = true;
+            }
+            if (parallel) {
+                out = parallel_compose(list_of_irs, ctx);
+            }
+            else {
+                for (const auto& segment : list_of_irs) {
+                    out.insert(out.end(), segment.begin(), segment.end());
+                }
+            }
+
+            // Deduplicate if requested
+            auto it_dedupe = opts.find("dedupe");
+            if (it_dedupe != opts.end() && it_dedupe->second == "1") {
+                std::unordered_set<std::string> seen;
+                IRList unique;
+                for (const auto& ir : out) {
+                    std::string key = ir.signature();
+                    if (seen.find(key) == seen.end()) {
+                        unique.push_back(ir);
+                        seen.insert(key);
+                    }
+                }
+                out = std::move(unique);
+            }
+
+            // Filter by phase tag if provided
+            auto it_phase = opts.find("phase");
+            if (it_phase != opts.end() && !it_phase->second.empty()) {
+                IRList filtered;
+                for (const auto& ir : out) {
+                    if (ir.context.phase == it_phase->second) {
+                        filtered.push_back(ir);
+                    }
+                }
+                out = std::move(filtered);
+            }
+
+            // Annotate lineage if requested
+            auto it_annotate_lineage = opts.find("annotate_lineage");
+            if (it_annotate_lineage != opts.end() && it_annotate_lineage->second == "1") {
+                for (auto& ir : out) {
+                    ir.context.parent_id = ctx.id;
+                    ir.context.lineage = ctx.fingerprint;
+                }
+            }
+
+            // Annotate DG tag if requested
+            auto it_annotate_dg = opts.find("annotate_dg");
+            if (it_annotate_dg != opts.end() && it_annotate_dg->second == "1") {
+                int dg_base = 12;
+                auto it_dg_base = opts.find("dg_base");
+                if (it_dg_base != opts.end()) {
+                    try {
+                        dg_base = std::stoi(it_dg_base->second);
+                    }
+                    catch (...) { dg_base = 12; }
+                }
+                for (auto& ir : out) {
+                    size_t h = std::hash<std::string>{}(ir.to_string());
+                    int dg_val = static_cast<int>(h % (dg_base * dg_base));
+                    ir.context.dg_tag = "DG" + std::to_string(dg_val);
+                }
+            }
+
+            // Cache result
+            composition_cache[fingerprint] = out;
+
+            // After hooks
+            for (auto& hook : after_hooks) {
+                hook(ctx, out);
+            }
+
+            ctx.end_time = std::chrono::steady_clock::now();
+
+            // Record stats: count IR types
+            std::unordered_map<std::string, int> counts;
+            for (const auto& ir : out) {
+                counts[ir.type]++;
+            }
+            stats_registry[ctx.id] = counts;
+
+            return out;
+        }
+
+
+        // Register hooks
+        void register_before_hook(std::function<void(ComposeContext&, const std::vector<IRList>&)> hook_fn) {
+            before_hooks.push_back(std::move(hook_fn));
+        }
+
+        void register_after_hook(std::function<void(ComposeContext&, IRList&)> hook_fn) {
+            after_hooks.push_back(std::move(hook_fn));
+        }
+
+
+        // Get stats for a composition run
+        std::unordered_map<std::string, int> get_stats(const std::string& compose_id) {
+            auto it = stats_registry.find(compose_id);
+            if (it != stats_registry.end()) {
+                return it->second;
+            }
+            return {};
+        }
+
+
+        // Cache control
+        void clear_cache() {
+            composition_cache.clear();
+        }
+
+        std::vector<std::string> cache_entries() {
+            std::vector<std::string> keys;
+            keys.reserve(composition_cache.size());
+            for (const auto& kv : composition_cache) {
+                keys.push_back(kv.first);
+            }
+            return keys;
+        }
+
+    } // namespace Composer
+
+
+    // -- Example usage --
+
+    // You can define your IR nodes and compose IR lists like so:
+    /*
+    int main() {
+        IR ir1{"Function", "int foo() { return 1; }", {"func"}};
+        IR ir2{"Expression", "x + y", {"emit"}};
+        IRList list1 = {ir1};
+        IRList list2 = {ir2};
+
+        std::vector<IRList> all = {list1, list2};
+
+        std::unordered_map<std::string, std::string> opts;
+        opts["parallel"] = "1";
+        opts["dedupe"] = "1";
+        opts["annotate_lineage"] = "1";
+
+        IRList composed = Composer::compose(all, opts);
+
+        for (const auto& ir : composed) {
+            std::cout << ir.to_string() << " | lineage: " << ir.context.lineage << "\n";
+        }
+
+        return 0;
+    }
+    */
+
+#include <iostream>
+#include <string>
+#include <vector>
+#include <unordered_map>
+#include <unordered_set>
+#include <functional>
+#include <algorithm>
+#include <mutex>
+#include <chrono>
+#include <random>
+#include <sstream>
+#include <queue>
+#include <thread>
+#include <condition_variable>
+#include <future>
+
+    // --- IR Node Definition ---
+    struct SourceLocation {
+        std::string filename;
+        int line;
+        int column;
+
+        std::string to_string() const {
+            return filename + ":" + std::to_string(line) + ":" + std::to_string(column);
+        }
+    };
+
+    struct IR {
+        std::string type;    // e.g. "Function", "Expression"
+        std::string code;    // serialized source or intermediate representation
+
+        SourceLocation src_loc;
+
+        std::unordered_map<std::string, std::string> metadata;
+
+        struct Context {
+            std::string phase;
+            std::string parent_id;
+            std::string lineage;
+            std::string dg_tag;
+        } context;
+
+        std::string to_string() const {
+            std::stringstream ss;
+            ss << type << ":" << code << " @ " << src_loc.to_string();
+            if (!metadata.empty()) {
+                ss << " {";
+                for (auto it = metadata.begin(); it != metadata.end(); ++it) {
+                    if (it != metadata.begin()) ss << ", ";
+                    ss << it->first << "=" << it->second;
+                }
+                ss << "}";
+            }
+            return ss.str();
+        }
+
+        std::string signature() const {
+            std::hash<std::string> hasher;
+            return std::to_string(hasher(to_string()));
+        }
+    };
+
+    using IRList = std::vector<IR>;
+
+    struct ComposeContext {
+        std::string id;
+        std::string phase;
+        std::string fingerprint;
+        std::unordered_map<std::string, std::string> options;
+
+        std::chrono::steady_clock::time_point start_time;
+        std::chrono::steady_clock::time_point end_time;
+
+        static ComposeContext new_context(const std::string& id,
+            const std::string& phase,
+            const std::string& fingerprint,
+            const std::unordered_map<std::string, std::string>& options) {
+            ComposeContext ctx;
+            ctx.id = id;
+            ctx.phase = phase;
+            ctx.fingerprint = fingerprint;
+            ctx.options = options;
+            ctx.start_time = std::chrono::steady_clock::now();
+            return ctx;
+        }
+    };
+
+
+    // --- Simple Thread Pool ---
+    class ThreadPool {
+    public:
+        explicit ThreadPool(size_t threads);
+        ~ThreadPool();
+
+        // Submit a task returning future of T
+        template<class F, class... Args>
+        auto enqueue(F&& f, Args&&... args)
+            -> std::future<typename std::result_of<F(Args...)>::type>;
+
+    private:
+        // Workers
+        std::vector<std::thread> workers;
+        // Task queue
+        std::queue<std::function<void()>> tasks;
+
+        // Synchronization
+        std::mutex queue_mutex;
+        std::condition_variable condition;
+        bool stop;
+    };
+
+    // Constructor launches threads
+    ThreadPool::ThreadPool(size_t threads) : stop(false) {
+        for (size_t i = 0; i < threads; ++i) {
+            workers.emplace_back(
+                [this] {
+                    for (;;) {
+                        std::function<void()> task;
+
+                        {   // Lock scope
+                            std::unique_lock<std::mutex> lock(this->queue_mutex);
+                            this->condition.wait(lock,
+                                [this] { return this->stop || !this->tasks.empty(); });
+
+                            if (this->stop && this->tasks.empty())
+                                return;
+
+                            task = std::move(this->tasks.front());
+                            this->tasks.pop();
+                        }
+
+                        task();
+                    }
+                }
+            );
+        }
+    }
+
+    // Destructor joins threads
+    ThreadPool::~ThreadPool() {
+        {
+            std::unique_lock<std::mutex> lock(queue_mutex);
+            stop = true;
+        }
+        condition.notify_all();
+
+        for (std::thread& worker : workers)
+            worker.join();
+    }
+
+    // Add new work item to the pool.
+    template<class F, class... Args>
+    auto ThreadPool::enqueue(F&& f, Args&&... args)
+        -> std::future<typename std::result_of<F(Args...)>::type> {
+        using return_type = typename std::result_of<F(Args...)>::type;
+
+        auto task_ptr = std::make_shared<std::packaged_task<return_type()>>(
+            std::bind(std::forward<F>(f), std::forward<Args>(args)...)
+        );
+
+        std::future<return_type> res = task_ptr->get_future();
+        {
+            std::unique_lock<std::mutex> lock(queue_mutex);
+
+            // Don't allow enqueue after stopping the pool
+            if (stop)
+                throw std::runtime_error("enqueue on stopped ThreadPool");
+
+            tasks.emplace([task_ptr]() { (*task_ptr)(); });
+        }
+        condition.notify_one();
+        return res;
+    }
+
+    // --- Composer Namespace ---
+    namespace Composer {
+
+        static std::unordered_map<std::string, IRList> composition_cache;
+        static std::vector<std::function<void(ComposeContext&, const std::vector<IRList>&)>> before_hooks;
+        static std::vector<std::function<void(ComposeContext&, IRList&)>> after_hooks;
+        static std::unordered_map<std::string, std::unordered_map<std::string, int>> stats_registry;
+
+        inline std::string now_str() {
+            auto now = std::chrono::system_clock::now();
+            auto epoch = now.time_since_epoch();
+            auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(epoch).count();
+            return std::to_string(millis);
+        }
+
+        inline std::string hash(const std::string& input) {
+            std::hash<std::string> hasher;
+            size_t h = hasher(input);
+            std::stringstream ss;
+            ss << std::hex << h;
+            return ss.str();
+        }
+
+        inline std::string to_hex(uint64_t val) {
+            std::stringstream ss;
+            ss << std::hex << val;
+            return ss.str();
+        }
+
+        inline uint64_t rand64() {
+            static std::mt19937_64 rng(std::random_device{}());
+            return rng();
+        }
+
+        inline std::string generate_uuid() {
+            return to_hex(rand64()) + "-" + to_hex(rand64());
+        }
+
+        // --- Parallel compose using real ThreadPool ---
+        IRList parallel_compose(const std::vector<IRList>& list_of_lists, ComposeContext& ctx) {
+            int thread_pool_size = 4;
+            auto it = ctx.options.find("threads");
+            if (it != ctx.options.end()) {
+                try {
+                    thread_pool_size = std::stoi(it->second);
+                    if (thread_pool_size < 1) thread_pool_size = 1;
+                }
+                catch (...) { thread_pool_size = 4; }
+            }
+
+            ThreadPool pool(thread_pool_size);
+            std::vector<std::future<IRList>> futures;
+
+            // Divide input into chunks for each thread
+            size_t total_segments = list_of_lists.size();
+            size_t chunk_size = (total_segments + thread_pool_size - 1) / thread_pool_size;
+
+            for (int t = 0; t < thread_pool_size; ++t) {
+                size_t start_idx = t * chunk_size;
+                size_t end_idx = std::min(start_idx + chunk_size, total_segments);
+                if (start_idx >= end_idx)
+                    break;
+
+                futures.push_back(pool.enqueue(
+                    [start_idx, end_idx, &list_of_lists]() -> IRList {
+                        IRList partial;
+                        for (size_t i = start_idx; i < end_idx; ++i) {
+                            partial.insert(partial.end(), list_of_lists[i].begin(), list_of_lists[i].end());
+                        }
+                        return partial;
+                    }
+                ));
+            }
+
+            // Collect and merge results
+            IRList result;
+            for (auto& fut : futures) {
+                IRList partial = fut.get();
+                result.insert(result.end(), partial.begin(), partial.end());
+            }
+
+            return result;
+        }
+
+        IRList compose(const std::vector<IRList>& list_of_irs,
+            const std::unordered_map<std::string, std::string>& opts = {}) {
+
+            std::string fingerprint;
+            auto it_fp = opts.find("fingerprint");
+            if (it_fp != opts.end()) {
+                fingerprint = it_fp->second;
+            }
+            else {
+                std::string concat;
+                for (const auto& lst : list_of_irs) {
+                    for (const auto& ir : lst) {
+                        concat += ir.to_string() + "|";
+                    }
+                    concat += "||";
+                }
+                fingerprint = hash(concat + "::" + now_str());
+            }
+
+            auto cache_it = composition_cache.find(fingerprint);
+            if (cache_it != composition_cache.end()) {
+                return cache_it->second;
+            }
+
+            ComposeContext ctx = ComposeContext::new_context(generate_uuid(), "compose", fingerprint, opts);
+
+            // Before hooks
+            for (auto& hook : before_hooks) {
+                hook(ctx, list_of_irs);
+            }
+
+            IRList out;
+            bool parallel = false;
+            auto it_parallel = opts.find("parallel");
+            if (it_parallel != opts.end() && it_parallel->second == "1") {
+                parallel = true;
+            }
+
+            if (parallel) {
+                out = parallel_compose(list_of_irs, ctx);
+            }
+            else {
+                for (const auto& segment : list_of_irs) {
+                    out.insert(out.end(), segment.begin(), segment.end());
+                }
+            }
+
+            // Deduplicate
+            auto it_dedupe = opts.find("dedupe");
+            if (it_dedupe != opts.end() && it_dedupe->second == "1") {
+                std::unordered_set<std::string> seen;
+                IRList unique;
+                for (const auto& ir : out) {
+                    std::string key = ir.signature();
+                    if (seen.find(key) == seen.end()) {
+                        unique.push_back(ir);
+                        seen.insert(key);
+                    }
+                }
+                out = std::move(unique);
+            }
+
+            // Filter by phase
+            auto it_phase = opts.find("phase");
+            if (it_phase != opts.end() && !it_phase->second.empty()) {
+                IRList filtered;
+                for (const auto& ir : out) {
+                    if (ir.context.phase == it_phase->second) {
+                        filtered.push_back(ir);
+                    }
+                }
+                out = std::move(filtered);
+            }
+
+            // Annotate lineage
+            auto it_annotate_lineage = opts.find("annotate_lineage");
+            if (it_annotate_lineage != opts.end() && it_annotate_lineage->second == "1") {
+                for (auto& ir : out) {
+                    ir.context.parent_id = ctx.id;
+                    ir.context.lineage = ctx.fingerprint;
+                }
+            }
+
+            // Annotate DG tag
+            auto it_annotate_dg = opts.find("annotate_dg");
+            if (it_annotate_dg != opts.end() && it_annotate_dg->second == "1") {
+                int dg_base = 12;
+                auto it_dg_base = opts.find("dg_base");
+                if (it_dg_base != opts.end()) {
+                    try {
+                        dg_base = std::stoi(it_dg_base->second);
+                    }
+                    catch (...) { dg_base = 12; }
+                }
+                for (auto& ir : out) {
+                    size_t h = std::hash<std::string>{}(ir.to_string());
+                    int dg_val = static_cast<int>(h % (dg_base * dg_base));
+                    ir.context.dg_tag = "DG" + std::to_string(dg_val);
+                }
+            }
+
+            // Cache result
+            composition_cache[fingerprint] = out;
+
+            // After hooks
+            for (auto& hook : after_hooks) {
+                hook(ctx, out);
+            }
+
+            ctx.end_time = std::chrono::steady_clock::now();
+
+            // Record stats
+            std::unordered_map<std::string, int> counts;
+            for (const auto& ir : out) {
+                counts[ir.type]++;
+            }
+            stats_registry[ctx.id] = counts;
+
+            return out;
+        }
+
+        // Register hooks
+        void register_before_hook(std::function<void(ComposeContext&, const std::vector<IRList>&)> hook_fn) {
+            before_hooks.push_back(std::move(hook_fn));
+        }
+
+        void register_after_hook(std::function<void(ComposeContext&, IRList&)> hook_fn) {
+            after_hooks.push_back(std::move(hook_fn));
+        }
+
+        // Get stats for a composition run
+        std::unordered_map<std::string, int> get_stats(const std::string& compose_id) {
+            auto it = stats_registry.find(compose_id);
+            if (it != stats_registry.end()) {
+                return it->second;
+            }
+            return {};
+        }
+
+        void clear_cache() {
+            composition_cache.clear();
+        }
+
+        std::vector<std::string> cache_entries() {
+            std::vector<std::string> keys;
+            keys.reserve(composition_cache.size());
+            for (const auto& kv : composition_cache) {
+                keys.push_back(kv.first);
+            }
+            return keys;
+        }
+
+    } // namespace Composer
+
+
+    // --- Example Usage ---
+    /*
+    int main() {
+        IR ir1{"Function", "int foo() { return 1; }", {"file1.qtr", 10, 5}, {{"author", "Violet"}}, {"init", "", "", ""}};
+        IR ir2{"Expression", "x + y", {"file2.qtr", 20, 3}, {}, {"emit", "", "", ""}};
+        IRList list1 = {ir1};
+        IRList list2 = {ir2};
+
+        std::vector<IRList> all = {list1, list2};
+
+        std::unordered_map<std::string, std::string> opts;
+        opts["parallel"] = "1";
+        opts["dedupe"] = "1";
+        opts["annotate_lineage"] = "1";
+        opts["threads"] = "2";
+
+        IRList composed = Composer::compose(all, opts);
+
+        for (const auto& ir : composed) {
+            std::cout << ir.to_string() << " | lineage: " << ir.context.lineage << " | DG: " << ir.context.dg_tag << "\n";
+        }
+
+        return 0;
+    }
+    */
+
+#include <string>
+#include <vector>
+#include <sstream>
+#include <algorithm>
+#include <iostream>
+
+    struct IR {
+        std::string type;    // e.g., "FunctionStart", "FunctionEnd", or others
+        std::string name;    // Used for function names, labels, etc.
+        std::string code;    // Generic IR code or text
+
+        // Stub for NASM generation from IR node — override as needed
+        std::string to_nasm() const {
+            return code;
+        }
+    };
+
+    // Placeholder optimization namespace
+    namespace Optimization {
+        std::vector<IR> optimize(const std::vector<IR>& ir_program) {
+            // Stub: in real usage, apply optimization passes here
+            return ir_program;
+        }
+    }
+
+    namespace CodeGenerator {
+
+        std::string sanitize_label(const std::string& label) {
+            std::string sanitized = label;
+            std::replace(sanitized.begin(), sanitized.end(), ' ', '_');
+            std::replace(sanitized.begin(), sanitized.end(), '-', '_');
+            std::replace(sanitized.begin(), sanitized.end(), '.', '_');
+            return sanitized;
+        }
+
+        std::string emit_prologue(const std::string& func_name) {
+            std::stringstream ss;
+            ss << "; Function: " << func_name << "\n";
+            ss << func_name << ":\n";
+            ss << "    push rbp\n";
+            ss << "    mov rbp, rsp\n";
+            return ss.str();
+        }
+
+        std::string emit_epilogue() {
+            std::stringstream ss;
+            ss << "    pop rbp\n";
+            ss << "    ret\n";
+            return ss.str();
+        }
+
+        std::string emit_data_section(const std::vector<std::pair<std::string, std::string>>& data) {
+            std::stringstream ss;
+            ss << "section .data\n";
+            for (const auto& pair : data) {
+                std::string label = sanitize_label(pair.first);
+                ss << label << ": db " << pair.second << "\n";
+            }
+            return ss.str();
+        }
+
+        std::string emit_bss_section(const std::vector<std::pair<std::string, int>>& vars) {
+            std::stringstream ss;
+            ss << "section .bss\n";
+            for (const auto& var : vars) {
+                std::string name = sanitize_label(var.first);
+                int size = var.second;
+                ss << name << ": resb " << size << "\n";
+            }
+            return ss.str();
+        }
+
+        std::string emit_text_section(const std::vector<IR>& irs) {
+            std::stringstream ss;
+            ss << "section .text\n";
+            ss << "    global _start\n\n";
+
+            std::string current_func;
+
+            for (const IR& ir : irs) {
+                if (ir.type == "FunctionStart") {
+                    current_func = sanitize_label(ir.name);
+                    ss << emit_prologue(current_func);
+                }
+                else if (ir.type == "FunctionEnd") {
+                    ss << emit_epilogue();
+                    current_func.clear();
+                }
+                else {
+                    ss << "    " << ir.to_nasm() << "\n";
+                }
+            }
+            return ss.str();
+        }
+
+        std::string generate_nasm(const std::vector<IR>& ir_program,
+            const std::vector<std::pair<std::string, std::string>>& data,
+            const std::vector<std::pair<std::string, int>>& bss) {
+            std::vector<IR> optimized_ir = Optimization::optimize(ir_program);
+
+            std::stringstream ss;
+            ss << "; Generated by QuarterLang CodeGenerator\n";
+            ss << "; Target: x86-64 NASM\n\n";
+            ss << emit_data_section(data) << "\n";
+            ss << emit_bss_section(bss) << "\n";
+            ss << emit_text_section(optimized_ir);
+
+            return ss.str();
+        }
+    }
+
+    int main() {
+        // Example IR nodes
+        IR fstart{ "FunctionStart", "main", "" };
+        IR instr1{ "Instruction", "", "mov rax, 1" };
+        IR instr2{ "Instruction", "", "mov rdi, 1" };
+        IR instr3{ "Instruction", "", "syscall" };
+        IR fend{ "FunctionEnd", "", "" };
+
+        std::vector<IR> ir_program = { fstart, instr1, instr2, instr3, fend };
+
+        std::vector<std::pair<std::string, std::string>> data = {
+            {"message", "\"Hello, World!\", 0xA"}
+        };
+
+        std::vector<std::pair<std::string, int>> bss = {
+            {"buffer", 64}
+        };
+
+        std::string nasm_code = CodeGenerator::generate_nasm(ir_program, data, bss);
+
+        std::cout << nasm_code << std::endl;
+
+        return 0;
+    }
+
+#include <string>
+#include <vector>
+#include <memory>
+#include <optional>
+#include <iostream>
+#include <unordered_map>
+
+    // Forward declarations
+    struct ASTNode;
+    struct SourceLocation;
+    struct BindingError;
+    class SymbolTable;
+    struct BindingContext;
+
+    // --- SourceLocation ---
+    struct SourceLocation {
+        int line;
+        int column;
+        SourceLocation(int l = 0, int c = 0) : line(l), column(c) {}
+    };
+
+    // --- BindingError ---
+    struct BindingError {
+        std::string message;
+        std::optional<SourceLocation> location;
+
+        BindingError(std::string msg, std::optional<SourceLocation> loc = std::nullopt)
+            : message(std::move(msg)), location(loc) {
+        }
+    };
+
+    // --- ASTNode ---
+    struct ASTNode {
+        std::string kind;
+
+        // The following fields are optional depending on kind
+        std::string name;  // For declarations and identifiers
+        std::vector<std::shared_ptr<ASTNode>> statements;  // Program, Block
+        std::vector<std::shared_ptr<ASTNode>> params;      // FunctionDecl params
+        std::shared_ptr<ASTNode> body;                      // FunctionDecl body or Block
+        std::shared_ptr<ASTNode> value;                     // Let value
+        std::shared_ptr<ASTNode> target;                    // Call target
+        std::vector<std::shared_ptr<ASTNode>> arguments;   // Call arguments
+        std::shared_ptr<ASTNode> condition;                 // If, While
+        std::shared_ptr<ASTNode> then_branch;               // If
+        std::shared_ptr<ASTNode> else_branch;               // If
+        std::shared_ptr<ASTNode> left;                       // BinaryOp
+        std::shared_ptr<ASTNode> right;                      // BinaryOp
+
+        std::optional<SourceLocation> location;
+
+        // For symbol binding, store a pointer to resolved declaration node (if any)
+        std::shared_ptr<ASTNode> resolved_symbol;
+
+        ASTNode(std::string k) : kind(std::move(k)) {}
+    };
+
+    // --- SymbolTable ---
+    class SymbolTable {
+    public:
+        SymbolTable(std::shared_ptr<SymbolTable> parent = nullptr)
+            : parent_(std::move(parent)) {
+        }
+
+        // Define a symbol; returns false if already defined
+        bool define(const std::string& name, std::shared_ptr<ASTNode> node) {
+            if (symbols_.find(name) != symbols_.end()) {
+                return false;  // already defined in this scope
+            }
+            symbols_[name] = node;
+            return true;
+        }
+
+        // Resolve symbol searching up through parent scopes
+        std::shared_ptr<ASTNode> resolve(const std::string& name) const {
+            auto it = symbols_.find(name);
+            if (it != symbols_.end()) {
+                return it->second;
+            }
+            if (parent_) {
+                return parent_->resolve(name);
+            }
+            return nullptr;
+        }
+
+    private:
+        std::unordered_map<std::string, std::shared_ptr<ASTNode>> symbols_;
+        std::shared_ptr<SymbolTable> parent_;
+    };
+
+    // --- BindingContext ---
+    struct BindingContext {
+        std::shared_ptr<SymbolTable> current_scope;
+        std::optional<std::shared_ptr<BindingContext>> parent;
+        std::vector<BindingError> errors;
+
+        BindingContext(std::shared_ptr<SymbolTable> scope,
+            std::optional<std::shared_ptr<BindingContext>> parent_ctx = std::nullopt)
+            : current_scope(std::move(scope)), parent(std::move(parent_ctx)) {
+        }
+    };
+
+    // --- Binder functions ---
+
+    // Forward declaration for recursion
+    std::shared_ptr<ASTNode> bind_node(std::shared_ptr<ASTNode> node, BindingContext& ctx);
+
+    std::shared_ptr<ASTNode> bind(std::shared_ptr<ASTNode> ast, std::shared_ptr<SymbolTable> table) {
+        BindingContext ctx(table);
+        return bind_node(ast, ctx);
+    }
+
+    std::shared_ptr<ASTNode> bind_node(std::shared_ptr<ASTNode> node, BindingContext& ctx) {
+        if (!node) return node;
+
+        const std::string& kind = node->kind;
+
+        if (kind == "Program") {
+            for (auto& stmt : node->statements) {
+                bind_node(stmt, ctx);
+            }
+            return node;
+        }
+        else if (kind == "FunctionDecl") {
+            // Register function symbol
+            if (!ctx.current_scope->define(node->name, node)) {
+                ctx.errors.emplace_back("Function already defined: " + node->name, node->location);
+            }
+            // New scope for function body
+            auto func_scope = std::make_shared<SymbolTable>(ctx.current_scope);
+            BindingContext func_ctx(func_scope, std::make_optional(std::make_shared<BindingContext>(ctx)));
+            // Define parameters
+            for (auto& param : node->params) {
+                if (!func_scope->define(param->name, param)) {
+                    ctx.errors.emplace_back("Parameter already defined: " + param->name, param->location);
+                }
+            }
+            node->body = bind_node(node->body, func_ctx);
+            return node;
+        }
+        else if (kind == "Block") {
+            auto block_scope = std::make_shared<SymbolTable>(ctx.current_scope);
+            BindingContext block_ctx(block_scope, std::make_optional(std::make_shared<BindingContext>(ctx)));
+            for (auto& stmt : node->statements) {
+                bind_node(stmt, block_ctx);
+            }
+            return node;
+        }
+        else if (kind == "Let") {
+            if (ctx.current_scope->resolve(node->name)) {
+                ctx.errors.emplace_back("Variable already defined: " + node->name, node->location);
+            }
+            else {
+                ctx.current_scope->define(node->name, node);
+            }
+            node->value = bind_node(node->value, ctx);
+            return node;
+        }
+        else if (kind == "Identifier") {
+            auto resolved = ctx.current_scope->resolve(node->name);
+            if (!resolved) {
+                ctx.errors.emplace_back("Unresolved identifier: " + node->name, node->location);
+            }
+            node->resolved_symbol = resolved;
+            return node;
+        }
+        else if (kind == "Call") {
+            node->target = bind_node(node->target, ctx);
+            for (auto& arg : node->arguments) {
+                bind_node(arg, ctx);
+            }
+            return node;
+        }
+        else if (kind == "If") {
+            node->condition = bind_node(node->condition, ctx);
+            node->then_branch = bind_node(node->then_branch, ctx);
+            if (node->else_branch) {
+                node->else_branch = bind_node(node->else_branch, ctx);
+            }
+            return node;
+        }
+        else if (kind == "While") {
+            node->condition = bind_node(node->condition, ctx);
+            node->body = bind_node(node->body, ctx);
+            return node;
+        }
+        else if (kind == "BinaryOp") {
+            node->left = bind_node(node->left, ctx);
+            node->right = bind_node(node->right, ctx);
+            return node;
+        }
+
+        // Default: no special handling
+        return node;
+    }
+
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <iostream>
+#include <filesystem>
+#include <cstdio>
+#include <cstdlib>
+
+    // Platform detection
+#if defined(_WIN32) || defined(_WIN64)
+    constexpr auto PLATFORM_NAME = "windows";
+#elif defined(__linux__)
+    constexpr auto PLATFORM_NAME = "linux";
+#elif defined(__APPLE__)
+    constexpr auto PLATFORM_NAME = "darwin";
+#else
+    constexpr auto PLATFORM_NAME = "unknown";
+#endif
+
+    namespace BinaryEmitter {
+
+        // Diagnostic helpers (stubs for now)
+        void error(const std::string& where, const std::string& message) {
+            std::cerr << "[ERROR][" << where << "] " << message << std::endl;
+        }
+
+        void warning(const std::string& where, const std::string& message) {
+            std::cerr << "[WARNING][" << where << "] " << message << std::endl;
+        }
+
+        // Check if directory exists
+        bool dir_exists(const std::string& path) {
+            return std::filesystem::exists(path) && std::filesystem::is_directory(path);
+        }
+
+        // Create directory (including parents)
+        bool mkdir(const std::string& path) {
+            std::error_code ec;
+            bool created = std::filesystem::create_directories(path, ec);
+            if (ec) {
+                error("mkdir", "Failed to create directory '" + path + "': " + ec.message());
+            }
+            return created || dir_exists(path);
+        }
+
+        // Write string to file
+        bool write_file(const std::string& path, const std::string& contents) {
+            std::ofstream ofs(path, std::ios::binary);
+            if (!ofs) return false;
+            ofs << contents;
+            return true;
+        }
+
+        // Read file contents into string
+        std::string read_file(const std::string& path) {
+            std::ifstream ifs(path, std::ios::binary);
+            if (!ifs) return "";
+            std::ostringstream oss;
+            oss << ifs.rdbuf();
+            return oss.str();
+        }
+
+        // Check if file exists
+        bool file_exists(const std::string& path) {
+            return std::filesystem::exists(path) && std::filesystem::is_regular_file(path);
+        }
+
+        // Run system command and return exit code
+        int sys_run(const std::string& cmd) {
+#ifdef _WIN32
+            return std::system(cmd.c_str());
+#else
+            return std::system(cmd.c_str());
+#endif
+        }
+
+        // Get nasm executable name based on platform
+        std::string get_nasm_executable() {
+            if (std::string(PLATFORM_NAME) == "windows") return "nasm.exe";
+            else return "nasm";
+        }
+
+        // Main emit function: accepts assembly source code string and returns raw binary or error string
+        std::string emit(const std::string& asm_source, const std::string& temp_dir = "./tmp/") {
+            std::string input_file = temp_dir + "build_input.asm";
+            std::string output_file = temp_dir + "build_output.bin";
+            std::string log_file = temp_dir + "build_log.txt";
+
+            // Ensure temp directory exists
+            if (!dir_exists(temp_dir)) {
+                if (!mkdir(temp_dir)) {
+                    error("BinaryEmitter.emit", "Failed to create temp directory: " + temp_dir);
+                    return "<ERROR>";
+                }
+            }
+
+            // Write input asm source to file
+            if (!write_file(input_file, asm_source)) {
+                error("BinaryEmitter.emit", "Failed to write NASM input to " + input_file);
+                return "<ERROR>";
+            }
+
+            // Build NASM command line
+            std::string nasm_exe = get_nasm_executable();
+            std::string cmd = nasm_exe + " -f bin " + input_file + " -o " + output_file + " 2> " + log_file;
+
+            // Run NASM command
+            int ret = sys_run(cmd);
+            if (ret != 0) {
+                warning("BinaryEmitter.emit", "NASM exited with code " + std::to_string(ret));
+            }
+
+            // Check log for warnings/errors
+            if (file_exists(log_file)) {
+                std::string log_content = read_file(log_file);
+                if (!log_content.empty()) {
+                    warning("BinaryEmitter.emit", "NASM warnings/errors:\n" + log_content);
+                }
+            }
+
+            // Read output binary
+            if (file_exists(output_file)) {
+                return read_file(output_file);
+            }
+            else {
+                error("BinaryEmitter.emit", "Failed to generate binary file: " + output_file);
+                return "<BUILD FAILED>";
+            }
+        }
+
+    } // namespace BinaryEmitter
+
+
+    // Example usage:
+    // int main() {
+    //     std::string asm_code = "BITS 64\nsection .text\nglobal _start\n_start:\n  mov rax, 60\n  xor rdi, rdi\n  syscall\n";
+    //     std::string bin = BinaryEmitter::emit(asm_code);
+    //     if (bin.find("<") != 0) {
+    //         std::cout << "Binary size: " << bin.size() << " bytes\n";
+    //     } else {
+    //         std::cerr << bin << "\n";
+    //     }
+    //     return 0;
+    // }
+
+    // === QuarterLang Adapter Module in Pure C++ ===
+
+#include <string>
+#include <vector>
+#include <memory>
+#include <iostream>
+#include <map>
+
+    namespace QuarterLang::Adapter {
+
+        struct ASTNode {
+            std::string kind;
+            std::string name;
+            std::string type;
+            std::string operator_symbol;
+            std::shared_ptr<ASTNode> left;
+            std::shared_ptr<ASTNode> right;
+            std::shared_ptr<ASTNode> condition;
+            std::shared_ptr<ASTNode> then_branch;
+            std::shared_ptr<ASTNode> else_branch;
+            std::shared_ptr<ASTNode> body;
+            std::vector<std::shared_ptr<ASTNode>> params;
+            std::vector<std::shared_ptr<ASTNode>> args;
+            std::shared_ptr<ASTNode> initializer;
+            std::shared_ptr<ASTNode> target;
+            std::shared_ptr<ASTNode> value;
+        };
+
+        struct IR {
+            std::string tag;
+            std::vector<std::string> parts;
+
+            static IR create(const std::string& tag, const std::vector<std::string>& parts) {
+                return IR{ tag, parts };
+            }
+        };
+
+        namespace IRTracer {
+            bool __debug_enabled() {
+                return true; // set to false to disable
+            }
+
+            template <typename T>
+            void trace(const std::string& label, const T& data) {
+                if (__debug_enabled()) {
+                    std::cout << "[IR-TRACE][" << label << "]: " << data << std::endl;
+                }
+            }
+        }
+
+        namespace NodeClassifier {
+            std::string classify(const ASTNode& node) {
+                if (node.kind == "FunctionDecl") return "IR_FUNC";
+                if (node.kind == "VarDecl") return "IR_VAR";
+                if (node.kind == "Assignment") return "IR_ASSIGN";
+                if (node.kind == "BinaryExpr") return "IR_EXPR";
+                if (node.kind == "CallExpr") return "IR_CALL";
+                if (node.kind == "IfStatement") return "IR_BRANCH";
+                if (node.kind == "WhileLoop") return "IR_LOOP";
+                return "IR_UNKNOWN";
+            }
+        }
+
+        namespace IRFactory {
+            IR from_function(const ASTNode& node) {
+                return IR::create("Function", { node.name });
+            }
+
+            IR from_variable(const ASTNode& node) {
+                return IR::create("Variable", { node.name, node.type });
+            }
+
+            IR from_assignment(const ASTNode& node) {
+                return IR::create("Assignment", { node.target->name, node.value->name });
+            }
+
+            IR from_expression(const ASTNode& node) {
+                return IR::create("Expression", { node.operator_symbol, node.left->name, node.right->name });
+            }
+
+            IR from_call(const ASTNode& node) {
+                std::vector<std::string> parts = { node.name };
+                for (const auto& arg : node.args) parts.push_back(arg->name);
+                return IR::create("Call", parts);
+            }
+
+            IR from_if(const ASTNode& node) {
+                return IR::create("If", { node.condition->name });
+            }
+
+            IR from_loop(const ASTNode& node) {
+                return IR::create("Loop", { node.condition->name });
+            }
+        }
+
+        IR __adapt_node_to_ir(const ASTNode& node, const std::string& type) {
+            using namespace IRFactory;
+            if (type == "IR_FUNC") return from_function(node);
+            if (type == "IR_VAR") return from_variable(node);
+            if (type == "IR_ASSIGN") return from_assignment(node);
+            if (type == "IR_EXPR") return from_expression(node);
+            if (type == "IR_CALL") return from_call(node);
+            if (type == "IR_BRANCH") return from_if(node);
+            if (type == "IR_LOOP") return from_loop(node);
+            return IR{ "Unknown", {} };
+        }
+
+        std::vector<IR> adapt_to_ir(const std::vector<ASTNode>& ast_flat) {
+            std::vector<IR> irs;
+            for (const auto& node : ast_flat) {
+                auto node_type = NodeClassifier::classify(node);
+                IRTracer::trace("node_type", node_type);
+
+                auto ir = __adapt_node_to_ir(node, node_type);
+                if (ir.tag != "Unknown") {
+                    irs.push_back(ir);
+                    IRTracer::trace("ir_generated", ir.tag);
+                }
+                else {
+                    IRTracer::trace("ir_skipped", node.kind);
+                }
+            }
+            return irs;
+        }
+
+    } // namespace QuarterLang::Adapter
+
+    // === QuarterLang Adapter Module in Pure C++ ===
+
+#include <iostream>
+#include <vector>
+#include <string>
+#include <map>
+#include <memory>
+
+    namespace QuarterLang::IRAdapter {
+
+        struct ASTNode {
+            std::string kind;
+            std::string name;
+            std::vector<std::string> params;
+            std::string body;
+            std::string type;
+            std::string initializer;
+            std::string target;
+            std::string value;
+            std::string op;
+            std::string left;
+            std::string right;
+            std::string callee;
+            std::vector<std::string> args;
+            std::string condition;
+            std::string then_branch;
+            std::string else_branch;
+            std::string loop_body;
+        };
+
+        struct IR {
+            std::string type;
+            std::vector<std::string> operands;
+
+            static IR create(const std::string& type, const std::string& a = "", const std::string& b = "", const std::string& c = "") {
+                IR ir;
+                ir.type = type;
+                if (!a.empty()) ir.operands.push_back(a);
+                if (!b.empty()) ir.operands.push_back(b);
+                if (!c.empty()) ir.operands.push_back(c);
+                return ir;
+            }
+        };
+
+        namespace IRTracer {
+            inline void trace(const std::string& label, const std::string& data) {
+                std::cout << "[IR-TRACE][" << label << "]: " << data << std::endl;
+            }
+        }
+
+        namespace NodeClassifier {
+            inline std::string classify(const ASTNode& node) {
+                if (node.kind == "FunctionDecl") return "IR_FUNC";
+                if (node.kind == "VarDecl") return "IR_VAR";
+                if (node.kind == "Assignment") return "IR_ASSIGN";
+                if (node.kind == "BinaryExpr") return "IR_EXPR";
+                if (node.kind == "CallExpr") return "IR_CALL";
+                if (node.kind == "IfStatement") return "IR_BRANCH";
+                if (node.kind == "WhileLoop") return "IR_LOOP";
+                return "IR_UNKNOWN";
+            }
+        }
+
+        namespace IRFactory {
+            inline IR from_function(const ASTNode& node) {
+                return IR::create("Function", node.name, join(node.params), node.body);
+            }
+
+            inline IR from_variable(const ASTNode& node) {
+                return IR::create("Variable", node.name, node.type, node.initializer);
+            }
+
+            inline IR from_assignment(const ASTNode& node) {
+                return IR::create("Assignment", node.target, node.value);
+            }
+
+            inline IR from_expression(const ASTNode& node) {
+                return IR::create("Expression", node.op, node.left, node.right);
+            }
+
+            inline IR from_call(const ASTNode& node) {
+                return IR::create("Call", node.callee, join(node.args));
+            }
+
+            inline IR from_if(const ASTNode& node) {
+                return IR::create("If", node.condition, node.then_branch, node.else_branch);
+            }
+
+            inline IR from_loop(const ASTNode& node) {
+                return IR::create("Loop", node.condition, node.loop_body);
+            }
+
+            inline std::string join(const std::vector<std::string>& elements) {
+                std::string result;
+                for (size_t i = 0; i < elements.size(); ++i) {
+                    result += elements[i];
+                    if (i + 1 < elements.size()) result += ",";
+                }
+                return result;
+            }
+        }
+
+        inline std::vector<IR> adapt_to_ir(const std::vector<ASTNode>& ast) {
+            std::vector<IR> irs;
+
+            for (const auto& node : ast) {
+                std::string node_type = NodeClassifier::classify(node);
+                IRTracer::trace("node_type", node_type);
+
+                IR ir;
+                if (node_type == "IR_FUNC") ir = IRFactory::from_function(node);
+                else if (node_type == "IR_VAR") ir = IRFactory::from_variable(node);
+                else if (node_type == "IR_ASSIGN") ir = IRFactory::from_assignment(node);
+                else if (node_type == "IR_EXPR") ir = IRFactory::from_expression(node);
+                else if (node_type == "IR_CALL") ir = IRFactory::from_call(node);
+                else if (node_type == "IR_BRANCH") ir = IRFactory::from_if(node);
+                else if (node_type == "IR_LOOP") ir = IRFactory::from_loop(node);
+                else {
+                    IRTracer::trace("ir_skipped", node.kind);
+                    continue;
+                }
+
+                irs.push_back(ir);
+                IRTracer::trace("ir_generated", ir.type);
+            }
+
+            return irs;
+        }
+
+    } // namespace QuarterLang::IRAdapter
+
+	// === QuarterLang Composer Module in Pure C++ ===
+
+    // === QuarterLang Adapter Module in Pure C++ ===
+
+#include <iostream>
+#include <vector>
+#include <string>
+#include <map>
+#include <memory>
+
+    namespace QuarterLang::IRAdapter {
+
+        struct ASTNode {
+            std::string kind;
+            std::string name;
+            std::vector<std::string> params;
+            std::string body;
+            std::string type;
+            std::string initializer;
+            std::string target;
+            std::string value;
+            std::string op;
+            std::string left;
+            std::string right;
+            std::string callee;
+            std::vector<std::string> args;
+            std::string condition;
+            std::string then_branch;
+            std::string else_branch;
+            std::string loop_body;
+        };
+
+        struct IR {
+            std::string type;
+            std::vector<std::string> operands;
+            std::string source_location;
+            std::map<std::string, std::string> metadata;
+
+            static IR create(const std::string& type, const std::string& a = "", const std::string& b = "", const std::string& c = "") {
+                IR ir;
+                ir.type = type;
+                if (!a.empty()) ir.operands.push_back(a);
+                if (!b.empty()) ir.operands.push_back(b);
+                if (!c.empty()) ir.operands.push_back(c);
+                return ir;
+            }
+        };
+
+        namespace IRTracer {
+            inline void trace(const std::string& label, const std::string& data) {
+                std::cout << "[IR-TRACE][" << label << "]: " << data << std::endl;
+            }
+        }
+
+        namespace NodeClassifier {
+            inline std::string classify(const ASTNode& node) {
+                if (node.kind == "FunctionDecl") return "IR_FUNC";
+                if (node.kind == "VarDecl") return "IR_VAR";
+                if (node.kind == "Assignment") return "IR_ASSIGN";
+                if (node.kind == "BinaryExpr") return "IR_EXPR";
+                if (node.kind == "CallExpr") return "IR_CALL";
+                if (node.kind == "IfStatement") return "IR_BRANCH";
+                if (node.kind == "WhileLoop") return "IR_LOOP";
+                return "IR_UNKNOWN";
+            }
+        }
+
+        namespace IRFactory {
+            inline IR from_function(const ASTNode& node) {
+                return IR::create("Function", node.name, join(node.params), node.body);
+            }
+
+            inline IR from_variable(const ASTNode& node) {
+                return IR::create("Variable", node.name, node.type, node.initializer);
+            }
+
+            inline IR from_assignment(const ASTNode& node) {
+                return IR::create("Assignment", node.target, node.value);
+            }
+
+            inline IR from_expression(const ASTNode& node) {
+                return IR::create("Expression", node.op, node.left, node.right);
+            }
+
+            inline IR from_call(const ASTNode& node) {
+                return IR::create("Call", node.callee, join(node.args));
+            }
+
+            inline IR from_if(const ASTNode& node) {
+                return IR::create("If", node.condition, node.then_branch, node.else_branch);
+            }
+
+            inline IR from_loop(const ASTNode& node) {
+                return IR::create("Loop", node.condition, node.loop_body);
+            }
+
+            inline std::string join(const std::vector<std::string>& elements) {
+                std::string result;
+                for (size_t i = 0; i < elements.size(); ++i) {
+                    result += elements[i];
+                    if (i + 1 < elements.size()) result += ",";
+                }
+                return result;
+            }
+        }
+
+        class ThreadPool {
+        public:
+            ThreadPool(size_t num_threads);
+            ~ThreadPool();
+
+            void enqueue(std::function<void()> task);
+
+        private:
+            std::vector<std::thread> workers;
+            std::queue<std::function<void()>> tasks;
+            std::mutex queue_mutex;
+            std::condition_variable condition;
+            bool stop = false;
+
+            void worker_loop();
+        };
+
+        ThreadPool::ThreadPool(size_t num_threads) {
+            for (size_t i = 0; i < num_threads; ++i) {
+                workers.emplace_back([this]() { worker_loop(); });
+            }
+        }
+
+        void ThreadPool::worker_loop() {
+            while (true) {
+                std::function<void()> task;
+                {
+                    std::unique_lock<std::mutex> lock(queue_mutex);
+                    condition.wait(lock, [this]() { return stop || !tasks.empty(); });
+                    if (stop && tasks.empty()) return;
+                    task = std::move(tasks.front());
+                    tasks.pop();
+                }
+                task();
+            }
+        }
+
+        void ThreadPool::enqueue(std::function<void()> task) {
+            {
+                std::unique_lock<std::mutex> lock(queue_mutex);
+                tasks.push(std::move(task));
+            }
+            condition.notify_one();
+        }
+
+        ThreadPool::~ThreadPool() {
+            {
+                std::unique_lock<std::mutex> lock(queue_mutex);
+                stop = true;
+            }
+            condition.notify_all();
+            for (std::thread& worker : workers) {
+                worker.join();
+            }
+        }
+
+        inline std::vector<IR> adapt_to_ir(const std::vector<ASTNode>& ast) {
+            std::vector<IR> irs;
+            ThreadPool pool(4);
+            std::mutex ir_mutex;
+
+            for (const auto& node : ast) {
+                pool.enqueue([&irs, &node, &ir_mutex]() {
+                    std::string node_type = NodeClassifier::classify(node);
+                    IRTracer::trace("node_type", node_type);
+
+                    IR ir;
+                    if (node_type == "IR_FUNC") ir = IRFactory::from_function(node);
+                    else if (node_type == "IR_VAR") ir = IRFactory::from_variable(node);
+                    else if (node_type == "IR_ASSIGN") ir = IRFactory::from_assignment(node);
+                    else if (node_type == "IR_EXPR") ir = IRFactory::from_expression(node);
+                    else if (node_type == "IR_CALL") ir = IRFactory::from_call(node);
+                    else if (node_type == "IR_BRANCH") ir = IRFactory::from_if(node);
+                    else if (node_type == "IR_LOOP") ir = IRFactory::from_loop(node);
+                    else {
+                        IRTracer::trace("ir_skipped", node.kind);
+                        return;
+                    }
+
+                    std::lock_guard<std::mutex> lock(ir_mutex);
+                    irs.push_back(ir);
+                    IRTracer::trace("ir_generated", ir.type);
+                    });
+            }
+
+            return irs;
+        }
+
+    } // namespace QuarterLang::IRAdapter
+
+    // === QuarterLang Debugger UI and Services in Pure C++ ===
+
+#include <iostream>
+#include <string>
+#include <vector>
+#include <map>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <queue>
+#include <optional>
+
+    namespace QuarterLang::DebuggerUI {
+
+        struct StackFrame {
+            std::string fn_name;
+            int line;
+        };
+
+        class DebugBackend {
+        public:
+            static std::map<std::string, std::string> get_watches() {
+                return { {"x", "42"}, {"y", "true"} };
+            }
+
+            static std::vector<StackFrame> get_call_stack() {
+                return { {"main", 1}, {"foo", 5} };
+            }
+
+            static void step_over() {
+                std::cout << "Step Over" << std::endl;
+            }
+
+            static void step_into() {
+                std::cout << "Step Into" << std::endl;
+            }
+        };
+
+        class TerminalUI {
+        public:
+            static void render() {
+                system("clear");
+                std::cout << "Watches:\n";
+                for (auto& [k, v] : DebugBackend::get_watches()) {
+                    std::cout << "  " << k << ": " << v << "\n";
+                }
+
+                std::cout << "\nCall Stack:\n";
+                auto stack = DebugBackend::get_call_stack();
+                for (size_t i = 0; i < stack.size(); ++i) {
+                    std::cout << "  [" << i << "] " << stack[i].fn_name << " @ " << stack[i].line << "\n";
+                }
+
+                std::cout << "\nDebugger> ";
+            }
+
+            static void handle_input(char key) {
+                switch (key) {
+                case 'q': exit(0);
+                case 'n': DebugBackend::step_over(); break;
+                case 's': DebugBackend::step_into(); break;
+                default: std::cout << "Unknown command\n";
+                }
+            }
+        };
+
+        void run() {
+            while (true) {
+                TerminalUI::render();
+                char key;
+                std::cin >> key;
+                TerminalUI::handle_input(key);
+                std::this_thread::sleep_for(std::chrono::milliseconds(30));
+            }
+        }
+
+    } // namespace QuarterLang::DebuggerUI
+
+    // === Type Inference Module ===
+
+    namespace QuarterLang::TypeInference {
+
+        struct Type;
+
+        struct TypeVar {
+            int id;
+            std::shared_ptr<Type> instance;
+        };
+
+        struct Type {
+            enum Kind { TInt, TBool, TVar, TFun, TCon } kind;
+            std::vector<std::shared_ptr<Type>> sub;
+            std::string name;
+            std::shared_ptr<TypeVar> var;
+        };
+
+        int next_typevar_id = 0;
+
+        std::shared_ptr<TypeVar> new_type_var() {
+            return std::make_shared<TypeVar>(TypeVar{ next_typevar_id++, nullptr });
+        }
+
+        void unify(std::shared_ptr<Type> t1, std::shared_ptr<Type> t2) {
+            // Real unification logic would go here (with occurs-checks)
+            std::cout << "Unifying types...\n";
+        }
+
+    } // namespace QuarterLang::TypeInference
+
+    // === Language Server Protocol Service ===
+
+    namespace QuarterLang::LSPServer {
+
+        void handle_request(const std::string& json) {
+            // Parse JSON, route to appropriate handler
+            std::cout << "Received request: " << json << std::endl;
+            std::cout << "Responding with dummy capabilities.\n";
+        }
+
+        void start() {
+            std::string line;
+            while (std::getline(std::cin, line)) {
+                std::thread(handle_request, line).detach();
+            }
+        }
+
+    } // namespace QuarterLang::LSPServer
+
+    // === Async REPL ===
+
+    namespace QuarterLang::AsyncREPL {
+
+        std::string input_buffer;
+
+        void highlight_and_render(const std::string& text) {
+            std::cout << "\r" << text << std::flush;
+        }
+
+        void evaluate(const std::string& src) {
+            std::cout << "\nEvaluated: " << src << std::endl;
+        }
+
+        void on_input(const std::string& data) {
+            input_buffer += data;
+            highlight_and_render(input_buffer);
+            if (!input_buffer.empty() && input_buffer.back() == '\n') {
+                evaluate(input_buffer);
+                input_buffer.clear();
+            }
+        }
+
+        void start() {
+            std::string line;
+            while (std::getline(std::cin, line)) {
+                on_input(line + "\n");
+            }
+        }
+
+    } // namespace QuarterLang::AsyncREPL
+
+	// === Binding Module ===
+#include <string>
+#include <unordered_map>
+#include <memory>
+#include <vector>
+    namespace QuarterLang::Binding {
+    // --- AST Node ---
+    struct ASTNode {
+        std::string kind;
+        std::string name;
+        std::string type;
+        std::string operator_symbol;
+        std::shared_ptr<ASTNode> left;
+        std::shared_ptr<ASTNode> right;
+        std::shared_ptr<ASTNode> condition;
+        std::shared_ptr<ASTNode> then_branch;
+        std::shared_ptr<ASTNode> else_branch;
+        std::shared_ptr<ASTNode> body;
+        std::vector<std::shared_ptr<ASTNode>> params;
+        std::vector<std::shared_ptr<ASTNode>> arguments;
+        std::shared_ptr<ASTNode> target;
+        std::shared_ptr<ASTNode> value;
+        std::string location; // For error reporting
+    };
+    // --- BindingError ---
+    struct BindingError {
+        std::string message;
+        std::string location;
+        BindingError(std::string msg, std::string loc) : message(std::move(msg)), location(std::move(loc)) {}
+    };
+    // --- SymbolTable ---
+	class SymbolTable
+	{
+        public:
+        std::unordered_map<std::string, std::shared_ptr<ASTNode>> symbols;
+        std::shared_ptr<SymbolTable> parent;
+        SymbolTable(std::shared_ptr<SymbolTable> parent = nullptr) : parent(std::move(parent)) {}
+        bool define(const std::string& name, std::shared_ptr<ASTNode> node) {
+            if (symbols.find(name) != symbols.end()) return false; // Already defined
+            symbols[name] = std::move(node);
+            return true;
+        }
+        std::shared_ptr<ASTNode> resolve(const std::string& name) {
+            auto it = symbols.find(name);
+            if (it != symbols.end()) return it->second;
+            if (parent) return parent->resolve(name);
+            return nullptr; // Not found
+        }
+    };
+    // --- BindingContext ---
+    struct BindingContext {
+        std::shared_ptr<SymbolTable> current_scope;
+        std::vector<BindingError> errors;
+        BindingContext(std::shared_ptr<SymbolTable> scope) : current_scope(std::move(scope)) {}
+    };
+	// --- Bind Function ---
+    std::shared_ptr<ASTNode> bind_node(std::shared_ptr<ASTNode> node, BindingContext& ctx) {
+        if (!node) return nullptr; // Handle null nodes
+        auto kind = node->kind;
+        if (kind == "FunctionDecl") {
+            auto func_scope = std::make_shared<SymbolTable>(ctx.current_scope);
+			BindingContext func_ctx(func_scope, std::make_op
+                tional(std::make_shared<BindingContext>(ctx)));
+            for (const auto& param : node->params) {
+                if (!func_ctx.current_scope->define(param->name, param)) {
+                    func_ctx.errors.emplace_back("Parameter already defined: " + param->name, param->location);
+                }
+            }
+            node->body = bind_node(node->body, func_ctx);
+            node->type = "Function"; // Set function type
+			ctx.current_scope->define(node->name, node); // Define function in current scope
+			if (!ctx.current_scope->define(node->name, node)) {
+                ctx.errors.emplace_back("Function already defined: " + node->name, node->location);
+            }
+            return node;
+        }
+        else if (kind == "VarDecl") {
+            if (ctx.current_scope->resolve(node->name)) {
+				ctx.errors.emplace_back("Variable al
+					ready defined : " + node->name, node->location);
+                    }
+            else {
+                ctx.current_scope->define(node->name, node);
+            }
+            return node;
+        }
+        else if (kind == "Assignment") {
+            auto target = bind_node(node->target, ctx);
+            auto value = bind_node(node->value, ctx);
+            if (!target || !value) {
+                ctx.errors.emplace_back("Invalid assignment", node->location);
+                return nullptr;
+            }
+            node->target = target;
+            node->value = value;
+            return node;
+        }
+        else if (kind == "Identifier") {
+			auto resolved = ctx.current_scope->resol
+                ve(node->name);
+            if (!resolved) {
+                ctx.errors.emplace_back("Undefined identifier: " + node->name, node->location);
+                return nullptr;
+            }
+            return resolved; // Return the resolved node
+        }
+        else if (kind == "CallExpr") {
+            for (auto& arg : node->arguments) {
+                arg = bind_node(arg, ctx);
+            }
+            auto callee = ctx.current_scope->resolve(node->name);
+            if (!callee) {
+                ctx.errors.emplace_back("Undefined function: " + node->name, node->location);
+                return nullptr;
+            }
+            node->type = callee->type; // Set type from resolved function
+            return node;
+        }
+        else if (kind == "IfStatement") {
+            node->condition = bind_node(node->condition, ctx);
+            node->then_branch = bind_node(node->then_branch, ctx);
+            if (node->else_branch) {
+                node->else_branch = bind_node(node->else_branch, ctx);
+            }
+            return node;
+        }
+        else if (kind == "WhileLoop") {
+            node->condition = bind_node(node->condition, ctx);
+            node->body = bind_node(node->body, ctx);
+            return node;
+        }
+        else if (kind == "BinaryOp") {
+            node->left = bind_node(node->left, ctx);
+            node->right = bind_node(node->right, ctx);
+            return node;
+        }
+        // Default: no special handling
+        return node;
+	}
+
+    // --- Bind Function ---
+    std::vector<BindingError> bind(const std::vector<std::shared_ptr<ASTNode>>& ast_nodes) {
+        auto global_scope = std::make_shared<SymbolTable>();
+        BindingContext ctx(global_scope);
+        std::vector<BindingError> errors;
+        for (const auto& node : ast_nodes) {
+            auto bound_node = bind_node(node, ctx);
+            if (!bound_node) {
+                errors.insert(errors.end(), ctx.errors.begin(), ctx.errors.end());
+            }
+        }
+        return errors;
+	}
+
+	} // namespace QuarterLang::Binding
+	// === Binary Emitter Module in Pure C++ ===
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <filesystem>
+    #include <cstdlib>
+    namespace BinaryEmitter {
+        // Error handling
+        void error(const std::string& context, const std::string& message) {
+            std::cerr << "[ERROR][" << context << "]: " << message << std::endl;
+        }
+        void warning(const std::string& context, const std::string& message) {
+            std::cerr << "[WARNING][" << context << "]: " << message << std::endl;
+        }
+        // Check if directory exists
+        bool dir_exists(const std::string& path) {
+            return std::filesystem::exists(path) && std::filesystem::is_directory(path);
+        }
+        // Create directory
+        bool mkdir(const std::string& path) {
+            return std::filesystem::create_directories(path);
+        }
+        // Write string to file
+        bool write_file(const std::string& path, const std::string& content) {
+            std::ofstream ofs(path, std::ios::binary);
+            if (!ofs) return false;
+            ofs << content;
+			ofs.close();
+            return ofs.good();
+        }
+        // Read file content
+        std::string read_file(const std::string& path) {
+			std::ifstream
+                ifs(path, std::ios::binary);
+            if (!ifs) return "";
+            std::ostringstream oss;
+            oss << ifs.rdbuf();
+            ifs.close();
+            return oss.str();
+        }
+        // Check if file exists
+        bool file_exists(const std::string& path) {
+            return std::filesystem::exists(path) && std::filesystem::is_regular_file(path);
+        }
+        // Get NASM executable path
+        std::string get_nasm_executable() {
+            const char* nasm_path = std::getenv("NASM_PATH");
+            return nasm_path ? nasm_path : "nasm"; // Default to "nasm" if not set
+        }
+        // Run system command
+        int sys_run(const std::string& cmd) {
+            return std::system(cmd.c_str());
+        }
+        // Emit binary from assembly source
+		std::string emit(const std::string& asm_source,
+            const std::string& output_dir = "output",
+            const std::string& input_file = "temp.asm",
+            const std::string& output_file = "output.bin",
+            const std::string& log_file = "nasm.log") {
+            // Ensure output directory exists
+            if (!dir_exists(output_dir) && !mkdir(output_dir)) {
+                error("BinaryEmitter.emit", "Failed to create output directory: " + output_dir);
+                return "<BUILD FAILED>";
+            }
+            // Write assembly source to input file
+            if (!write_file(input_file, asm_source)) {
+                error("BinaryEmitter.emit", "Failed to write assembly source to file: " + input_file);
+                return "<BUILD FAILED>";
+            }
+            // Get NASM executable path
+			std::string nasm_exe = get_nasm_executab
+                le();
+            // Construct NASM command
+            std::string cmd = nasm_exe + " -f bin -o " + output_file + " " + input_file + " > " + log_file + " 2>&1";
+            // Run NASM command
+            int result = sys_run(cmd);
+            if (result != 0) {
+                error("BinaryEmitter.emit", "NASM command failed with exit code: " + std::to_string(result));
+                return "<BUILD FAILED>";
+            }
+            // Check if output file was created
+            if (!file_exists(output_file)) {
+				error("BinaryEmitter.emit", "Output file not created: " + output_file);
+                return "<BUILD FAILED>";
+            }
+            // Read and return the output file content
+            std::string output_content = read_file(output_file);
+            if (output_content.empty()) {
+                warning("BinaryEmitter.emit", "Output file is empty: " + output_file);
+            }
+            return output_content;
+        }
+	} // namespace BinaryEmitter
+
+// PromptSystem.h
+
+#pragma once
+#include <string>
+
+    namespace PromptSystem {
+        void display();
+    }
+
+    // PromptSystem.cpp
+
+#include "PromptSystem.h"
+#include "Config.h"
+#include "Terminal.h"
+#include "Profiler.h"
+#include "Theme.h"
+#include "Glyphs.h"
+
+    namespace PromptSystem {
+
+        const std::string DEFAULT_THEME = "noir-night";
+        const std::string DEFAULT_SYMBOL = ">>";
+        const std::string DEFAULT_COLOR = "#AAAAAA";
+
+        void display() {
+            Profiler::start("prompt.render");
+
+            // Step 1: Load theme with fallback
+            std::string theme = Config::get("theme");
+            if (theme.empty() || !Theme::is_supported(theme)) {
+                theme = DEFAULT_THEME;
+                Terminal::warn("Theme not found, defaulting to " + DEFAULT_THEME);
+            }
+
+            // Step 2: Glyph retrieval
+            std::string glyph = Config::get("prompt_symbol");
+            if (glyph.empty() || !Glyphs::is_valid(glyph)) {
+                glyph = DEFAULT_SYMBOL;
+                Terminal::warn("Invalid or missing glyph, using default: " + DEFAULT_SYMBOL);
+            }
+
+            // Step 3: Color resolution
+            std::string color = Config::get_color(theme);
+            if (color.empty()) {
+                color = DEFAULT_COLOR;
+                Terminal::warn("No color found for theme " + theme + ", using fallback.");
+            }
+
+            // Step 4: Context prefixing
+            std::string context = Config::get("environment_context");
+            std::string prefix;
+            if (context == "embedded") {
+                prefix = "[Embedded] ";
+            }
+            else if (context == "dev") {
+                prefix = "[DevMode] ";
+            }
+
+            // Step 5: Final prompt construction
+            std::string prompt = color + " " + glyph + " " + prefix + "QuarterLang > ";
+            Terminal::set_color(color);
+            std::cout << prompt << std::endl;
+
+            Profiler::end("prompt.render");
+        }
+
+    } // namespace PromptSystem
+
+    // Config.h
+#pragma once
+#include <string>
+    namespace Config {
+        std::string get(const std::string& key);
+        std::string get_color(const std::string& theme);
+    }
+
+    // Terminal.h
+#pragma once
+#include <string>
+    namespace Terminal {
+        void warn(const std::string& msg);
+        void set_color(const std::string& hex);
+    }
+
+    // Profiler.h
+#pragma once
+#include <string>
+    namespace Profiler {
+        void start(const std::string& label);
+        void end(const std::string& label);
+    }
+
+    // Theme.h
+#pragma once
+#include <string>
+    namespace Theme {
+        bool is_supported(const std::string& theme);
+    }
+
+    // Glyphs.h
+#pragma once
+#include <string>
+    namespace Glyphs {
+        bool is_valid(const std::string& symbol);
+    }
+
+	// Config.cpp
+#include "Config.h"
+#include <unordered_map>
+    namespace Config {
+        static std::unordered_map<std::string, std::string> config = {
+            {"theme", "noir-night"},
+            {"prompt_symbol", ">>"},
+            {"environment_context", "dev"}
+        };
+        std::string get(const std::string& key) {
+            auto it = config.find(key);
+            return it != config.end() ? it->second : "";
+        }
+        std::string get_color(const std::string& theme) {
+            if (theme == "noir-night") return "#333333";
+            if (theme == "light-day") return "#FFFFFF";
+            return "";
+        }
+	} // namespace Config
+	// Terminal.cpp
+#include "Terminal.h"
+#include <iostream>
+    namespace Terminal {
+        void warn(const std::string& msg) {
+            std::cerr << "[WARNING]: " << msg << std::endl;
+        }
+        void set_color(const std::string& hex) {
+            // This is a placeholder. Actual implementation would depend on terminal capabilities.
+            std::cout << "\033[38;2;" << hex.substr(1, 2) << ";" << hex.substr(3, 2) << ";" << hex.substr(5, 2) << "m";
+        }
+    } // namespace Terminal
+	// Profiler.cpp
+#include "Profiler.h"
+#include <iostream>
+    namespace Profiler {
+        void start(const std::string& label) {
+            std::cout << "[PROFILE START][" << label << "]" << std::endl;
+        }
+        void end(const std::string& label) {
+            std::cout << "[PROFILE END][" << label << "]" << std::endl;
+        }
+    } // namespace Profiler
+	// Theme.cpp
+#include "Theme.h"
+    #include <unordered_set>
+    namespace Theme {
+        static std::unordered_set<std::string> supported_themes = {
+            "noir-night", "light-day", "solarized-dark", "solarized-light"
+        };
+        bool is_supported(const std::string& theme) {
+            return supported_themes.find(theme) != supported_themes.end();
+        }
+    } // namespace Theme
+	// Glyphs.cpp
+    #include "Glyphs.h"
+    #include <unordered_set>
+    namespace Glyphs {
+        static std::unordered_set<std::string> valid_glyphs = {
+            ">>", ">>>", ">>=", "=>", "->", "=>", "==>", "<=", "<-", "<=>"
+        };
+        bool is_valid(const std::string& symbol) {
+            return valid_glyphs.find(symbol) != valid_glyphs.end();
+        }
+	} // namespace Glyphs
+	// === QuarterLang IR Adapter Module in Pure C++ ===
+#include <iostream>
+#include <vector>
+#include <string>
+#include <map>
+    #include <memory>
+    namespace QuarterLang::IRAdapter {
+        struct ASTNode {
+            std::string kind;
+            std::string name;
+            std::vector<std::string> params;
+            std::string body;
+            std::string type;
+            std::string initializer;
+            std::string target;
+            std::string value;
+            std::string op;
+            std::string left;
+            std::string right;
+            std::string callee;
+            std::vector<std::string> args;
+            std::string condition;
+            std::string then_branch;
+            std::string else_branch;
+            std::string loop_body;
+        };
+        struct IR {
+            std::string type;
+            std::vector<std::string> operands;
+            std::string source_location;
+            std::map<std::string, std::string> metadata;
+            static IR create(const std::string& type, const std::string& a = "", const std::string& b = "", const std::string& c = "") {
+                IR ir;
+				ir.type = type;
+                if (!a.empty()) ir.operands.push_back(a);
+                if (!b.empty()) ir.operands.push_back(b);
+                if (!c.empty()) ir.operands.push_back(c);
+                return ir;
+            }
+        };
+        namespace IRTracer {
+            inline void trace(const std::string& label, const std::string& data) {
+                std::cout << "[IR-TRACE][" << label << "]: " << data << std::endl;
+            }
+        }
+        namespace NodeClassifier {
+            inline std::string classify(const ASTNode& node) {
+                if (node.kind == "FunctionDecl") return "IR_FUNC";
+                if (node.kind == "VarDecl") return "IR_VAR";
+                if (node.kind == "Assignment") return "IR_ASSIGN";
+                if (node.kind == "BinaryExpr") return "IR_EXPR";
+                if (node.kind == "CallExpr") return "IR_CALL";
+                if (node.kind == "IfStatement") return "IR_BRANCH";
+                if (node.kind == "WhileLoop") return "IR_LOOP";
+                return "IR_UNKNOWN";
+            }
+		}
+        namespace IRFactory {
+            inline IR from_function(const ASTNode& node) {
+                return IR::create("Function", node.name, join(node.params), node.body);
+            }
+            inline IR from_variable(const ASTNode& node) {
+                return IR::create("Variable", node.name, node.type, node.initializer);
+            }
+            inline IR from_assignment(const ASTNode& node) {
+                return IR::create("Assignment", node.target, node.value);
+            }
+            inline IR from_expression(const ASTNode& node) {
+                return IR::create("Expression", node.op, node.left, node.right);
+            }
+            inline IR from_call(const ASTNode& node) {
+                return IR::create("Call", node.callee, join(node.args));
+            }
+            inline IR from_if(const ASTNode& node) {
+                return IR::create("If", node.condition, node.then_branch, node.else_branch);
+            }
+            inline IR from_loop(const ASTNode& node) {
+				return IR::create("Loop",
+                    node.condition, node.loop_body);
+            }
+            inline std::string join(const std::vector<std::string>& elements) {
+                std::string result;
+                for (size_t i = 0; i < elements.size(); ++i) {
+                    result += elements[i];
+                    if (i + 1 < elements.size()) result += ",";
+                }
+                return result;
+            }
+        }
+        class ThreadPool {
+        public:
+            ThreadPool(size_t num_threads);
+            ~ThreadPool();
+            void enqueue(std::function<void()> task);
+        private:
+            std::vector<std::thread> workers;
+            std::queue<std::function<void()>> tasks;
+            std::mutex queue_mutex;
+            std::condition_variable condition;
+            bool stop = false;
+            void worker_loop();
+        };
+        ThreadPool::ThreadPool(size_t num_threads) {
+            for (size_t i = 0; i < num_threads; ++i) {
+                workers.emplace_back([this]() { worker_loop(); });
+            }
+        }
+        void ThreadPool::worker_loop() {
+            while (true) {
+                std::function<void()> task;
+                {
+                    std::unique_lock<std::mutex> lock(queue_mutex);
+                    condition.wait(lock, [this]() { return stop || !tasks.empty(); });
+                    if (stop && tasks.empty()) return;
+                    task = std::move(tasks.front());
+                    tasks.pop();
+                }
+                task();
+            }
+        }
+        void ThreadPool::enqueue(std::function<void()> task) {
+            {
+                std::unique_lock<std::mutex> lock(queue_mutex);
+                tasks.push(std::move(task));
+            }
+            condition.notify_one();
+        }
+        ThreadPool::~ThreadPool() {
+            {
+                std::unique_lock<std::mutex> lock(queue_mutex);
+                stop = true;
+            }
+            condition.notify_all();
+            for (std::thread& worker : workers) {
+				worker.join();
+                }
+        }
+        inline std::vector<IR> adapt_to_ir(const std::vector<ASTNode>& ast) {
+            std::vector<IR> irs;
+            ThreadPool pool(4);
+            std::mutex ir_mutex;
+            for (const auto& node : ast) {
+                pool.enqueue([&irs, &node, &ir_mutex]() {
+                    std::string node_type = NodeClassifier::classify(node);
+                    IRTracer::trace("node_type", node_type);
+                    IR ir;
+                    if (node_type == "IR_FUNC") ir = IRFactory::from_function(node);
+                    else if (node_type == "IR_VAR") ir = IRFactory::from_variable(node);
+                    else if (node_type == "IR_ASSIGN") ir = IRFactory::from_assignment(node);
+                    else if (node_type == "IR_EXPR") ir = IRFactory::from_expression(node);
+                    else if (node_type == "IR_CALL") ir = IRFactory::from_call(node);
+                    else if (node_type == "IR_BRANCH") ir = IRFactory::from_if(node);
+                    else if (node_type == "IR_LOOP") ir = IRFactory::from_loop(node);
+                    else {
+                        IRTracer::trace("ir_skipped", node.kind);
+                        return;
+                    }
+                    std::lock_guard<std::mutex> lock(ir_mutex);
+                    irs.push_back(ir);
+                    IRTracer::trace("ir_generated", ir.type);
+                });
+            }
+            return irs;
+        }
+	} // namespace QuarterLang::IRAdapter
+	// === QuarterLang Debugger UI and Services in Pure C++ ===
+#include <iostream>
+#include <string>
+#include <vector>
+#include <map>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <queue>
+    namespace QuarterLang::DebuggerUI {
+        struct StackFrame {
+            std::string fn_name;
+            int line;
+        };
+        class DebugBackend {
+        public:
+            static std::map<std::string, std::string> get_watches() {
+                return { {"x", "42"}, {"y", "true"} };
+            }
+            static std::vector<StackFrame> get_call_stack() {
+                return { {"main", 1}, {"foo", 5} };
+            }
+            static void step_over() {
+                std::cout << "Step Over" << std::endl;
+            }
+            static void step_into() {
+                std::cout << "Step Into" << std::endl;
+            }
+        };
+        class TerminalUI {
+        public:
+            static void render() {
+                system("clear");
+                std::cout << "Watches:\n";
+                for (auto& [k, v] : DebugBackend::get_watches()) {
+                    std::cout << "  " << k << ": " << v << "\n";
+                }
+                std::cout << "\nCall Stack:\n";
+                auto stack = DebugBackend::get_call_stack();
+                for (size_t i = 0; i < stack.size(); ++i) {
+                    std::cout << "  [" << i << "] " << stack[i].fn_name << " @ " << stack[i].line << "\n";
+                }
+                std::cout << "\nDebugger> ";
+            }
+            static void handle_input(char key) {
+                switch (key) {
+                case 'q': exit(0);
+                case 'n': DebugBackend::step_over(); break;
+                case 's': DebugBackend::step_into(); break;
+                default: std::cout << "Unknown command\n";
+                }
+            }
+        };
+        void run() {
+            while (true) {
+                TerminalUI::render();
+                char key;
+                std::cin >> key;
+                TerminalUI::handle_input(key);
+                std::this_thread::sleep_for(std::chrono::milliseconds(30));
+            }
+        }
+    } // namespace QuarterLang::DebuggerUI
+    // === Type Inference Module ===
+    namespace QuarterLang::TypeInference {
+        struct Type;
+        struct TypeVar {
+            int id;
+            std::shared_ptr<Type> instance;
+        };
+        struct Type {
+			enum Kind {
+				TInt, TBool, TVar, T
+				Fun, TCon
+                } kind;
+            std::vector<std::shared_ptr<Type>> sub;
+            std::string name;
+            std::shared_ptr<TypeVar> var;
+        };
+        int next_typevar_id = 0;
+        std::shared_ptr<TypeVar> new_type_var() {
+            return std::make_shared<TypeVar>(TypeVar{ next_typevar_id++, nullptr });
+        }
+        void unify(std::shared_ptr<Type> t1, std::shared_ptr<Type> t2) {
+            // Real unification logic would go here (with occurs-checks)
+            std::cout << "Unifying types...\n";
+        }
+	} // namespace QuarterLang::TypeInference
+    // === Language Server Protocol Service ===
+    namespace QuarterLang::LSPServer {
+        void handle_request(const std::string& json) {
+            // Parse JSON, route to appropriate handler
+            std::cout << "Received request: " << json << std::endl;
+            std::cout << "Responding with dummy capabilities.\n";
+        }
+        void start() {
+            std::string line;
+            while (std::getline(std::cin, line)) {
+                std::thread(handle_request, line).detach();
+            }
+        }
+    } // namespace QuarterLang::LSPServer
+    // === Async REPL ===
+    namespace QuarterLang::AsyncREPL {
+        std::string input_buffer;
+        void highlight_and_render(const std::string& text) {
+            std::cout << "\r" << text << std::flush;
+        }
+        void evaluate(const std::string& src) {
+            std::cout << "\nEvaluated: " << src << std::endl;
+        }
+        void on_input(const std::string& data) {
+            input_buffer += data;
+            highlight_and_render(input_buffer);
+            if (!input_buffer.empty() && input_buffer.back() == '\n') {
+                evaluate(input_buffer);
+                input_buffer.clear();
+            }
+        }
+        void start() {
+            std::string line;
+            while (std::getline(std::cin, line)) {
+                on_input(line + "\n");
+            }
+        }
+	} // namespace QuarterLang::AsyncREPL
+	// === Binding Module ===
+
+namespace QuarterLang::Binding {
+        // --- AST Node ---
+        struct ASTNode {
+            std::string kind;
+            std::string name;
+            std::string type;
+            std::string operator_symbol;
+            std::shared_ptr<ASTNode> left;
+            std::shared_ptr<ASTNode> right;
+            std::shared_ptr<ASTNode> condition;
+            std::shared_ptr<ASTNode> then_branch;
+            std::shared_ptr<ASTNode> else_branch;
+            std::shared_ptr<ASTNode> body;
+            std::vector<std::shared_ptr<ASTNode>> params;
+            std::vector<std::shared_ptr<ASTNode>> arguments;
+            std::shared_ptr<ASTNode> target;
+            std::shared_ptr<ASTNode> value;
+            std::string location; // For error reporting
+        };
+        // --- BindingError ---
+        struct BindingError {
+            std::string message;
+            std::string location;
+            BindingError(std::string msg, std::string loc) : message(std::move(msg)), location(std::move(loc)) {}
+        };
+        // --- SymbolTable ---
+        class SymbolTable {
+        public:
+            std::unordered_map<std::string, std::shared_ptr<ASTNode>> symbols;
+            std::shared_ptr<SymbolTable> parent;
+            SymbolTable(std::shared_ptr<SymbolTable> parent = nullptr) : parent(std::move(parent)) {}
+            bool define(const std::string& name, std::shared_ptr<ASTNode> node) {
+                if (symbols.find(name) != symbols.end()) return false; // Already defined
+                symbols[name] = std::move(node);
+				return true;
+                }
+            std::shared_ptr<ASTNode> resolve(const std::string& name) {
+                auto it = symbols.find(name);
+                if (it != symbols.end()) return it->second;
+                if (parent) return parent->resolve(name);
+                return nullptr; // Not found
+            }
+        };
+        // --- BindingContext ---
+        struct BindingContext {
+            std::shared_ptr<SymbolTable> current_scope;
+            std::vector<BindingError> errors;
+            BindingContext(std::shared_ptr<SymbolTable> scope) : current_scope(std::move(scope)) {}
+        };
+        // --- Bind Function ---
+        std::shared_ptr<ASTNode> bind_node(std::shared_ptr<ASTNode> node, BindingContext& ctx) {
+            if (!node) return nullptr; // Handle null nodes
+            auto kind = node->kind;
+            if (kind == "FunctionDecl") {
+				auto func_scope = std::make_shared<SymbolTable>(ctx.current_scope);
+                BindingContext func_ctx(func_scope);
+                for (const auto& param : node->params) {
+                    if (!func_ctx.current_scope->define(param->name, param)) {
+                        func_ctx.errors.emplace_back("Parameter already defined: " + param->name, param->location);
+                    }
+                }
+                node->body = bind_node(node->body, func_ctx);
+				node->type = "Function"; // Set function type
+                if (!ctx.current_scope->define(node->name, node)) {
+                    ctx.errors.emplace_back("Function already defined: " + node->name, node->location);
+                }
+                return node;
+            }
+            else if (kind == "VarDecl") {
+                if (ctx.current_scope->resolve(node->name)) {
+                    ctx.errors.emplace_back("Variable already defined: " + node->name, node->location);
+                }
+                else {
+                    ctx.current_scope->define(node->name, node);
+                }
+                return node;
+            }
+            else if (kind == "Assignment") {
+                auto target = bind_node(node->target, ctx);
+                auto value = bind_node(node->value, ctx);
+                if (!target || !value) {
+                    ctx.errors.emplace_back("Invalid assignment", node->location);
+                    return nullptr;
+                }
+                node->target = target;
+                node->value = value;
+                return node;
+            }
+			else if (kind == "Identifier") {
+                auto resolved = ctx.current_scope->resolve(node->name);
+                if (!resolved) {
+                    ctx.errors.emplace_back("Undefined identifier: " + node->name, node->location);
+                    return nullptr;
+                }
+                return resolved; // Return the resolved node
+            }
+            else if (kind == "CallExpr") {
+                for (auto& arg : node->arguments) {
+                    arg = bind_node(arg, ctx);
+                }
+                auto callee = ctx.current_scope->resolve(node->name);
+                if (!callee) {
+                    ctx.errors.emplace_back("Undefined function: " + node->name, node->location);
+                    return nullptr;
+                }
+                node->type = callee->type; // Set type from resolved function
+                return node;
+            }
+            else if (kind == "IfStatement") {
+                node->condition = bind_node(node->condition, ctx);
+                node->then_branch = bind_node(node->then_branch, ctx);
+                if (node->else_branch) {
+                    node->else_branch = bind_node(node->else_branch, ctx);
+                }
+                return node;
+            }
+            else if (kind == "WhileLoop") {
+                node->condition = bind_node(node->condition, ctx);
+                node->body = bind_node(node->body, ctx);
+                return node;
+            }
+            else if (kind == "BinaryOp") {
+                node->left = bind_node(node->left, ctx);
+                node->right = bind_node(node->right, ctx);
+                return node;
+			}
+            // Default: no special handling
+            return node;
+        }
+        // --- Bind Function ---
+        std::vector<BindingError> bind(const std::vector<std::shared_ptr<ASTNode>>& ast_nodes) {
+            auto global_scope = std::make_shared<SymbolTable>();
+            BindingContext ctx(global_scope);
+            std::vector<BindingError> errors;
+            for (const auto& node : ast_nodes) {
+                auto bound_node = bind_node(node, ctx);
+                if (!bound_node) {
+                    errors.insert(errors.end(), ctx.errors.begin(), ctx.errors.end());
+                }
+            }
+            return errors;
+        }
+	} // namespace QuarterLang::Binding
+
+#include <iostream>
+#include <unordered_map>
+#include <string>
+#include <mutex>
+#include <vector>
+#include <optional>
+
+// Simulated external modules
+#include "Net.hpp"
+#include "ManifestParser.hpp"
+#include "PluginManager.hpp"
+#include "ErrorHandler.hpp"
+
+    namespace Quarter {
+
+        class PluginSystem {
+        private:
+            std::unordered_map<std::string, Manifest> manifest_cache;
+            std::mutex cache_mutex;
+            const std::string manifest_url = "https://plugins.quarterlang.org/remote.manifest";
+
+        public:
+            void pull_remote() {
+                Net::fetch(manifest_url,
+                    [&](const std::string& json) {
+                        ManifestParser::parse(json);
+                    },
+                    [&](const std::string& err) {
+                        ErrorHandler::warn("Failed to fetch manifest: " + err);
+                    }
+                );
+            }
+
+            void install_manifest(const std::string& name) {
+                auto manifest_opt = ManifestParser::get(name);
+                if (manifest_opt.has_value()) {
+                    PluginManager::install_from_manifest(manifest_opt.value());
+                }
+                else {
+                    ErrorHandler::warn("Manifest not found: " + name);
+                }
+            }
+
+            void update_all() {
+                auto all = ManifestParser::get_all();
+                for (const auto& name : all) {
+                    install_manifest(name);
+                }
+            }
+
+            std::optional<Manifest> fetch_plugin_manifest(const std::string& url) {
+                std::lock_guard<std::mutex> lock(cache_mutex);
+                auto json = Net::get_json(url);
+                if (json.empty()) {
+                    ErrorHandler::warn("Empty manifest from: " + url);
+                    return std::nullopt;
+                }
+
+                auto parsed = ManifestParser::parse_one(json);
+                manifest_cache[url] = parsed;
+                return parsed;
+            }
+
+            std::vector<Manifest> list_available_plugins() {
+                std::lock_guard<std::mutex> lock(cache_mutex);
+                std::vector<Manifest> plugins;
+                for (const auto& [url, manifest] : manifest_cache) {
+                    plugins.push_back(manifest);
+                }
+                return plugins;
+            }
+        };
+
+    } // namespace Quarter
+
+    // PluginSystem.hpp
+#pragma once
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+    class PluginSystem {
+    public:
+        static void pull_remote();
+        static void install_manifest(const std::string& name);
+        static void update_all();
+        static std::vector<std::string> list_available_plugins();
+    };
+
+#include "QuarterVM.hpp"         // Your interpreter entry
+#include "QuarterFunc.hpp"       // Function bindings
+#include "PluginSystem.hpp"
+
+    void register_plugin_hooks(QuarterVM& vm) {
+        vm.register_func("pull_remote", [](const QuarterArgs& args) -> QuarterValue {
+            PluginSystem::pull_remote();
+            return QuarterValue::None();
+            });
+
+        vm.register_func("install_plugin", [](const QuarterArgs& args) -> QuarterValue {
+            std::string name = args.expect_string(0, "install_plugin");
+            PluginSystem::install_manifest(name);
+            return QuarterValue::None();
+            });
+
+        vm.register_func("update_plugins", [](const QuarterArgs& args) -> QuarterValue {
+            PluginSystem::update_all();
+            return QuarterValue::None();
+            });
+
+        vm.register_func("list_plugins", [](const QuarterArgs& args) -> QuarterValue {
+            auto plugins = PluginSystem::list_available_plugins();
+            QuarterList qlist;
+            for (const auto& p : plugins) {
+                qlist.push_back(QuarterValue::String(p));
+            }
+            return QuarterValue::List(qlist);
+            });
+    }
+
+    int main() {
+        QuarterVM vm;
+        vm.load_stdlib();  // If needed
+
+        register_plugin_hooks(vm);  // 🎯 Your native bindings
+
+        vm.load_file("plugin_script.qtr");
+        vm.run();  // Will now support pull_remote(), install_plugin("...") etc.
+    }
+
+    star
+
+        pull_remote()
+        install_plugin("plugin-core")
+        update_plugins()
+
+        let plugins = list_plugins()
+        plugins.each(p = > print("Available: {p}"))
+
+        end
+
+        void PluginSystem::pull_remote() {
+        // HTTP GET request, async or sync
+        std::string raw_json = Net::fetch(manifest_url);
+        auto data = ManifestParser::parse(raw_json);
+        manifest_cache = data;
+    }
+
+    void PluginSystem::install_manifest(const std::string& name) {
+        auto manifest = ManifestParser::get(name);
+        if (manifest)
+            PluginManager::install_from_manifest(manifest);
+        else
+            ErrorHandler::warn("Manifest not found: " + name);
+    }
+
+    void PluginSystem::update_all() {
+        auto all = ManifestParser::get_all();
+        for (const auto& name : all)
+            install_manifest(name);
+    }
+
+    std::vector<std::string> PluginSystem::list_available_plugins() {
+        return ManifestParser::list_names();
+    }
+
+#include "ThreadPool.hpp"
+    ThreadPool pool(4);
+
+    void PluginSystem::pull_remote() {
+        pool.enqueue([] {
+            std::string raw_json = Net::fetch(manifest_url);
+            auto data = ManifestParser::parse(raw_json);
+            std::lock_guard<std::mutex> lock(cache_mutex);
+            manifest_cache = data;
+            });
+    }
+
+#include <iostream>
+#include <string>
+#include <vector>
+#include <filesystem>
+#include <mutex>
+
+    namespace PluginSystem {
+
+        using std::string;
+        using std::vector;
+        namespace fs = std::filesystem;
+
+        // Global plugin list
+        static vector<string> plugins;
+        static std::mutex plugin_mutex;
+
+        // Simulate plugin load/unload
+        class PluginLoader {
+        public:
+            static void load(const string& path) {
+                std::cout << "[+] Loading plugin: " << path << std::endl;
+                // Insert plugin initialization logic here
+            }
+
+            static void unload(const string& path) {
+                std::cout << "[-] Unloading plugin: " << path << std::endl;
+                // Insert plugin cleanup logic here
+            }
+        };
+
+        // Simulate scanning plugin directory
+        vector<string> scan_plugin_directory(const string& directory = "./plugins") {
+            vector<string> result;
+            for (const auto& entry : fs::directory_iterator(directory)) {
+                if (entry.path().extension() == ".qtr" || entry.path().extension() == ".so") {
+                    result.push_back(entry.path().string());
+                }
+            }
+            return result;
+        }
+
+        // Load all plugins
+        void load_all() {
+            std::lock_guard<std::mutex> lock(plugin_mutex);
+            plugins = scan_plugin_directory();
+            for (const auto& plugin : plugins) {
+                PluginLoader::load(plugin);
+            }
+        }
+
+        // Unload all plugins
+        void unload_all() {
+            std::lock_guard<std::mutex> lock(plugin_mutex);
+            for (const auto& plugin : plugins) {
+                PluginLoader::unload(plugin);
+            }
+            plugins.clear();
+        }
+
+        // Reload all plugins
+        void reload_all() {
+            unload_all();
+            load_all();
+        }
+
+        // List currently tracked plugins
+        const vector<string>& list() {
+            return plugins;
+        }
+
+    } // namespace PluginSystem
+
+    vm.register_function("reload_all_plugins", PluginSystem::reload_all);
+    vm.register_function("load_all_plugins", PluginSystem::load_all);
+    vm.register_function("unload_all_plugins", PluginSystem::unload_all);
+    vm.register_function("list_plugins", []() {
+        auto plugins = PluginSystem::list();
+        for (const auto& p : plugins)
+            std::cout << " • " << p << "\n";
+        });
+
+	// PromptSystem.cpp
+#include "PromptSystem.h"
+#include "Config.h"
+#include "Terminal.h"
+#include "Profiler.h"
+#include "Theme.h"
+#include "Glyphs.h"
+    namespace PromptSystem {
+        void render() {
+            Profiler::start("prompt.render");
+            // Step 1: Load theme with fallback
+            const std::string DEFAULT_THEME = "noir-night";
+            const std::string DEFAULT_SYMBOL = ">>";
+			const std::string DEFAULT_COLOR = "#333333";
+            std::string theme = Config::get("theme");
+            if (!Theme::is_supported(theme)) {
+                theme = DEFAULT_THEME;
+                Terminal::warn("Unsupported theme, using default: " + DEFAULT_THEME);
+            }
+			// Step 2: Glyph retrieval
+            std::string glyph = Config::get("prompt_symbol");
+            if (glyph.empty() || !Glyphs::is_valid(glyph)) {
+                glyph = DEFAULT_SYMBOL;
+				Terminal::warn("Invalid or missing prompt symbol, using default: " + DEFAULT_SYMBOL);
+                }
+            // Step 3: Color retrieval
+            std::string color = Config::get_color(theme);
+            if (color.empty()) {
+                color = DEFAULT_COLOR;
+				Terminal::warn("No color found for theme " + th
+                    eme + ", using default: " + DEFAULT_COLOR);
+            }
+            // Step 4: Context-aware prefix
+            std::string context = Config::get("environment_context");
+            std::string prefix = "[QuarterLang] ";
+            if (context == "embedded") {
+				// For embedded systems, use a different prefix
+                prefix = "[Embedded] ";
+			}
+			else if (context == "dev") {
+                // For development, use a different prefix
+                prefix = "[Dev] ";
+            }
+            else if (context == "prod") {
+                // For production, use a different prefix
+                prefix = "[Prod] ";
+            }
+            else {
+                // Default case
+                prefix = "[QuarterLang] ";
+            }
+            // Step 5: Render prompt
+            Terminal::set_color(color);
+            std::cout << prefix << glyph << " ";
+            Terminal::set_color("#FFFFFF"); // Reset to default color
+            Profiler::end("prompt.render");
+		}
+        } // namespace PromptSystem
+	// Main.cpp
+#include "PromptSystem.h"
+#include "Config.h"
+#include "Terminal.h"
+#include "Profiler.h"
+#include "Theme.h"
+#include "Glyphs.h"
+    int main() {
+    // Initialize configuration
+    Config::get("theme");
+    Config::get("prompt_symbol");
+    Config::get("environment_context");
+    // Render the prompt
+    PromptSystem::render();
+    // Main loop
+    std::string input;
+    while (std::getline(std::cin, input)) {
+        if (input == "exit") break; // Exit condition
+        std::cout << "You entered: " << input << std::endl;
+        PromptSystem::render(); // Re-render prompt after input
+    }
+    return 0;
+	}
+	// Config.cpp
+#include "Config.h"
+#include <unordered_map>
+    #include <iostream>
+    namespace Config {
+        static std::unordered_map<std::string, std::string> config = {
+            {"theme", "noir-night"},
+            {"prompt_symbol", ">>"},
+            {"environment_context", "dev"}
+        };
+        std::string get(const std::string& key) {
+            auto it = config.find(key);
+            if (it != config.end()) return it->second;
+            return "";
+        }
+		std::string get_color(const std::string& theme) {
+            if (theme == "noir-night") return "#333333";
+            if (theme == "light-day") return "#FFFFFF";
+            if (theme == "solarized-dark") return "#002b36";
+            if (theme == "solarized-light") return "#fdf6e3";
+            return ""; // Default case
+        }
+        void set(const std::string& key, const std::string& value) {
+            config[key] = value;
+        }
+	} // namespace Config
+	// Terminal.cpp
+#include "Terminal.h"
+#include <iostream>
+    namespace Terminal {
+        void set_color(const std::string& color) {
+            // Simulate setting terminal color
+            std::cout << "\033[38;2;" << color << "m"; // RGB format
+        }
+        void warn(const std::string& message) {
+            set_color("255,165,0"); // Orange for warnings
+            std::cout << "[WARNING] " << message << "\033[0m" << std::endl; // Reset color
+        }
+    } // namespace Terminal
+	// Profiler.cpp
+
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <string>
+#include <sstream>
+#include <filesystem>
+#include <zlib.h>  // zlib for compression
+
+    namespace QuarterLang::CapsuleBuilder {
+
+        using std::string;
+        using std::vector;
+        namespace fs = std::filesystem;
+
+        // === Utility: Read File ===
+        string read_file(const string& path) {
+            std::ifstream file(path, std::ios::in);
+            if (!file) throw std::runtime_error("Failed to open: " + path);
+            std::ostringstream ss;
+            ss << file.rdbuf();
+            return ss.str();
+        }
+
+        // === Utility: Write Binary File ===
+        void write_bytes(const string& path, const vector<uint8_t>& data) {
+            std::ofstream out(path, std::ios::binary);
+            if (!out) throw std::runtime_error("Cannot write: " + path);
+            out.write(reinterpret_cast<const char*>(data.data()), data.size());
+        }
+
+        // === Stub: Metadata Generation ===
+        string generate_dg_meta(const string& src) {
+            // Example stub: In production, this would analyze `src` and emit metadata
+            return "\n#META: source_length=" + std::to_string(src.size()) + "\n";
+        }
+
+        // === Utility: Compress Data Using zlib ===
+        vector<uint8_t> compress_data(const string& input) {
+            uLong source_len = input.size();
+            uLong bound = compressBound(source_len);
+            vector<uint8_t> compressed(bound);
+
+            if (compress(compressed.data(), &bound, reinterpret_cast<const Bytef*>(input.data()), source_len) != Z_OK) {
+                throw std::runtime_error("Compression failed.");
+            }
+
+            compressed.resize(bound);
+            return compressed;
+        }
+
+        // === Build Capsule ===
+        void build_capsule(const string& output_path, const vector<string>& files, const str
+
+#include "CapsuleBuilder.cpp"
+
+            int main() {
+            using namespace QuarterLang::CapsuleBuilder;
+
+            try {
+                vector<string> qtr_files = {
+                    "REPL.qtr", "Prompt.qtr", "CommandProcessor.qtr",
+                    "DGDebugger.qtr", "Introspection.qtr", "Config.qtr",
+                    "Plugins/Load.qtr", "Plugins/ThemeManager.qtr"
+                };
+
+                build_capsule("interactive_shell.qtrcapsule", qtr_files, "compiler.asm");
+            }
+            catch (const std::exception& ex) {
+                std::cerr << "[!] Error: " << ex.what() << std::endl;
+            }
+
+            return 0;
+        }
+
+        // Pure C++ implementation for JITCompiler, REPL, and supporting modules
+#include <iostream>
+#include <string>
+#include <vector>
+#include <unordered_map>
+#include <memory>
+#include <functional>
+
+        using namespace std;
+
+        // Forward declarations
+        struct ASTNode;
+        struct NativeFunction;
+        class NativeCodeGen;
+
+        // === NativeFunction Struct ===
+        struct NativeFunction {
+            string name;
+            vector<string> instructions;
+        };
+
+        // === NativeCodeGen ===
+        class NativeCodeGen {
+        public:
+            vector<string> instructions;
+            string function_name;
+            int params_count = 0;
+
+            void emit_prologue(int param_count) {
+                params_count = param_count;
+                instructions.push_back("prologue with params: " + to_string(param_count));
+            }
+
+            void emit_load_constant(const string& value) {
+                instructions.push_back("load_const " + value);
+            }
+
+            void emit_load_variable(const string& name) {
+                instructions.push_back("load_var " + name);
+            }
+
+            void emit_binary_op(const string& op) {
+                instructions.push_back("binary_op " + op);
+            }
+
+            void emit_call(const string& fn_name, int argc) {
+                instructions.push_back("call_fn " + fn_name + " argc=" + to_string(argc));
+            }
+
+            void emit_epilogue() {
+                instructions.push_back("epilogue");
+            }
+
+            NativeFunction finalize() {
+                return NativeFunction{ function_name, instructions };
+            }
+        };
+
+        // === ASTNode Mock ===
+        struct ASTNode {
+            string kind;
+            string name;
+            string value;
+            string op;
+            vector<shared_ptr<ASTNode>> args;
+            shared_ptr<ASTNode> left, right, body;
+            int param_count = 0;
+        };
+
+        // === RuntimeExec ===
+        namespace RuntimeExec {
+            int invoke(const NativeFunction& fn, const vector<string>& args) {
+                cout << "Executing: " << fn.name << endl;
+                for (const auto& instr : fn.instructions) {
+                    cout << "  > " << instr << endl;
+                }
+                return 42; // Stub return
+            }
+        }
+
+        // === JITCompiler ===
+        namespace JITCompiler {
+            unordered_map<string, NativeFunction> function_cache;
+
+            void compile_expr(shared_ptr<ASTNode> expr, NativeCodeGen& codegen);
+
+            NativeFunction compile_function(shared_ptr<ASTNode> ast) {
+                NativeCodeGen codegen;
+                codegen.function_name = ast->name;
+                codegen.emit_prologue(ast->param_count);
+                compile_expr(ast->body, codegen);
+                codegen.emit_epilogue();
+                NativeFunction fn = codegen.finalize();
+                function_cache[ast->name] = fn;
+                return fn;
+            }
+
+            void compile_expr(shared_ptr<ASTNode> expr, NativeCodeGen& codegen) {
+                if (expr->kind == "number") {
+                    codegen.emit_load_constant(expr->value);
+                }
+                else if (expr->kind == "identifier") {
+                    codegen.emit_load_variable(expr->name);
+                }
+                else if (expr->kind == "binary") {
+                    compile_expr(expr->left, codegen);
+                    compile_expr(expr->right, codegen);
+                    codegen.emit_binary_op(expr->op);
+                }
+                else if (expr->kind == "call") {
+                    for (auto& arg : expr->args)
+                        compile_expr(arg, codegen);
+                    codegen.emit_call(expr->name, (int)expr->args.size());
+                }
+                else {
+                    throw runtime_error("Unsupported ASTNode kind: " + expr->kind);
+                }
+            }
+
+            int jit_execute(shared_ptr<ASTNode> ast, const vector<string>& args) {
+                NativeFunction fn;
+                if (function_cache.count(ast->name)) {
+                    fn = function_cache[ast->name];
+                }
+                else {
+                    fn = compile_function(ast);
+                }
+                return RuntimeExec::invoke(fn, args);
+            }
+        }
+
+        // === Parser Stub ===
+        namespace Parser {
+            shared_ptr<ASTNode> parse(const string& line) {
+                // Stub: returns a simple AST for demo
+                auto node = make_shared<ASTNode>();
+                node->kind = "number";
+                node->value = "123";
+                node->name = "main";
+                return node;
+            }
+        }
+
+        // === REPL ===
+        namespace REPL {
+            void start() {
+                while (true) {
+                    cout << ">> ";
+                    string line;
+                    if (!getline(cin, line)) break;
+                    auto ast = Parser::parse(line);
+                    int result = JITCompiler::jit_execute(ast, {});
+                    cout << "=> " << result << endl;
+                }
+            }
+        }
+
+        int main() {
+            REPL::start();
+            return 0;
+        }
+
+#include <iostream>
+#include <string>
+#include <vector>
+
+        // Stub classes to represent your modules
+        namespace Lexer {
+            struct Token {
+                std::string value;
+                std::string type;
+            };
+
+            std::vector<Token> lex(const std::string& src) {
+                // TODO: Implement lexical analysis
+                return {};
+            }
+        }
+
+        namespace Cursor {
+            struct Cursor {
+                size_t position = 0;
+                std::vector<Lexer::Token> tokens;
+
+                Cursor(const std::vector<Lexer::Token>& toks) : tokens(toks) {}
+                // Add cursor navigation methods if needed
+            };
+
+            Cursor new_cursor(const std::vector<Lexer::Token>& tokens) {
+                return Cursor(tokens);
+            }
+        }
+
+        namespace AST {
+            struct Node {
+                // Your AST node fields here
+            };
+
+            Node parse_program(const Cursor::Cursor& cursor) {
+                // TODO: Implement parsing logic
+                return Node{};
+            }
+        }
+
+        namespace Formatter {
+            std::string format(const AST::Node& ast) {
+                // TODO: Implement pretty formatting of AST
+                return "<formatted AST>";
+            }
+        }
+
+        namespace SyntaxHighlighter {
+            struct StyledToken {
+                std::string style;
+                Lexer::Token token;
+            };
+
+            std::vector<StyledToken> highlight(const std::vector<Lexer::Token>& tokens) {
+                // TODO: Implement syntax highlighting logic
+                return {};
+            }
+        }
+
+        // Utility function to get input line from user
+        std::string ask() {
+            std::string line;
+            std::getline(std::cin, line);
+            return line;
+        }
+
+        // parse_ast equivalent
+        void parse_ast() {
+            std::cout << "Enter source code:\n";
+            std::string src = ask();
+
+            std::vector<Lexer::Token> tokens = Lexer::lex(src);
+            Cursor::Cursor cursor = Cursor::new_cursor(tokens);
+            AST::Node ast = AST::parse_program(cursor);
+
+            std::string pretty = Formatter::format(ast);
+            std::cout << pretty << std::endl;
+        }
+
+        // highlight_source equivalent
+        void highlight_source() {
+            std::cout << "Enter source code:\n";
+            std::string src = ask();
+
+            std::vector<Lexer::Token> tokens = Lexer::lex(src);
+            std::vector<SyntaxHighlighter::StyledToken> styled = SyntaxHighlighter::highlight(tokens);
+
+            for (const auto& t : styled) {
+                std::cout << t.style << ": " << t.token.value << std::endl;
+            }
+        }
+
+        int main() {
+            // Demo usage:
+            parse_ast();
+            highlight_source();
+            return 0;
+        }
+
+#include <iostream>
+#include <string>
+#include <unordered_map>
+#include <functional>
+#include <vector>
+#include <algorithm>
+#include <cctype>
+#include <sstream>
+
+        namespace InterpreterEngine {
+
+            using Primative = std::string;  // Simplified to string for demonstration
+            using PrimativeInt = int;
+            using FuncType = std::function<Primative(const std::vector<Primative>&)>;
+
+            std::unordered_map<std::string, Primative> variables;
+            std::unordered_map<std::string, FuncType> functions;
+
+            // Helper: trim whitespace from both ends of a string
+            inline std::string trim(const std::string& s) {
+                size_t start = s.find_first_not_of(" \t\n\r");
+                if (start == std::string::npos) return "";
+                size_t end = s.find_last_not_of(" \t\n\r");
+                return s.substr(start, end - start + 1);
+            }
+
+            // Helper: split string by delimiter into vector<string>
+            inline std::vector<std::string> split(const std::string& s, char delim) {
+                std::vector<std::string> elems;
+                std::stringstream ss(s);
+                std::string item;
+                while (std::getline(ss, item, delim)) {
+                    elems.push_back(trim(item));
+                }
+                return elems;
+            }
+
+            // Initialize built-in functions
+            void initialize_builtins() {
+                functions["print"] = [](const std::vector<Primative>& args) -> Primative {
+                    for (const auto& arg : args) {
+                        std::cout << arg << " ";
+                    }
+                    std::cout << std::endl;
+                    return ""; // null equivalent
+                    };
+
+                functions["add"] = [](const std::vector<Primative>& args) -> Primative {
+                    if (args.size() < 2) return "0";
+                    int a = std::stoi(args[0]);
+                    int b = std::stoi(args[1]);
+                    return std::to_string(a + b);
+                    };
+
+                functions["sub"] = [](const std::vector<Primative>& args) -> Primative {
+                    if (args.size() < 2) return "0";
+                    int a = std::stoi(args[0]);
+                    int b = std::stoi(args[1]);
+                    return std::to_string(a - b);
+                    };
+
+                // Add more built-ins as needed...
+            }
+
+            // Evaluate QuarterLang source code (minimal parsing + execution)
+            Primative evaluate(const std::string& source) {
+                std::string code = trim(source);
+
+                auto starts_with = [&](const std::string& prefix) {
+                    return code.compare(0, prefix.size(), prefix) == 0;
+                    };
+
+                auto ends_with = [&](const std::string& suffix) {
+                    if (suffix.size() > code.size()) return false;
+                    return std::equal(suffix.rbegin(), suffix.rend(), code.rbegin());
+                    };
+
+                if (starts_with("print(") && ends_with(")")) {
+                    std::string inside = trim(code.substr(6, code.size() - 7));  // inside of print(...)
+                    // For simplicity, pass as one string argument
+                    return functions["print"]({ inside });
+                }
+                else if (starts_with("add(") && ends_with(")")) {
+                    std::string args_str = code.substr(4, code.size() - 5);
+                    auto args = split(args_str, ',');
+                    return functions["add"](args);
+                }
+                else if (starts_with("sub(") && ends_with(")")) {
+                    std::string args_str = code.substr(4, code.size() - 5);
+                    auto args = split(args_str, ',');
+                    return functions["sub"](args);
+                }
+                else {
+                    // Unsupported or unknown expression: return as is
+                    return code;
+                }
+            }
+
+            // Return list of built-in functions for autocompletion
+            std::vector<std::string> get_builtin_functions() {
+                std::vector<std::string> keys;
+                for (const auto& kv : functions) {
+                    keys.push_back(kv.first);
+                }
+                return keys;
+            }
+
+            // Initialize interpreter at module load
+            struct Initializer {
+                Initializer() {
+                    initialize_builtins();
+                }
+            } initializer;
+
+        } // namespace InterpreterEngine
+
+
+        // Example usage:
+        /*
+        int main() {
+            using namespace InterpreterEngine;
+
+            evaluate("print(Hello World!)");
+            std::cout << "add(5,3) = " << evaluate("add(5, 3)") << std::endl;
+            std::cout << "sub(10,4) = " << evaluate("sub(10, 4)") << std::endl;
+
+            auto funcs = get_builtin_functions();
+            std::cout << "Built-in functions:\n";
+            for (const auto& f : funcs) {
+                std::cout << " - " << f << "\n";
+            }
+            return 0;
+        }
+        */
+
+#include <iostream>
+#include <string>
+#include <vector>
+#include <exception>
+#include <chrono>
+#include <sstream>
+
+        // Forward declarations or placeholders for types you have:
+        struct IR {
+            std::string to_string() const {
+                // Placeholder: convert IR unit to string
+                return "<IR unit representation>";
+            }
+        };
+
+        struct ASTNode {
+            // Simulated AST node with minimal interface
+            std::string to_source() const {
+                return "<source representation>";
+            }
+        };
+
+        struct AST {
+            std::vector<ASTNode> nodes;
+        };
+
+        // IRContext to hold context info during IR emission
+        struct IRContext {
+            int node_id;
+            std::string source;
+            std::string phase;
+            std::string lineage;
+
+            static IRContext New(int node_id, const std::string& source, const std::string& phase, const std::string& lineage) {
+                return IRContext{ node_id, source, phase, lineage };
+            }
+        };
+
+        // Utility functions
+        inline int now() {
+            using namespace std::chrono;
+            return (int)duration_cast<milliseconds>(steady_clock::now().time_since_epoch()).count();
+        }
+
+        inline void print(const std::string& msg) {
+            std::cout << msg << std::endl;
+        }
+
+        inline void log(const std::string& level, const std::string& msg) {
+            std::cerr << "[" << level << "] " << msg << std::endl;
+        }
+
+        inline void trace_execution(const std::string& tag, int start_ms, int end_ms) {
+            int elapsed = end_ms - start_ms;
+            std::cout << "[TRACE] " << tag << " took " << elapsed << " ms" << std::endl;
+        }
+
+        // Placeholder lineage hash generator
+        inline std::string generate_lineage_hash(const ASTNode& node) {
+            // Just a dummy hash for demonstration
+            return "lineage_hash_12345";
+        }
+
+        // Placeholder IR emission function for a node
+        inline std::vector<IR> emit_ir_from_node(const ASTNode& node, const IRContext& ctx) {
+            // Simulate IR emission
+            return { IR() };
+        }
+
+        // The introspect_emit function
+        void introspect_emit(const AST& ast) {
+            int node_index = 0;
+            for (const auto& node : ast.nodes) {
+                std::string src = node.to_source();
+                std::string phase = "emit";
+                std::string lineage = generate_lineage_hash(node);
+                int t0 = now();
+
+                IRContext context = IRContext::New(node_index, src, phase, lineage);
+
+                print("— Emitting IR for Node " + std::to_string(node_index) + " —");
+                print("> Source: " + src);
+                print("> Lineage: " + lineage);
+                print("> Phase: " + phase);
+
+                try {
+                    std::vector<IR> ir_unit = emit_ir_from_node(node, context);
+                    int t1 = now();
+                    trace_execution("node-" + std::to_string(node_index), t0, t1);
+
+                    for (const auto& ir : ir_unit) {
+                        print("  • IR: " + ir.to_string());
+                    }
+                }
+                catch (const std::exception& err) {
+                    log("error", std::string("IR emission failed: ") + err.what());
+                    print("❌ Emission failed for Node " + std::to_string(node_index));
+                }
+                catch (...) {
+                    log("error", "IR emission failed: unknown error");
+                    print("❌ Emission failed for Node " + std::to_string(node_index));
+                }
+
+                ++node_index;
+            }
+        }
+
+#include <iostream>
+#include <string>
+#include <vector>
+#include <optional>
+#include <unordered_map>
+
+        // --- Placeholder structs simulating plugin and metrics ---
+
+        struct Plugin {
+            std::string name;
+            std::pair<int, int> pos; // x, y position on screen/UI
+            std::string status;
+        };
+
+        struct PluginStats {
+            double memory_mb;
+            double latency_ms;
+        };
+
+        // --- Globals ---
+
+        std::vector<Plugin> active_plugins;  // populated externally by PluginManager::list()
+        double zoom = 1.0;
+        std::pair<int, int> pan = { 0, 0 };
+
+        // --- Placeholder Metrics module simulation ---
+
+        namespace Metrics {
+            // Returns stats for a plugin name
+            PluginStats get_plugin_stats(const std::string& name) {
+                // dummy values
+                return { 42.5, 10.3 };
+            }
+        }
+
+        // --- Rendering functions (stubbed) ---
+
+        void draw_node(const std::string& name, std::pair<int, int> pos, const std::string& status) {
+            std::cout << "[DrawNode] " << name << " at (" << pos.first << "," << pos.second
+                << ") status: " << status << std::endl;
+        }
+
+        void overlay_text(const std::string& text) {
+            std::cout << "[Overlay] " << text << std::endl;
+        }
+
+        void draw_metrics_overlay(const std::string& name) {
+            PluginStats stats = Metrics::get_plugin_stats(name);
+            std::ostringstream oss;
+            oss << name << ": " << stats.memory_mb << "MB, " << stats.latency_ms << "ms";
+            overlay_text(oss.str());
+        }
+
+        // --- Interaction ---
+
+        // Locate plugin at screen position (x,y) — simplistic hit detection
+        std::optional<Plugin> locate_plugin_at(int x, int y) {
+            // Simple hitbox of 10x10 pixels around plugin position
+            for (const auto& plugin : active_plugins) {
+                int px = plugin.pos.first;
+                int py = plugin.pos.second;
+                if (x >= px && x <= px + 10 && y >= py && y <= py + 10) {
+                    return plugin;
+                }
+            }
+            return std::nullopt;
+        }
+
+        void show_plugin_details(const Plugin& plugin) {
+            std::cout << "Showing details for plugin: " << plugin.name << std::endl;
+            // Extend with actual UI detail logic
+        }
+
+        // --- Main render function ---
+
+        void render() {
+            for (const auto& plugin : active_plugins) {
+                draw_node(plugin.name, plugin.pos, plugin.status);
+                draw_metrics_overlay(plugin.name);
+            }
+        }
+
+        // --- Click handler ---
+
+        void click_node(int x, int y) {
+            auto node = locate_plugin_at(x, y);
+            if (node) {
+                show_plugin_details(*node);
+            }
+        }
+
+        // --- Example usage ---
+        // This example demonstrates initializing active_plugins and invoking render and click
+
+        int main() {
+            // Simulate PluginManager.list()
+            active_plugins = {
+                {"PluginA", {10, 20}, "active"},
+                {"PluginB", {50, 60}, "inactive"},
+                {"PluginC", {100, 110}, "active"}
+            };
+
+            render();
+
+            // Simulate clicking near PluginB
+            click_node(55, 65);
+
+            return 0;
+        }
+
+#include "ManifestParser.h"
+#include "Net.h"
+#include "PluginSystem.h"
+#include <iostream>
+#include <string>
+#include <mutex>
+#include <vector>
+#include <thread>
+#include <future>
+        #include <nlohmann/json.hpp>
+    using json = nlohmann::json;
+    // ManifestParser.cpp
+    std::vector<ManifestParser::PluginData> ManifestParser::parse(const std::string& raw_json) {
+        std::vector<PluginData> plugins;
+        try {
+            auto j = json::parse(raw_json);
+            for (const auto& item : j) {
+                PluginData plugin;
+                plugin.name = item["name"].get<std::string>();
+                plugin.version = item["version"].get<std::string>();
+                plugin.description = item["description"].get<std::string>();
+                plugins.push_back(plugin);
+            }
+        }
+        catch (const json::parse_error& e) {
+            std::cerr << "JSON parse error: " << e.what() << std::endl;
+        }
+        return plugins;
+    }
+    // Global manifest cache
+    static std::vector<ManifestParser::PluginData> manifest_cache;
+    static std::mutex cache_mutex;
+    // Fetch and parse manifest asynchronously
+    void fetch_manifest(const std::string& manifest_url) {
+		std::async(std::launch::async, [manifest_url = manifest_url]() -> void
+            {
+            try {
+                std::string raw_manifest = Net::fetch(manifest_url);
+                auto plugins = ManifestParser::parse(raw_manifest);
+                std::lock_guard<std::mutex> lock(cache_mutex);
+                manifest_cache = plugins;
+            }
+            catch (const std::exception& e) {
+                std::cerr << "Failed to fetch manifest: " << e.what() << std::endl;
+            }
+        });
+    }
+    // Get cached manifest data
+    const std::vector<ManifestParser::PluginData>& get_manifest() {
+        std::lock_guard<std::mutex> lock(cache_mutex);
+        return manifest_cache;
+    }
+    // PluginSystem.cpp
+    namespace PluginSystem {
+        static std::vector<std::string> plugins;
+        static std::mutex plugin_mutex;
+		// Scan plugin directory for .qtr or .so files
+        void load_all() {
+            std::lock_guard<std::mutex> lock(plugin_mutex);
+            auto manifest = get_manifest();
+            for (const auto& plugin : manifest) {
+                std::string plugin_path = "plugins/" + plugin.name + ".qtr";
+                if (PluginLoader::load(plugin_path)) {
+                    plugins.push_back(plugin.name);
+                } else {
+                    std::cerr << "Failed to load plugin: " << plugin.name << std::endl;
+                }
+            }
+        }
+        // Unload all currently loaded plugins
+        void unload_all() {
+			std::lock_guard<std::mutex> lock(plugin_mutex);
+            for (const auto& plugin : plugins) {
+                PluginLoader::unload(plugin);
+            }
+            plugins.clear();
+        }
+        // List currently loaded plugins
+        std::vector<std::string> list() {
+            std::lock_guard<std::mutex> lock(plugin_mutex);
+            return plugins;
+        }
+	} // namespace PluginSystem
+	// Net.cpp
+
+#include "Net.h"
+#include <iostream>
+#include <curl/curl.h>
+    namespace Net {
+        // Callback function for curl to write data into a string
+        static size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* userp) {
+            size_t total_size = size * nmemb;
+            userp->append((char*)contents, total_size);
+            return total_size;
+        }
+        // Fetch data from a URL
+        std::string fetch(const std::string& url) {
+            CURL* curl;
+            CURLcode res;
+            std::string read_buffer;
+            curl = curl_easy_init();
+            if (curl) {
+                curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+                curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+                curl_easy_setopt(curl, CURLOPT_WRITEDATA, &read_buffer);
+                res = curl_easy_perform(curl);
+                if (res != CURLE_OK) {
+                    throw std::runtime_error("curl_easy_perform() failed: " + std::string(curl_easy_strerror(res)));
+                }
+                curl_easy_cleanup(curl);
+            } else {
+                throw std::runtime_error("Failed to initialize CURL");
+            }
+            return read_buffer;
+        }
+    } // namespace Net
+	// PromptSystem.cpp
+#include "PromptSystem.h"
+#include "Config.h"
+#include "Terminal.h"
+#include "Profiler.h"
+#include "Theme.h"
+#include "Glyphs.h"
+    namespace PromptSystem {
+        void render() {
+            Profiler::start("prompt.render");
+            // Step 1: Get theme and prompt symbol
+            std::string theme = Config::get("theme");
+            std::string prompt_symbol = Config::get("prompt_symbol");
+            std::string context = Config::get("environment_context");
+            // Step 2: Get color based on theme
+            std::string color = Config::get_color(theme);
+            if (color.empty()) {
+                Terminal::warn("Theme not found, using default color.");
+                color = "#FFFFFF"; // Default to white if theme not found
+            }
+            // Step 3: Get glyph for prompt symbol
+            std::string glyph = Glyphs::get(prompt_symbol);
+            if (glyph.empty()) {
+                Terminal::warn("Prompt symbol not found, using default glyph.");
+                glyph = ">>"; // Default to '>>' if symbol not found
+            }
+            // Step 4: Determine prefix based on context
+            std::string prefix;
+            if (context == "dev") {
+				// For development, use a different prefix
+                prefix = "[DEV] ";
+            } else if (context == "prod") {
+                prefix = "[PROD] ";
+            } else {
+                prefix = "[UNKNOWN] ";
+            }
+            // Step 5: Render the prompt
+            Terminal::set_color(color);
+            std::cout << prefix << glyph << " ";
+            Terminal::set_color("#FFFFFF"); // Reset to default color
+            Profiler::end("prompt.render");
+        }
+	} // namespace PromptSystem
+	// Config.cpp
+
+#include <iostream>
+#include <string>
+#include <vector>
+#include <unordered_map>
+#include <optional>
+#include <sstream>
+#include <cctype>
+#include <stdexcept>
+
+// --- Token & Cursor ---
+
+    enum class TokenType {
+        NUMBER,
+        IDENT,
+        PLUS,
+        MINUS,
+        STAR,
+        SLASH,
+        PERCENT,
+        CARET,
+        LPAREN,
+        RPAREN,
+        COMMA,
+        END,
+        UNKNOWN
+    };
+
+    struct Token {
+        TokenType type;
+        std::string value;
+    };
+
+    class Cursor {
+    public:
+        Cursor(const std::vector<Token>& tokens) : tokens(tokens), index(0) {}
+
+        Token peek() const {
+            if (index < tokens.size()) return tokens[index];
+            return Token{ TokenType::END, "" };
+        }
+
+        Token next() {
+            if (index < tokens.size()) return tokens[index++];
+            return Token{ TokenType::END, "" };
+        }
+
+        bool eof() const {
+            return index >= tokens.size();
+        }
+
+        void expect(TokenType expected) {
+            Token t = next();
+            if (t.type != expected) {
+                throw std::runtime_error("Expected token type mismatch");
+            }
+        }
+
+    private:
+        const std::vector<Token>& tokens;
+        size_t index;
+    };
+
+    // --- AST Node ---
+
+    enum class NodeKind {
+        NUMBER,
+        IDENT,
+        BINARY,
+        UNARY,
+        CALL,
+        GROUP
+    };
+
+    struct Node {
+        NodeKind kind;
+        // For numbers and operators, store value/op as string (simplified)
+        std::string value;
+        // Children
+        std::shared_ptr<Node> left;
+        std::shared_ptr<Node> right;
+        std::vector<std::shared_ptr<Node>> args; // for CALL
+        std::string name; // for IDENT or call callee name
+
+        // Constructors helpers
+        static std::shared_ptr<Node> number(const std::string& val) {
+            return std::make_shared<Node>(Node{ NodeKind::NUMBER, val, nullptr, nullptr, {}, "" });
+        }
+
+        static std::shared_ptr<Node> ident(const std::string& name) {
+            return std::make_shared<Node>(Node{ NodeKind::IDENT, "", nullptr, nullptr, {}, name });
+        }
+
+        static std::shared_ptr<Node> binary(const std::string& op, std::shared_ptr<Node> left, std::shared_ptr<Node> right) {
+            return std::make_shared<Node>(Node{ NodeKind::BINARY, op, left, right, {}, "" });
+        }
+
+        static std::shared_ptr<Node> unary(const std::string& op, std::shared_ptr<Node> expr) {
+            return std::make_shared<Node>(Node{ NodeKind::UNARY, op, nullptr, expr, {}, "" });
+        }
+
+        static std::shared_ptr<Node> call(std::shared_ptr<Node> callee, const std::vector<std::shared_ptr<Node>>& args) {
+            return std::make_shared<Node>(Node{ NodeKind::CALL, "", callee, nullptr, args, "" });
+        }
+
+        static std::shared_ptr<Node> group(std::shared_ptr<Node> expr) {
+            return std::make_shared<Node>(Node{ NodeKind::GROUP, "", expr, nullptr, {}, "" });
+        }
+
+        std::string to_string() const {
+            switch (kind) {
+            case NodeKind::NUMBER: return "Num(" + value + ")";
+            case NodeKind::IDENT: return "Id(" + name + ")";
+            case NodeKind::BINARY:
+                return "(" + left->to_string() + " " + value + " " + right->to_string() + ")";
+            case NodeKind::UNARY:
+                return "(" + value + right->to_string() + ")";
+            case NodeKind::GROUP:
+                return "(group " + left->to_string() + ")";
+            case NodeKind::CALL: {
+                std::ostringstream oss;
+                oss << "Call(" << left->to_string() << "(";
+                for (size_t i = 0; i < args.size(); ++i) {
+                    oss << args[i]->to_string();
+                    if (i + 1 < args.size()) oss << ", ";
+                }
+                oss << "))";
+                return oss.str();
+            }
+            default: return "<unknown-node>";
+            }
+        }
+    };
+
+    // --- Precedence & Associativity Tables ---
+
+    const std::unordered_map<TokenType, int> precedence_table = {
+        {TokenType::PLUS, 10},
+        {TokenType::MINUS, 10},
+        {TokenType::STAR, 20},
+        {TokenType::SLASH, 20},
+        {TokenType::PERCENT, 20},
+        {TokenType::CARET, 30},
+        {TokenType::LPAREN, 40} // for function calls
+    };
+
+    const std::unordered_map<TokenType, std::string> associativity_table = {
+        {TokenType::PLUS, "left"},
+        {TokenType::MINUS, "left"},
+        {TokenType::STAR, "left"},
+        {TokenType::SLASH, "left"},
+        {TokenType::PERCENT, "left"},
+        {TokenType::CARET, "right"},
+        {TokenType::LPAREN, "left"}
+    };
+
+    int precedence_of(TokenType op) {
+        auto it = precedence_table.find(op);
+        if (it != precedence_table.end()) return it->second;
+        return -1;
+    }
+
+    std::string associativity_of(TokenType op) {
+        auto it = associativity_table.find(op);
+        if (it != associativity_table.end()) return it->second;
+        return "left";
+    }
+
+    // --- Forward declaration ---
+
+    std::shared_ptr<Node> parse_expression(Cursor& cur, int prec = 0);
+
+    // --- Prefix parse ---
+
+    std::shared_ptr<Node> parse_call(Cursor& cur, std::shared_ptr<Node> callee);
+
+    std::shared_ptr<Node> parse_prefix(Cursor& cur) {
+        Token tok = cur.next();
+        switch (tok.type) {
+        case TokenType::NUMBER:
+            return Node::number(tok.value);
+        case TokenType::IDENT: {
+            auto node = Node::ident(tok.value);
+            if (cur.peek().type == TokenType::LPAREN) {
+                return parse_call(cur, node);
+            }
+            else {
+                return node;
+            }
+        }
+        case TokenType::LPAREN: {
+            auto expr = parse_expression(cur);
+            cur.expect(TokenType::RPAREN);
+            return Node::group(expr);
+        }
+        case TokenType::PLUS:
+        case TokenType::MINUS: {
+            // unary operators
+            int prec = precedence_of(tok.type);
+            auto right = parse_expression(cur, prec);
+            return Node::unary(tok.value, right);
+        }
+        default:
+            throw std::runtime_error("Unexpected token in prefix parse: " + tok.value);
+        }
+    }
+
+    // --- Parse function call ---
+
+    std::shared_ptr<Node> parse_call(Cursor& cur, std::shared_ptr<Node> callee) {
+        cur.expect(TokenType::LPAREN);
+        std::vector<std::shared_ptr<Node>> args;
+        if (cur.peek().type != TokenType::RPAREN) {
+            while (true) {
+                args.push_back(parse_expression(cur));
+                if (cur.peek().type != TokenType::COMMA) break;
+                cur.next(); // consume comma
+            }
+        }
+        cur.expect(TokenType::RPAREN);
+        return Node::call(callee, args);
+    }
+
+    // --- Parse expression with precedence climbing ---
+
+    std::shared_ptr<Node> parse_expression(Cursor& cur, int prec) {
+        auto left = parse_prefix(cur);
+        while (!cur.eof()) {
+            Token tok = cur.peek();
+            int tok_prec = precedence_of(tok.type);
+            if (tok_prec < prec) break;
+            cur.next(); // consume operator
+            int next_prec = tok_prec;
+            if (associativity_of(tok.type) == "left") next_prec = tok_prec + 1;
+            auto right = parse_expression(cur, next_prec);
+            left = Node::binary(tok.value, left, right);
+        }
+        return left;
+    }
+
+    // --- Simple Lexer (for demonstration) ---
+
+    std::vector<Token> simple_lexer(const std::string& input) {
+        std::vector<Token> tokens;
+        size_t i = 0;
+        while (i < input.size()) {
+            char c = input[i];
+            if (isspace(c)) { ++i; continue; }
+            if (isdigit(c)) {
+                size_t start = i;
+                while (i < input.size() && (isdigit(input[i]) || input[i] == '.')) i++;
+                tokens.push_back({ TokenType::NUMBER, input.substr(start, i - start) });
+                continue;
+            }
+            if (isalpha(c) || c == '_') {
+                size_t start = i;
+                while (i < input.size() && (isalnum(input[i]) || input[i] == '_')) i++;
+                tokens.push_back({ TokenType::IDENT, input.substr(start, i - start) });
+                continue;
+            }
+            // Single char tokens
+            switch (c) {
+            case '+': tokens.push_back({ TokenType::PLUS, "+" }); break;
+            case '-': tokens.push_back({ TokenType::MINUS, "-" }); break;
+            case '*': tokens.push_back({ TokenType::STAR, "*" }); break;
+            case '/': tokens.push_back({ TokenType::SLASH, "/" }); break;
+            case '%': tokens.push_back({ TokenType::PERCENT, "%" }); break;
+            case '^': tokens.push_back({ TokenType::CARET, "^" }); break;
+            case '(': tokens.push_back({ TokenType::LPAREN, "(" }); break;
+            case ')': tokens.push_back({ TokenType::RPAREN, ")" }); break;
+            case ',': tokens.push_back({ TokenType::COMMA, "," }); break;
+            default:
+                throw std::runtime_error(std::string("Unknown character: ") + c);
+            }
+            i++;
+        }
+        tokens.push_back({ TokenType::END, "" });
+        return tokens;
+    }
+
+    // --- Main for testing ---
+
+    int main() {
+        std::string line;
+        std::cout << "Enter expression: ";
+        std::getline(std::cin, line);
+
+        try {
+            auto tokens = simple_lexer(line);
+            Cursor cur(tokens);
+            auto ast = parse_expression(cur);
+            std::cout << "Parsed AST: " << ast->to_string() << std::endl;
+        }
+        catch (const std::exception& e) {
+            std::cerr << "Parse error: " << e.what() << std::endl;
+        }
+    }
+
+#include <iostream>
+#include <string>
+#include <vector>
+#include <algorithm>
+#include <cctype>
+#include <cassert>
+
+    // --- DG Utilities ---
+
+    namespace DG {
+
+        // Map DG digit chars to decimal values
+        inline int digitValue(char c) {
+            if (c >= '0' && c <= '9') return c - '0';
+            c = std::toupper(c);
+            if (c == 'X') return 10;
+            if (c == 'Y') return 11;
+            throw std::invalid_argument(std::string("Invalid DG digit: ") + c);
+        }
+
+        // Map decimal value (0-11) to DG digit char
+        inline char digitChar(int v, bool uppercase = true) {
+            assert(v >= 0 && v <= 11);
+            if (v <= 9) return '0' + v;
+            return uppercase ? (v == 10 ? 'X' : 'Y') : (v == 10 ? 'x' : 'y');
+        }
+
+        // Convert DG string (e.g. "1X", "23", "XY") to decimal int
+        inline int fromDG(const std::string& dgStr) {
+            int result = 0;
+            for (char c : dgStr) {
+                int d = digitValue(c);
+                result = result * 12 + d;
+            }
+            return result;
+        }
+
+        // Convert decimal int to DG string (base-12) uppercase by default
+        inline std::string toDG(int decimal, int minWidth = 0, bool uppercase = true) {
+            if (decimal == 0) return std::string(minWidth > 0 ? minWidth : 1, '0');
+
+            std::string dgStr;
+            int n = decimal;
+            while (n > 0) {
+                int digit = n % 12;
+                dgStr.push_back(digitChar(digit, uppercase));
+                n /= 12;
+            }
+            std::reverse(dgStr.begin(), dgStr.end());
+
+            // Zero pad if requested
+            if ((int)dgStr.size() < minWidth) {
+                dgStr.insert(dgStr.begin(), minWidth - dgStr.size(), '0');
+            }
+
+            return dgStr;
+        }
+
+        // Addition for DGs, inputs and output as DG strings
+        inline std::string dg_add(const std::string& a, const std::string& b) {
+            int decA = fromDG(a);
+            int decB = fromDG(b);
+            return toDG(decA + decB);
+        }
+
+        // Multiplication for DGs, DG string * integer
+        inline std::string dg_mul(const std::string& a, int multiplier) {
+            int decA = fromDG(a);
+            return toDG(decA * multiplier);
+        }
+
+        // Format DG string with custom grouping separator, e.g. "1XY4" -> "1X-Y4"
+        inline std::string groupDG(const std::string& dgStr, const std::string& sep = "-") {
+            if (dgStr.size() <= 2) return dgStr;
+
+            std::string result;
+            for (size_t i = 0; i < dgStr.size(); ++i) {
+                result.push_back(dgStr[i]);
+                if ((i + 1) < dgStr.size() && (i + 1) % 2 == 0) {
+                    result += sep;
+                }
+            }
+            return result;
+        }
+
+        // Lowercase DG string
+        inline std::string lower(const std::string& dgStr) {
+            std::string result = dgStr;
+            std::transform(result.begin(), result.end(), result.begin(), ::tolower);
+            return result;
+        }
+
+        // Uppercase DG string
+        inline std::string upper(const std::string& dgStr) {
+            std::string result = dgStr;
+            std::transform(result.begin(), result.end(), result.begin(), ::toupper);
+            return result;
+        }
+
+        // Example DG array type
+        using DGArray = std::vector<std::string>;
+
+        // Check if DG (as string) is even in decimal
+        inline bool dg_is_even(const std::string& dg) {
+            return (fromDG(dg) % 2) == 0;
+        }
+
+    } // namespace DG
+
+    // --- Example usage demonstrating all features ---
+
+    int main() {
+        using namespace DG;
+
+        // 1. Declare DG values
+        std::string dozen = "1X"; // 1*12 + 10 = 22 decimal
+        std::string count = "15"; // 1*12 + 5 = 17 decimal
+
+        std::cout << "Dozen DG: " << dozen << ", decimal: " << fromDG(dozen) << "\n";
+        std::cout << "Count DG: " << count << ", decimal: " << fromDG(count) << "\n";
+
+        // 2. Convert decimal -> DG
+        int normal = 42;
+        std::string dg_normal = toDG(normal);
+        std::cout << "42 decimal in DG: " << dg_normal << "\n";
+
+        // 3. DG arithmetic
+        std::string a = "3X"; // 46 decimal
+        std::string b = "12"; // 14 decimal
+        std::string sum = dg_add(a, b);
+        std::string prod = dg_mul(a, 3);
+
+        std::cout << "Sum DG: " << sum << " (decimal: " << fromDG(sum) << ")\n";
+        std::cout << "Product DG: " << prod << " (decimal: " << fromDG(prod) << ")\n";
+
+        // 4. Loops and logic with DG range simulated by decimal loop
+        std::cout << "Loop i from 0 to 2A DG:\n";
+        int start = 0;
+        int end = fromDG("2A"); // 2*12 + 10 = 34
+        for (int i = start; i <= end; ++i) {
+            std::cout << " i=" << i << " DG: " << toDG(i) << "\n";
+        }
+
+        // 5. DG arrays
+        DGArray dgs = { "1X", "23", "4Y" };
+        for (size_t i = 0; i < dgs.size(); ++i) {
+            std::cout << "dgs[" << i << "] = " << dgs[i] << " (decimal: " << fromDG(dgs[i]) << ")\n";
+        }
+
+        // 6. DG formatting
+        std::string d = "9";
+        std::cout << "Zero-padded DG(2): " << toDG(fromDG(d), 2) << "\n";
+
+        std::string d2 = "X";
+        std::cout << "Zero-padded DG(3): " << toDG(fromDG(d2), 3) << "\n";
+
+        std::string dg_big = "1XY4";
+        std::cout << "Grouped DG: " << groupDG(dg_big, "-") << "\n";
+
+        // 7. Upper/lowercase
+        std::string mixed = "1xY";
+        std::cout << "Lower: " << lower(mixed) << ", Upper: " << upper(mixed) << "\n";
+
+        // 8. DG-based conditions
+        std::string mynum = "XY";
+        if (dg_is_even(mynum)) {
+            std::cout << mynum << " is even in decimal!\n";
+        }
+        else {
+            std::cout << mynum << " is odd in decimal!\n";
+        }
+
+        // 9. Macro-like constexpr DG constants
+        constexpr char MACRO_DOZEN[] = "1X";
+        std::cout << "Macro DOZEN DG: " << MACRO_DOZEN << ", decimal: " << fromDG(MACRO_DOZEN) << "\n";
+
+        // 10. Function for DG multiplication
+        auto mult_by_two = [](const std::string& d) -> std::string {
+            return dg_mul(d, 2);
+            };
+        std::cout << "Double 3X: " << mult_by_two("3X") << "\n";
+
+        return 0;
+    }
+
+#include <iostream>
+#include <string>
+#include <vector>
+#include <algorithm>
+#include <cctype>
+#include <stdexcept>
+#include <cassert>
+#include <sstream>
+#include <optional>
+#include <functional>
+
+    // ------------------------------
+    // DG namespace: all DG utilities
+    // ------------------------------
+
+    namespace DG {
+
+        // --- DIGIT HANDLING ---
+
+        inline int digitValue(char c) {
+            if (c >= '0' && c <= '9') return c - '0';
+            c = std::toupper(c);
+            if (c == 'X') return 10;
+            if (c == 'Y') return 11;
+            throw std::invalid_argument(std::string("Invalid DG digit: ") + c);
+        }
+
+        inline char digitChar(int v, bool uppercase = true) {
+            assert(v >= 0 && v <= 11);
+            if (v <= 9) return '0' + v;
+            return uppercase ? (v == 10 ? 'X' : 'Y') : (v == 10 ? 'x' : 'y');
+        }
+
+        // --- PARSING DG LITERAL FROM STRING ---
+
+        // Validate and parse DG literal string; throws on invalid chars
+        inline int parseDGLiteral(const std::string& dgStr) {
+            if (dgStr.empty())
+                throw std::invalid_argument("Empty DG literal");
+
+            int value = 0;
+            for (char c : dgStr) {
+                int d = digitValue(c);
+                value = value * 12 + d;
+            }
+            return value;
+        }
+
+        // --- CONVERT DECIMAL TO DG STRING ---
+
+        inline std::string toDG(int decimal, int minWidth = 0, bool uppercase = true,
+            int groupSize = 0, const std::string& groupSep = "",
+            const std::string& prefix = "") {
+            if (decimal < 0)
+                throw std::invalid_argument("Negative values not supported");
+
+            if (decimal == 0) {
+                std::string zeros(std::max(minWidth, 1), '0');
+                return prefix + zeros;
+            }
+
+            std::string dgStr;
+            int n = decimal;
+            while (n > 0) {
+                int digit = n % 12;
+                dgStr.push_back(digitChar(digit, uppercase));
+                n /= 12;
+            }
+            std::reverse(dgStr.begin(), dgStr.end());
+
+            if ((int)dgStr.size() < minWidth) {
+                dgStr.insert(dgStr.begin(), minWidth - dgStr.size(), '0');
+            }
+
+            // Apply grouping if requested
+            if (groupSize > 1 && !groupSep.empty()) {
+                std::string grouped;
+                int len = (int)dgStr.size();
+                for (int i = 0; i < len; ++i) {
+                    grouped.push_back(dgStr[i]);
+                    // Insert separator every groupSize chars, except last
+                    if ((i + 1) % groupSize == 0 && (i + 1) < len) {
+                        grouped.append(groupSep);
+                    }
+                }
+                return prefix + grouped;
+            }
+
+            return prefix + dgStr;
+        }
+
+        // --- CONVERT DG STRING TO DECIMAL ---
+
+        inline int fromDG(const std::string& dgStr) {
+            return parseDGLiteral(dgStr);
+        }
+
+        // --- ARITHMETIC ---
+
+        inline int dg_add(int a, int b) { return a + b; }
+        inline int dg_sub(int a, int b) {
+            if (b > a) throw std::invalid_argument("Subtraction would produce negative DG");
+            return a - b;
+        }
+        inline int dg_mul(int a, int b) { return a * b; }
+        inline int dg_div(int a, int b) {
+            if (b == 0) throw std::invalid_argument("Division by zero");
+            return a / b;
+        }
+        inline int dg_mod(int a, int b) {
+            if (b == 0) throw std::invalid_argument("Modulo by zero");
+            return a % b;
+        }
+
+        // --- LOGIC ---
+
+        inline bool dg_is_even(int dgValue) { return (dgValue % 2) == 0; }
+        inline bool dg_is_odd(int dgValue) { return !dg_is_even(dgValue); }
+
+        // --- FORMATTING ---
+
+        inline std::string dg_lower(const std::string& s) {
+            std::string res = s;
+            std::transform(res.begin(), res.end(), res.begin(), ::tolower);
+            return res;
+        }
+
+        inline std::string dg_upper(const std::string& s) {
+            std::string res = s;
+            std::transform(res.begin(), res.end(), res.begin(), ::toupper);
+            return res;
+        }
+
+        // --- SIMPLE EXPRESSION PARSING ---
+
+        // Supported tokens: DG literals, +, -, *, /, %
+        // No parentheses, left-to-right evaluation
+        // Whitespace ignored
+
+        enum class TokenType {
+            DG_LITERAL,
+            OP_ADD,
+            OP_SUB,
+            OP_MUL,
+            OP_DIV,
+            OP_MOD,
+            END,
+            INVALID
+        };
+
+        struct Token {
+            TokenType type;
+            std::string literal; // For DG_LITERAL tokens
+        };
+
+        class Lexer {
+            const std::string& input;
+            size_t pos;
+        public:
+            explicit Lexer(const std::string& str) : input(str), pos(0) {}
+
+            void skipWhitespace() {
+                while (pos < input.size() && std::isspace(input[pos])) ++pos;
+            }
+
+            Token nextToken() {
+                skipWhitespace();
+                if (pos >= input.size()) return { TokenType::END, "" };
+
+                char c = input[pos];
+
+                // Operators
+                if (c == '+') { ++pos; return { TokenType::OP_ADD, "+" }; }
+                if (c == '-') { ++pos; return { TokenType::OP_SUB, "-" }; }
+                if (c == '*') { ++pos; return { TokenType::OP_MUL, "*" }; }
+                if (c == '/') { ++pos; return { TokenType::OP_DIV, "/" }; }
+                if (c == '%') { ++pos; return { TokenType::OP_MOD, "%" }; }
+
+                // DG literal parsing: one or more valid DG digits (0-9, X, Y)
+                size_t start = pos;
+                while (pos < input.size()) {
+                    char ch = std::toupper(input[pos]);
+                    if ((ch >= '0' && ch <= '9') || ch == 'X' || ch == 'Y') {
+                        ++pos;
+                    }
+                    else {
+                        break;
+                    }
+                }
+                if (pos > start) {
+                    return { TokenType::DG_LITERAL, input.substr(start, pos - start) };
+                }
+
+                return { TokenType::INVALID, std::string(1, c) };
+            }
+        };
+
+        class Parser {
+            Lexer lexer;
+            Token curToken;
+
+            void nextToken() {
+                curToken = lexer.nextToken();
+            }
+
+            int parseDGLiteral() {
+                if (curToken.type != TokenType::DG_LITERAL)
+                    throw std::runtime_error("Expected DG literal");
+                int val = parseDGLiteral(curToken.literal);
+                nextToken();
+                return val;
+            }
+
+        public:
+            explicit Parser(const std::string& input) : lexer(input) {
+                nextToken();
+            }
+
+            // parse expression: left-to-right with operator precedence
+            int parseExpression() {
+                int lhs = parseDGLiteral();
+
+                while (curToken.type == TokenType::OP_ADD || curToken.type == TokenType::OP_SUB ||
+                    curToken.type == TokenType::OP_MUL || curToken.type == TokenType::OP_DIV ||
+                    curToken.type == TokenType::OP_MOD) {
+                    TokenType op = curToken.type;
+                    nextToken();
+                    int rhs = parseDGLiteral();
+
+                    switch (op) {
+                    case TokenType::OP_ADD: lhs = dg_add(lhs, rhs); break;
+                    case TokenType::OP_SUB: lhs = dg_sub(lhs, rhs); break;
+                    case TokenType::OP_MUL: lhs = dg_mul(lhs, rhs); break;
+                    case TokenType::OP_DIV: lhs = dg_div(lhs, rhs); break;
+                    case TokenType::OP_MOD: lhs = dg_mod(lhs, rhs); break;
+                    default: throw std::runtime_error("Unknown operator");
+                    }
+                }
+
+                if (curToken.type != TokenType::END) {
+                    throw std::runtime_error("Unexpected token after expression");
+                }
+
+                return lhs;
+            }
+        };
+
+        // --- DG Macros and Templates ---
+
+        // Compile-time DG constant as template struct
+        template<int N>
+        struct DGConst {
+            static constexpr int value = N;
+
+            static constexpr int toDecimal() { return value; }
+
+            // Convert to DG string at compile time (C++20 needed for consteval string)
+            // For simplicity, runtime version here:
+            static std::string toDGString(int minWidth = 0, bool uppercase = true) {
+                return toDG(value, minWidth, uppercase);
+            }
+
+            // Arithmetic helpers
+            template<int Other>
+            using Add = DGConst<N + Other>;
+
+            template<int Other>
+            using Sub = DGConst<(N >= Other ? N - Other : throw std::logic_error("Negative DG not allowed"))>;
+
+            template<int Other>
+            using Mul = DGConst<N* Other>;
+
+            template<int Other>
+            using Div = DGConst<(Other != 0 ? N / Other : throw std::logic_error("Div by zero"))>;
+        };
+
+        // User-defined literal for DG (runtime parsing)
+        inline int operator"" _dg(const char* str, size_t len) {
+            std::string s(str, len);
+            return parseDGLiteral(s);
+        }
+
+        // --- END DG namespace ---
+
+    } // namespace DG
+
+
+    // ------------------------------
+    // Example usage demonstrating everything
+    // ------------------------------
+
+    int main() {
+        using namespace DG;
+
+        std::cout << "== Parsing DG Literals ==\n";
+        std::string dg1 = "1X";   // 22 decimal
+        std::string dg2 = "Y9";   // 11*12 + 9 = 141 decimal
+        int val1 = parseDGLiteral(dg1);
+        int val2 = parseDGLiteral(dg2);
+        std::cout << dg1 << " -> decimal " << val1 << "\n";
+        std::cout << dg2 << " -> decimal " << val2 << "\n";
+
+        std::cout << "\n== Formatting DG ==\n";
+        std::cout << val2 << " in DG (padded width 4): " << toDG(val2, 4) << "\n";
+        std::cout << val2 << " in DG (grouped every 2, sep='-'): " << toDG(val2, 0, true, 2, "-") << "\n";
+        std::cout << val2 << " lower: " << dg_lower(toDG(val2)) << "\n";
+
+        std::cout << "\n== Arithmetic ==\n";
+        int a = parseDGLiteral("3X"); // 46 decimal
+        int b = parseDGLiteral("12"); // 14 decimal
+        std::cout << "3X + 12 = " << toDG(dg_add(a, b)) << " decimal: " << dg_add(a, b) << "\n";
+        std::cout << "3X - 12 = " << toDG(dg_sub(a, b)) << " decimal: " << dg_sub(a, b) << "\n";
+        std::cout << "3X * 3 = " << toDG(dg_mul(a, 3)) << " decimal: " << dg_mul(a, 3) << "\n";
+        std::cout << "3X / 3 = " << toDG(dg_div(a, 3)) << " decimal: " << dg_div(a, 3) << "\n";
+        std::cout << "3X % 3 = " << toDG(dg_mod(a, 3)) << " decimal: " << dg_mod(a, 3) << "\n";
+
+        std::cout << "\n== DG Expression Parsing ==\n";
+        std::string expr = "3X + 1Y * 2 - 4 / 2 % 2";
+        Parser parser(expr);
+        int exprVal = parser.parseExpression();
+        std::cout << "Expression: " << expr << "\nResult: " << toDG(exprVal) << " decimal: " << exprVal << "\n";
+
+        std::cout << "\n== DG Macros and Templates ==\n";
+        using D1 = DGConst<22>;  // 1X
+        using D2 = DGConst<14>;  // 12
+        using DSum = D1::Add<D2::value>;
+
+        std::cout << "DGConst<22> + DGConst<14> = " << DSum::value << " decimal\n";
+        std::cout << "Formatted: " << DSum::toDGString() << "\n";
+
+        // User-defined literal
+        int literalVal = "1Y"_dg;
+        std::cout << "\"1Y\"_dg = decimal " << literalVal << "\n";
+
+        return 0;
+    }
+
+    struct DGDivResult {
+        int quotient;
+        int remainder;
+    };
+
+#include <iostream>
+#include <string>
+#include <stdexcept>
+#include <cctype>
+#include <cassert>
+#include <sstream>
+#include <array>
+#include <optional>
+#include <tuple>
+#include <limits>
+
+    namespace DG {
+
+        // === DIGIT UTILITIES ===
+
+        constexpr int digitValue(char c) {
+            if (c >= '0' && c <= '9') return c - '0';
+            c = static_cast<char>(std::toupper(c));
+            if (c == 'X') return 10;
+            if (c == 'Y') return 11;
+            throw std::invalid_argument("Invalid DG digit");
+        }
+
+        constexpr char digitChar(int v, bool uppercase = true) {
+            assert(v >= 0 && v <= 11);
+            if (v <= 9) return '0' + v;
+            return uppercase ? (v == 10 ? 'X' : 'Y') : (v == 10 ? 'x' : 'y');
+        }
+
+        // === COMPILE-TIME PARSING ===
+
+        consteval int parseDGLiteralCT(const char* str, size_t len) {
+            int value = 0;
+            size_t i = 0;
+            bool negative = false;
+            if (len > 0 && str[0] == '-') {
+                negative = true;
+                i = 1;
+            }
+            for (; i < len; ++i) {
+                char c = str[i];
+                int d = digitValue(c);
+                value = value * 12 + d;
+            }
+            return negative ? -value : value;
+        }
+
+        template<size_t N>
+        consteval int parseDGLiteralCT(const char(&str)[N]) {
+            return parseDGLiteralCT(str, N - 1);
+        }
+
+        // Compile-time integer to DG string (max 12 digits max)
+        consteval std::string toDGStringCT(int value, int minWidth = 0, bool uppercase = true) {
+            if (value == 0) {
+                return std::string(minWidth > 0 ? minWidth : 1, '0');
+            }
+
+            bool negative = false;
+            unsigned int val;
+            if (value < 0) {
+                negative = true;
+                val = static_cast<unsigned int>(-value);
+            }
+            else {
+                val = static_cast<unsigned int>(value);
+            }
+
+            char buffer[32] = {};
+            int pos = 31;
+            while (val > 0) {
+                int digit = val % 12;
+                buffer[pos--] = digitChar(digit, uppercase);
+                val /= 12;
+            }
+
+            int len = 31 - pos;
+            std::string result(&buffer[pos + 1], len);
+            while ((int)result.size() < minWidth) {
+                result = '0' + result;
+            }
+            if (negative) result = '-' + result;
+            return result;
+        }
+
+        // === RUNTIME PARSING ===
+
+        inline int parseDGLiteral(const std::string& dgStr) {
+            if (dgStr.empty())
+                throw std::invalid_argument("Empty DG literal");
+
+            int value = 0;
+            size_t i = 0;
+            bool negative = false;
+            if (dgStr[0] == '-') {
+                negative = true;
+                i = 1;
+            }
+            for (; i < dgStr.size(); ++i) {
+                int d = digitValue(dgStr[i]);
+                value = value * 12 + d;
+            }
+            return negative ? -value : value;
+        }
+
+        // === FORMATTING ===
+
+        inline std::string toDG(int value, int minWidth = 0, bool uppercase = true,
+            int groupSize = 0, const std::string& groupSep = "") {
+            if (value == 0) {
+                std::string zeros(std::max(minWidth, 1), '0');
+                return zeros;
+            }
+
+            bool negative = false;
+            unsigned int val;
+            if (value < 0) {
+                negative = true;
+                val = static_cast<unsigned int>(-value);
+            }
+            else {
+                val = static_cast<unsigned int>(value);
+            }
+
+            std::string dgStr;
+            while (val > 0) {
+                int digit = val % 12;
+                dgStr.push_back(digitChar(digit, uppercase));
+                val /= 12;
+            }
+            std::reverse(dgStr.begin(), dgStr.end());
+
+            while ((int)dgStr.size() < minWidth) {
+                dgStr.insert(dgStr.begin(), '0');
+            }
+
+            if (groupSize > 1 && !groupSep.empty()) {
+                std::string grouped;
+                int len = (int)dgStr.size();
+                for (int i = 0; i < len; ++i) {
+                    grouped.push_back(dgStr[i]);
+                    if ((i + 1) % groupSize == 0 && (i + 1) < len) {
+                        grouped.append(groupSep);
+                    }
+                }
+                dgStr = grouped;
+            }
+
+            if (negative) dgStr = '-' + dgStr;
+            return dgStr;
+        }
+
+        // === ARITHMETIC ===
+
+        inline int dg_add(int a, int b) { return a + b; }
+        inline int dg_sub(int a, int b) { return a - b; }
+        inline int dg_mul(int a, int b) { return a * b; }
+        inline int dg_div(int a, int b) {
+            if (b == 0) throw std::invalid_argument("Division by zero");
+            return a / b;
+        }
+        inline int dg_mod(int a, int b) {
+            if (b == 0) throw std::invalid_argument("Modulo by zero");
+            return a % b;
+        }
+
+        struct DGDivResult {
+            int quotient;
+            int remainder;
+        };
+
+        inline DGDivResult dg_divrem(int dividend, int divisor) {
+            if (divisor == 0) throw std::invalid_argument("Division by zero");
+            int q = dividend / divisor;
+            int r = dividend % divisor;
+            return { q, r };
+        }
+
+        // === TOKENIZER for expression parsing ===
+
+        enum class TokenType {
+            DG_LITERAL,
+            OP_ADD,
+            OP_SUB,
+            OP_MUL,
+            OP_DIV,
+            OP_MOD,
+            LPAREN,
+            RPAREN,
+            END,
+            INVALID
+        };
+
+        struct Token {
+            TokenType type;
+            std::string literal;
+        };
+
+        class Lexer {
+            const std::string& input;
+            size_t pos;
+        public:
+            explicit Lexer(const std::string& str) : input(str), pos(0) {}
+
+            void skipWhitespace() {
+                while (pos < input.size() && std::isspace(input[pos])) ++pos;
+            }
+
+            Token nextToken() {
+                skipWhitespace();
+                if (pos >= input.size()) return { TokenType::END, "" };
+
+                char c = input[pos];
+
+                // Operators
+                if (c == '+') { ++pos; return { TokenType::OP_ADD, "+" }; }
+                if (c == '-') { ++pos; return { TokenType::OP_SUB, "-" }; }
+                if (c == '*') { ++pos; return { TokenType::OP_MUL, "*" }; }
+                if (c == '/') { ++pos; return { TokenType::OP_DIV, "/" }; }
+                if (c == '%') { ++pos; return { TokenType::OP_MOD, "%" }; }
+                if (c == '(') { ++pos; return { TokenType::LPAREN, "(" }; }
+                if (c == ')') { ++pos; return { TokenType::RPAREN, ")" }; }
+
+                // DG literal parsing: one or more valid DG digits (0-9, X, Y)
+                size_t start = pos;
+                if (c == '-') {
+                    // negative sign could belong to literal
+                    ++pos;
+                    if (pos < input.size()) {
+                        char nextc = std::toupper(input[pos]);
+                        if ((nextc >= '0' && nextc <= '9') || nextc == 'X' || nextc == 'Y') {
+                            // valid negative literal
+                        }
+                        else {
+                            // '-' is operator, not literal
+                            pos = start;
+                        }
+                    }
+                    else {
+                        // '-' at end, invalid literal
+                        pos = start;
+                    }
+                }
+                if (pos == start) { // no negative sign consumed
+                    // parse digits now
+                    while (pos < input.size()) {
+                        char ch = std::toupper(input[pos]);
+                        if ((ch >= '0' && ch <= '9') || ch == 'X' || ch == 'Y') {
+                            ++pos;
+                        }
+                        else break;
+                    }
+                }
+                else {
+                    // negative sign consumed, continue digits
+                    while (pos < input.size()) {
+                        char ch = std::toupper(input[pos]);
+                        if ((ch >= '0' && ch <= '9') || ch == 'X' || ch == 'Y') {
+                            ++pos;
+                        }
+                        else break;
+                    }
+                }
+
+                if (pos > start) {
+                    return { TokenType::DG_LITERAL, input.substr(start, pos - start) };
+                }
+
+                return { TokenType::INVALID, std::string(1, c) };
+            }
+        };
+
+        // === PARSER with full precedence and parentheses ===
+
+        class Parser {
+            Lexer lexer;
+            Token curToken;
+
+            void nextToken() { curToken = lexer.nextToken(); }
+
+            // Precedence levels
+            // 1: + -
+            // 2: * / %
+            // 3: literals and parentheses
+
+            int parsePrimary() {
+                if (curToken.type == TokenType::DG_LITERAL) {
+                    int val = parseDGLiteral(curToken.literal);
+                    nextToken();
+                    return val;
+                }
+                else if (curToken.type == TokenType::LPAREN) {
+                    nextToken();
+                    int expr = parseExpression();
+                    if (curToken.type != TokenType::RPAREN) {
+                        throw std::runtime_error("Expected closing parenthesis");
+                    }
+                    nextToken();
+                    return expr;
+                }
+                else {
+                    throw std::runtime_error("Unexpected token in primary expression");
+                }
+            }
+
+            int parseTerm() {
+                int lhs = parsePrimary();
+                while (curToken.type == TokenType::OP_MUL || curToken.type == TokenType::OP_DIV || curToken.type == TokenType::OP_MOD) {
+                    TokenType op = curToken.type;
+                    nextToken();
+                    int rhs = parsePrimary();
+                    switch (op) {
+                    case TokenType::OP_MUL: lhs = dg_mul(lhs, rhs); break;
+                    case TokenType::OP_DIV: lhs = dg_div(lhs, rhs); break;
+                    case TokenType::OP_MOD: lhs = dg_mod(lhs, rhs); break;
+                    default: break;
+                    }
+                }
+                return lhs;
+            }
+
+        public:
+            explicit Parser(const std::string& input) : lexer(input) {
+                nextToken();
+            }
+
+            int parseExpression() {
+                int lhs = parseTerm();
+                while (curToken.type == TokenType::OP_ADD || curToken.type == TokenType::OP_SUB) {
+                    TokenType op = curToken.type;
+                    nextToken();
+                    int rhs = parseTerm();
+                    switch (op) {
+                    case TokenType::OP_ADD: lhs = dg_add(lhs, rhs); break;
+                    case TokenType::OP_SUB: lhs = dg_sub(lhs, rhs); break;
+                    default: break;
+                    }
+                }
+                if (curToken.type != TokenType::END) {
+                    throw std::runtime_error("Unexpected token after expression");
+                }
+                return lhs;
+            }
+        };
+
+        // === FIXED-POINT DG BASE-12 FLOATING POINT ===
+
+        struct DGFixed {
+            int64_t integerPart;
+            uint64_t fractionalPart; // stores digits in base-12 fractional
+            static constexpr int fractionalDigits = 6; // fixed 6 fractional digits
+            static constexpr int base = 12;
+
+            DGFixed() : integerPart(0), fractionalPart(0) {}
+            DGFixed(int64_t i, uint64_t f) : integerPart(i), fractionalPart(f) {}
+
+            // Parse DGFixed from string e.g. "1X.Y3"
+            static DGFixed parse(const std::string& str) {
+                size_t dotPos = str.find('.');
+                std::string intPartStr = dotPos == std::string::npos ? str : str.substr(0, dotPos);
+                std::string fracPartStr = dotPos == std::string::npos ? "" : str.substr(dotPos + 1);
+
+                int64_t integerPart = parseDGLiteral(intPartStr);
+
+                uint64_t fractionalPart = 0;
+                uint64_t multiplier = 1;
+                // Parse fractional digits base 12:
+                for (size_t i = 0; i < fractionalDigits; ++i) {
+                    int digit = 0;
+                    if (i < fracPartStr.size()) {
+                        digit = digitValue(fracPartStr[i]);
+                    }
+                    multiplier *= base;
+                    fractionalPart = fractionalPart * base + digit;
+                }
+
+                return DGFixed(integerPart, fractionalPart);
+            }
+
+            // Convert DGFixed to string
+            std::string toString(bool uppercase = true) const {
+                std::string s = toDG(static_cast<int>(integerPart), 0, uppercase);
+                if (fractionalPart != 0) {
+                    s += '.';
+                    // fractional digits (from fractionalPart) to DG digits
+                    uint64_t val = fractionalPart;
+                    std::string fracStr;
+                    for (int i = 0; i < fractionalDigits; ++i) {
+                        int digit = val / static_cast<uint64_t>(std::pow(base, fractionalDigits - i - 1));
+                        val = val % static_cast<uint64_t>(std::pow(base, fractionalDigits - i - 1));
+                        fracStr.push_back(digitChar(digit, uppercase));
+                    }
+                    s += fracStr;
+                }
+                return s;
+            }
+        };
+
+
+
+        // === USER DEFINED LITERAL (compile-time) ===
+        constexpr int operator"" _cdg(const char* str, size_t len) {
+            return parseDGLiteralCT(str, len);
+        }
+
+    } // namespace DG
+
+
+    // === TEST / DEMO ===
+
+    int main() {
+        using namespace DG;
+
+        std::cout << "=== Compile-time DG literal parsing ===\n";
+        constexpr int val1 = "1X"_cdg;  // 22 decimal
+        constexpr int val2 = "-Y9"_cdg; // -141 decimal
+        std::cout << "1X (compile-time) decimal: " << val1 << "\n";
+        std::cout << "-Y9 (compile-time) decimal: " << val2 << "\n";
+        std::cout << "1X back to DG string: " << toDGStringCT(val1) << "\n";
+        std::cout << "-Y9 back to DG string: " << toDGStringCT(val2) << "\n\n";
+
+        std::cout << "=== Runtime DG literal parsing and formatting ===\n";
+        std::string dgstr = "-3X9Y";
+        int val = parseDGLiteral(dgstr);
+        std::cout << dgstr << " decimal: " << val << "\n";
+        std::cout << val << " back to DG string: " << toDG(val, 6, true, 3, "-") << "\n\n";
+
+        std::cout << "=== DG Expression Parsing with parentheses & precedence ===\n";
+        std::string expr = "3X + (1Y * 2) - 4 / 2 % 2";
+        Parser parser(expr);
+        int exprVal = parser.parseExpression();
+        std::cout << "Expression: " << expr << "\nResult decimal: " << exprVal << "\n";
+        std::cout << "Result DG: " << toDG(exprVal) << "\n\n";
+
+        std::cout << "=== DG Division with remainder ===\n";
+        int dividend = parseDGLiteral("1Y"); // 11*12 + 9 = 141
+        int divisor = parseDGLiteral("12");  // 14
+        DGDivResult res = dg_divrem(dividend, divisor);
+        std::cout << toDG(dividend) << " / " << toDG(divisor) << " = " << toDG(res.quotient) << " remainder " << toDG(res.remainder) << "\n\n";
+
+        std::cout << "=== DG Fixed-point parsing and formatting ===\n";
+        std::string fixedStr = "3X.19Y";
+        DGFixed fixedVal = DGFixed::parse(fixedStr);
+        std::cout << "Parsed: " << fixedStr << " -> Integer: " << fixedVal.integerPart << ", Fractional: " << fixedVal.fractionalPart << "\n";
+        std::cout << "Fixed-point to string: " << fixedVal.toString() << "\n";
+
+        return 0;
+    }
+
+    namespace QuarterLang {
+        namespace Runtime {
+            // Parse and evaluate a DG expression string at runtime, returning decimal int
+            int evaluateDGExpression(const std::string& dgExpr) {
+                try {
+                    DG::Parser parser(dgExpr);
+                    return parser.parseExpression();
+                }
+                catch (const std::exception& e) {
+                    // Convert to QuarterLang runtime error or handle gracefully
+                    throw std::runtime_error(std::string("DG Expression error: ") + e.what());
+                }
+            }
+
+            // TODO: similarly for DGFixed expressions in future
+        }
+    }
+
+    class DGLiteralNode : public ExprNode {
+        std::string literalStr;
+    public:
+        DGLiteralNode(const std::string& str) : literalStr(str) {}
+
+        Value eval() override {
+            int val = QuarterLang::Runtime::evaluateDGExpression(literalStr);
+            return Value::fromInt(val);
+        }
+    };
+
+    class DGBinaryOpNode : public ExprNode {
+        char op; // '+', '-', '*', '/', '%'
+        std::unique_ptr<ExprNode> lhs;
+        std::unique_ptr<ExprNode> rhs;
+    public:
+        DGBinaryOpNode(char o, std::unique_ptr<ExprNode> left, std::unique_ptr<ExprNode> right)
+            : op(o), lhs(std::move(left)), rhs(std::move(right)) {
+        }
+
+        Value eval() override {
+            int leftVal = lhs->eval().toInt();
+            int rightVal = rhs->eval().toInt();
+            int res = 0;
+            switch (op) {
+            case '+': res = DG::dg_add(leftVal, rightVal); break;
+            case '-': res = DG::dg_sub(leftVal, rightVal); break;
+            case '*': res = DG::dg_mul(leftVal, rightVal); break;
+            case '/': res = DG::dg_div(leftVal, rightVal); break;
+            case '%': res = DG::dg_mod(leftVal, rightVal); break;
+            default: throw std::runtime_error("Unsupported DG op");
+            }
+            return Value::fromInt(res);
+        }
+    };
+
+    struct ConstexprDGFixed {
+        int64_t integerPart;
+        uint64_t fractionalPart;
+        static constexpr int fractionalDigits = 6;
+        static constexpr int base = 12;
+
+        consteval static ConstexprDGFixed parse(const char* str, size_t len) {
+            int64_t intPart = 0;
+            uint64_t fracPart = 0;
+            size_t i = 0;
+            bool negative = false;
+            if (len > 0 && str[0] == '-') {
+                negative = true;
+                i = 1;
+            }
+            // Parse integer part until '.' or end
+            for (; i < len && str[i] != '.'; ++i) {
+                int d = DG::digitValue(str[i]);
+                intPart = intPart * 12 + d;
+            }
+            if (negative) intPart = -intPart;
+            if (i == len) return { intPart, 0 };
+            ++i; // skip '.'
+
+            // Parse fractional digits fixed count
+            for (int f = 0; f < fractionalDigits; ++f) {
+                int d = (i + f < len) ? DG::digitValue(str[i + f]) : 0;
+                fracPart = fracPart * 12 + d;
+            }
+            return { intPart, fracPart };
+        }
+    };
+
+#include <iostream>
+#include <string_view>
+
+    namespace DG {
+
+        constexpr int digitValue(char c) {
+            if (c >= '0' && c <= '9') return c - '0';
+            c = (c >= 'a' && c <= 'z') ? (c - 'a' + 'A') : c;
+            if (c == 'X') return 10;
+            if (c == 'Y') return 11;
+            return -1;
+        }
+
+        struct DGFixed {
+            int64_t integerPart;
+            uint64_t fractionalPart;
+            static constexpr int fractionalDigits = 6;
+            static constexpr int base = 12;
+
+            consteval static DGFixed parse(const char* str, size_t len) {
+                int64_t intPart = 0;
+                uint64_t fracPart = 0;
+                size_t i = 0;
+                bool negative = false;
+
+                if (len > 0 && str[0] == '-') {
+                    negative = true;
+                    i = 1;
+                }
+
+                for (; i < len && str[i] != '.'; ++i) {
+                    int d = digitValue(str[i]);
+                    if (d < 0) throw "Invalid digit";
+                    intPart = intPart * 12 + d;
+                }
+
+                if (negative) intPart = -intPart;
+
+                if (i == len) return { intPart, 0 };
+                ++i;
+
+                for (int f = 0; f < fractionalDigits; ++f) {
+                    int d = (i + f < len) ? digitValue(str[i + f]) : 0;
+                    if (d < 0) throw "Invalid digit";
+                    fracPart = fracPart * 12 + d;
+                }
+
+                return { intPart, fracPart };
+            }
+        };
+
+        // User-defined literal for fixed-point DG
+        consteval DGFixed operator"" _cdgf(const char* str, size_t len) {
+            return DGFixed::parse(str, len);
+        }
+
+    } // namespace DG
+
+    int main() {
+        constexpr auto fixedVal = DG::operator"" _cdgf("3X.19Y", 5);
+        std::cout << "Parsed DGFixed: integerPart = " << fixedVal.integerPart
+            << ", fractionalPart = " << fixedVal.fractionalPart << "\n";
+    }
+
+    // --- FORMAT DG STRING ---
+        inline std::string formatDG(const std::string& dgStr, int minWidth = 0, bool uppercase = true,
+            int groupSize = 0, const std::string& groupSep = "") {
+            if (dgStr.empty()) {
+                return std::string(minWidth > 0 ? minWidth : 1, '0');
+            }
+            // Handle negative sign
+            bool negative = false;
+            if (dgStr[0] == '-') {
+                negative = true;
+            }
+            // Convert to uppercase if needed
+            std::string formatted = dgStr;
+            if (!uppercase) {
+                std::transform(formatted.begin(), formatted.end(), formatted.begin(), ::tolower);
+            }
+            // Remove leading '-' for processing
+            if (negative) {
+                formatted.erase(0, 1);
+            }
+            // Pad with zeros
+            while ((int)formatted.size() < minWidth) {
+                formatted.insert(formatted.begin(), '0');
+            }
+            // Grouping
+            if (groupSize > 1 && !groupSep.empty()) {
+                std::string grouped;
+                int len = (int)formatted.size();
+                for (int i = 0; i < len; ++i) {
+					grouped.push_back(formatted[i]);
+                    if ((i + 1) % groupSize == 0 && (i + 1) < len) {
+                        grouped.append(groupSep);
+                    }
+                }
+                formatted = grouped;
+            }
+            // Add negative sign back if needed
+            if (negative) {
+                formatted = '-' + formatted;
+            }
+            return formatted;
+		}
+        inline std::string dg_lower(const std::string& s) {
+            std::string res = s;
+            std::transform(res.begin(), res.end(), res.begin(), ::tolower);
+            return res;
+        }
+		inline std::string dg_upper(const std::string& s) {
+            std::string res = s;
+            std::transform(res.begin(), res.end(), res.begin(), ::toupper);
+            return res;
+        }
+    } // namespace DG
+	// --- END QUARTERLANG CODE ---
+    // --- TOKENIZER for DG expressions ---
+        enum class TokenType {
+            DG_LITERAL,
+            OP_ADD,
+            OP_SUB,
+            OP_MUL,
+			OP_DIV,
+            OP_MOD,
+            LPAREN,
+            RPAREN,
+            END,
+            INVALID // for unrecognized characters or invalid DG literals
+        };
+        struct Token {
+            TokenType type;
+			std::string literal; // for DG literals and other tokens with text
+            Token(TokenType t, const std::string& lit = "") : type(t), literal(lit) {}
+        };
+        class Lexer {
+            const std::string& input;
+            size_t pos;
+        public:
+            explicit Lexer(const std::string& str) : input(str), pos(0) {}
+            void skipWhitespace() {
+				while (pos < input.size() &&
+					std::isspace(input[pos])) ++pos;
+                }
+            Token nextToken() {
+                skipWhitespace();
+                if (pos >= input.size()) return { TokenType::END, "" };
+                char c = input[pos];
+                // Operators
+                if (c == '+') { ++pos; return { TokenType::OP_ADD, "+" }; }
+				if (c == '-') {
+					++pos; return {
+						TokenType::OP_SUB, "-" };
+				}
+				if (c == '*') { ++pos; return { TokenType::OP_MUL, "*" }; }
+				if (c == '/') { ++pos; return { TokenType::OP_DIV, "/" }; }
+				if (c == '%') { ++pos; return { TokenType::OP_MOD, "%" }; }
+                if (c == '(') { ++pos; return { TokenType::LPAREN, "(" }; }
+                if (c == ')') { ++pos; return { TokenType::RPAREN, ")" }; }
+                // DG literal parsing: one or more valid DG digits (0-9, X, Y)
+                size_t start = pos;
+                if (c == '-') {
+                    // negative sign could belong to literal
+                    ++pos;
+                    if (pos < input.size()) {
+                        char nextc = std::toupper(input[pos]);
+                        if ((nextc >= '0' && nextc <= '9') || nextc == 'X' || nextc == 'Y') {
+                            // valid negative literal
+                        }
+                        else {
+                            // '-' is operator, not literal
+                            pos = start;
+                        }
+                    }
+                    else {
+                        // '-' at end, invalid literal
+                        pos = start;
+                    }
+                }
+                if (pos == start) { // no negative sign consumed
+                    // parse digits now
+                    while (pos < input.size()) {
+                        char ch = std::toupper(input[pos]);
+                        if ((ch >= '0' && ch <= '9') || ch == 'X' || ch == 'Y') {
+                            ++pos;
+                        }
+                        else break;
+                    }
+                }
+                else {
+                    // negative sign consumed, continue digits
+                    while (pos < input.size()) {
+                        char ch = std::toupper(input[pos]);
+                        if ((ch >= '0' && ch <= '9') || ch == 'X' || ch == 'Y') {
+							++
+                                pos;
+                        }
+                        else break;
+                    }
+                }
+                if (pos > start) {
+                    return { TokenType::DG_LITERAL, input.substr(start, pos - start) };
+                }
+                return { TokenType::INVALID, std::string(1, c) };
+            }
+        };
+        // --- PARSER for DG expressions ---
+        class Parser {
+            Lexer lexer;
+            Token curToken;
+            void nextToken() { curToken = lexer.nextToken(); }
+            int parsePrimary() {
+                if (curToken.type == TokenType::DG_LITERAL) {
+                    int val = parseDGLiteral(curToken.literal);
+                    nextToken();
+                    return val;
+                }
+                else if (curToken.type == TokenType::LPAREN) {
+                    nextToken();
+                    int expr = parseExpression();
+                    if (curToken.type != TokenType::RPAREN) {
+                        throw std::runtime_error("Expected closing parenthesis");
+                    }
+                    nextToken();
+                    return expr;
+                }
+                else {
+                    throw std::runtime_error("Unexpected token in primary expression");
+                }
+            }
+            int parseTerm() {
+                int lhs = parsePrimary();
+                while (curToken.type == TokenType::OP_MUL || curToken.type == TokenType::OP_DIV || curToken.type == TokenType::OP_MOD) {
+                    TokenType op = curToken.type;
+                    nextToken();
+                    int rhs = parsePrimary();
+					switch (op) {
+                        case TokenType::OP_MUL: lhs = dg_mul(lhs, rhs); break;
+                        case TokenType::OP_DIV: lhs = dg_div(lhs, rhs); break;
+                        case TokenType::OP_MOD: lhs = dg_mod(lhs, rhs); break;
+                        default: break;
+                    }
+                }
+                return lhs;
+            }
+        public:
+            explicit Parser(const std::string& input) : lexer(input) {
+                nextToken();
+            }
+            int parseExpression() {
+                int lhs = parseTerm();
+                while (curToken.type == TokenType::OP_ADD || curToken.type == TokenType::OP_SUB) {
+                    TokenType op = curToken.type;
+                    nextToken();
+                    int rhs = parseTerm();
+                    switch (op) {
+                        case TokenType::OP_ADD: lhs = dg_add(lhs, rhs); break;
+                        case TokenType::OP_SUB: lhs = dg_sub(lhs, rhs); break;
+                        default: break;
+                    }
+                }
+                if (curToken.type != TokenType::END) {
+                    throw std::runtime_error("Unexpected token after expression");
+                }
+                return lhs;
+            }
+        };
+        // User-defined literal for DG
+        constexpr int operator"" _dg(const char* str, size_t len) {
+			std::string s(str,
+                len); // Convert to std::string for parsing
+            return parseDGLiteral(s);
+        }
+    } // namespace DG
+    // --- MAIN FUNCTION FOR TESTING ---
+    int main() {
+        using namespace DG;
+        std::cout << "=== DG Literal Parsing and Formatting ===\n";
+        int a = "3X"_dg;  // 36 decimal
+        int b = "1Y"_dg;  // 23 decimal
+        std::cout << "3X in decimal: " << a << "\n";
+        std::cout << "1Y in decimal: " << b << "\n";
+        std::cout << "Formatted: " << toDG(a) << "\n";
+        std::cout << "\n== DG Arithmetic ==\n";
+        std::cout << "3X + 1Y = " << toDG(dg_add(a, b)) << " decimal: " << dg_add(a, b) << "\n";
+        std::cout << "3X - 1Y = " << toDG(dg_sub(a, b)) << " decimal: " << dg_sub(a, b) << "\n";
+		std::cout << "3X * 2 = " << toDG(dg_mul(a, 2)) << " decimal: " << dg_mul(a, 2) << "\
+n";
+        std::cout << "3X / 2 = " << toDG(dg_div(a, 2)) << " decimal: " << dg_div(a, 2) << "\n";
+        std::cout << "3X % 2 = " << toDG(dg_mod(a, 2)) << " decimal: " << dg_mod(a, 2) << "\n";
+        std::cout << "\n=== DG Expression Parsing ===\n";
+        std::string expr = "3X + 1Y * 2 - 4 / 2 % 2";
+        Parser parser(expr);
+        int result = parser.parseExpression();
+        std::cout << "Expression: " << expr << "\nResult: " << toDG(result) << " (decimal: " << result << ")\n";
+		// Test user-defined literal
+        constexpr int val = "1X2Y"_dg; // 22*12 + 2 = 266
+        std::cout << "User-defined literal '1X2Y' in decimal: " << val << "\n";
+        std::cout << "Formatted: " << toDG(val, 6, true, 3, "-") << "\n";
+        // Test fixed-point parsing
+        constexpr DG::DGFixed fixedVal = DG::operator"" _cdgf("3X.19Y", 5);
+        std::cout << "Parsed DGFixed: integerPart = " << fixedVal.integerPart
+            << ", fractionalPart = " << fixedVal.fractionalPart << "\n";
+        std::cout << "Fixed-point to string: " << fixedVal.toString() << "\n";
+        return 0;
+	}
+
+#include <string>
+#include <memory>
+#include <stdexcept>
+#include <iostream>
+#include <vector>
+#include <optional>
+#include <variant>
+#include <sstream>
+
+    // --- DG Utilities ---
+
+    namespace DG {
+
+        // Digit utilities
+        inline int digitValue(char c) {
+            if (c >= '0' && c <= '9') return c - '0';
+            c = (c >= 'a' && c <= 'z') ? (c - 'a' + 'A') : c;
+            if (c == 'X') return 10;
+            if (c == 'Y') return 11;
+            return -1;
+        }
+
+        inline char digitChar(int v) {
+            if (v >= 0 && v <= 9) return '0' + v;
+            if (v == 10) return 'X';
+            if (v == 11) return 'Y';
+            return '?';
+        }
+
+    } // namespace DG
+
+    namespace DG {
+
+        struct DGFixed {
+            int64_t integerPart;      // integer portion base-12 (decimal stored)
+            uint64_t fractionalPart;  // fractional part stored as base-12 digits (scaled)
+            static constexpr int fractionalDigits = 6;
+            static constexpr int base = 12;
+
+            DGFixed(int64_t intP = 0, uint64_t fracP = 0)
+                : integerPart(intP), fractionalPart(fracP) {
+            }
+
+            // Convert DG string literal (e.g. "3X.19Y") to DGFixed at runtime
+            static DGFixed parse(const std::string& literal) {
+                int64_t intPart = 0;
+                uint64_t fracPart = 0;
+                bool negative = false;
+                size_t i = 0;
+
+                if (!literal.empty() && literal[0] == '-') {
+                    negative = true;
+                    i = 1;
+                }
+
+                // Parse integer part (up to '.')
+                while (i < literal.size() && literal[i] != '.') {
+                    int d = DG::digitValue(literal[i]);
+                    if (d < 0) throw std::runtime_error("Invalid DG digit in integer part");
+                    intPart = intPart * 12 + d;
+                    i++;
+                }
+                if (negative) intPart = -intPart;
+
+                if (i == literal.size()) return { intPart, 0 }; // no fractional part
+
+                // Skip '.'
+                ++i;
+
+                // Parse fractional part fixed digits
+                for (int f = 0; f < fractionalDigits; ++f) {
+                    int d = (i + f < literal.size()) ? DG::digitValue(literal[i + f]) : 0;
+                    if (d < 0) throw std::runtime_error("Invalid DG digit in fractional part");
+                    fracPart = fracPart * 12 + d;
+                }
+
+                return { intPart, fracPart };
+            }
+
+            // Convert DGFixed back to string representation (base-12)
+            std::string toString() const {
+                std::stringstream ss;
+                int64_t absInt = integerPart < 0 ? -integerPart : integerPart;
+                if (integerPart < 0) ss << '-';
+
+                // Convert integerPart to base12 string
+                if (absInt == 0) {
+                    ss << '0';
+                }
+                else {
+                    std::string intStr;
+                    while (absInt > 0) {
+                        int digit = absInt % 12;
+                        intStr = DG::digitChar(digit) + intStr;
+                        absInt /= 12;
+                    }
+                    ss << intStr;
+                }
+
+                // Add fractional part
+                if (fractionalPart != 0) {
+                    ss << '.';
+                    uint64_t frac = fractionalPart;
+                    // fractionalDigits digits to print
+                    for (int i = fractionalDigits - 1; i >= 0; --i) {
+                        int digit = (frac / static_cast<uint64_t>(std::pow(12, i))) % 12;
+                        ss << DG::digitChar(digit);
+                    }
+                }
+                return ss.str();
+            }
+
+            // Addition operator
+            DGFixed operator+(const DGFixed& other) const {
+                int64_t newInt = integerPart + other.integerPart;
+                uint64_t newFrac = fractionalPart + other.fractionalPart;
+
+                // Handle fractional overflow
+                uint64_t maxFrac = 1;
+                for (int i = 0; i < fractionalDigits; ++i) maxFrac *= base;
+
+                if (newFrac >= maxFrac) {
+                    newInt += 1;
+                    newFrac -= maxFrac;
+                }
+                return { newInt, newFrac };
+            }
+
+            // Subtraction operator
+            DGFixed operator-(const DGFixed& other) const {
+                int64_t newInt = integerPart - other.integerPart;
+                int64_t newFrac = static_cast<int64_t>(fractionalPart) - static_cast<int64_t>(other.fractionalPart);
+
+                if (newFrac < 0) {
+                    newInt -= 1;
+                    uint64_t maxFrac = 1;
+                    for (int i = 0; i < fractionalDigits; ++i) maxFrac *= base;
+                    newFrac += maxFrac;
+                }
+                return { newInt, static_cast<uint64_t>(newFrac) };
+            }
+
+            // Comparison operators, multiplication, division can be similarly added
+        };
+
+    } // namespace DG
+
+    using Value = std::variant<int, DG::DGFixed>;
+
+    enum class ValueType { INT, DGFIXED };
+
+    struct TypedValue {
+        Value val;
+        ValueType type;
+
+        TypedValue(int i) : val(i), type(ValueType::INT) {}
+        TypedValue(DG::DGFixed dgf) : val(dgf), type(ValueType::DGFIXED) {}
+
+        int asInt() const {
+            if (type == ValueType::INT) return std::get<int>(val);
+            if (type == ValueType::DGFIXED) {
+                // Convert DGFixed integerPart to int (truncation)
+                return static_cast<int>(std::get<DG::DGFixed>(val).integerPart);
+            }
+            throw std::runtime_error("Unknown value type");
+        }
+
+        DG::DGFixed asDGFixed() const {
+            if (type == ValueType::DGFIXED) return std::get<DG::DGFixed>(val);
+            if (type == ValueType::INT) return DG::DGFixed(std::get<int>(val), 0);
+            throw std::runtime_error("Unknown value type");
+        }
+    };
+
+    struct DGLiteralNode : public ASTNode {
+        std::string literalStr;
+
+        DGLiteralNode(std::string lit) : literalStr(std::move(lit)) {}
+
+        TypedValue eval() override {
+            try {
+                DG::DGFixed val = DG::DGFixed::parse(literalStr);
+                return TypedValue(val);
+            }
+            catch (const std::exception& e) {
+                throw std::runtime_error("DG literal parse error: " + std::string(e.what()));
+            }
+        }
+    };
+
+    struct IntLiteralNode : public ASTNode {
+        int value;
+
+        IntLiteralNode(int val) : value(val) {}
+
+        TypedValue eval() override {
+            return TypedValue(value);
+        }
+    };
+
+    struct BinaryOpNode : public ASTNode {
+        enum class OpType { ADD, SUB, MUL, DIV };
+
+        OpType op;
+        std::unique_ptr<ASTNode> lhs;
+        std::unique_ptr<ASTNode> rhs;
+
+        BinaryOpNode(OpType operation, std::unique_ptr<ASTNode> left, std::unique_ptr<ASTNode> right)
+            : op(operation), lhs(std::move(left)), rhs(std::move(right)) {
+        }
+
+        TypedValue eval() override {
+            TypedValue leftVal = lhs->eval();
+            TypedValue rightVal = rhs->eval();
+
+            // Promote int to DGFixed if mixed types
+            if (leftVal.type == ValueType::INT && rightVal.type == ValueType::INT) {
+                int l = leftVal.asInt();
+                int r = rightVal.asInt();
+                switch (op) {
+                case OpType::ADD: return TypedValue(l + r);
+                case OpType::SUB: return TypedValue(l - r);
+                case OpType::MUL: return TypedValue(l * r);
+                case OpType::DIV:
+                    if (r == 0) throw std::runtime_error("Division by zero");
+                    return TypedValue(l / r);
+                }
+            }
+            else {
+                DG::DGFixed l = leftVal.asDGFixed();
+                DG::DGFixed r = rightVal.asDGFixed();
+                switch (op) {
+                case OpType::ADD: return TypedValue(l + r);
+                case OpType::SUB: return TypedValue(l - r);
+                    // TODO: Implement multiplication/division for DGFixed fully
+                case OpType::MUL: throw std::runtime_error("DGFixed multiplication not implemented");
+                case OpType::DIV: throw std::runtime_error("DGFixed division not implemented");
+                }
+            }
+            throw std::runtime_error("Unknown operation");
+        }
+    };
+
+    namespace DG {
+
+        struct DGVec3 {
+            DGFixed x, y, z;
+
+            DGVec3(DGFixed _x = {}, DGFixed _y = {}, DGFixed _z = {}) : x(_x), y(_y), z(_z) {}
+
+            DGVec3 operator+(const DGVec3& other) const {
+                return { x + other.x, y + other.y, z + other.z };
+            }
+            DGVec3 operator-(const DGVec3& other) const {
+                return { x - other.x, y - other.y, z - other.z };
+            }
+
+            // Dot product (approximate as int64_t for now)
+            int64_t dot(const DGVec3& other) const {
+                // TODO: implement fixed-point mul first
+                throw std::runtime_error("DGFixed multiplication not implemented");
+            }
+        };
+
+        struct DGMatrix3x3 {
+            DGFixed m[3][3];
+
+            DGVec3 multiply(const DGVec3& vec) const {
+                // Multiply matrix by vector
+                // TODO: implement multiplication using DGFixed mul
+                throw std::runtime_error("DGFixed multiplication not implemented");
+            }
+        };
+
+    } // namespace DG
+
+    struct SourcePos {
+        int line;
+        int column;
+    };
+
+    struct Diagnostic {
+        std::string message;
+        SourcePos pos;
+
+        Diagnostic(std::string msg, SourcePos p) : message(std::move(msg)), pos(p) {}
+
+        void print() const {
+            std::cerr << "Error at line " << pos.line << ", column " << pos.column << ": " << message << "\n";
+        }
+    };
+
+    struct ASTNode {
+        SourcePos pos;
+        virtual TypedValue eval() = 0;
+        virtual ~ASTNode() = default;
+    };
+
+    struct DGLiteralNode : public ASTNode {
+        std::string literalStr;
+
+        DGLiteralNode(std::string lit, SourcePos p) : literalStr(std::move(lit)) { pos = p; }
+
+        TypedValue eval() override {
+            try {
+                DG::DGFixed val = DG::DGFixed::parse(literalStr);
+                return TypedValue(val);
+            }
+            catch (const std::exception& e) {
+                throw Diagnostic("DG literal parse error: " + std::string(e.what()), pos);
+            }
+        }
+    };
+
+    struct IntLiteralNode : public ASTNode {
+        int value;
+        IntLiteralNode(int val, SourcePos p) : value(val) { pos = p; }
+        TypedValue eval() override {
+            return TypedValue(value);
+        }
+	};
+    struct BinaryOpNode : public ASTNode {
+        enum class OpType { ADD, SUB, MUL, DIV };
+        OpType op;
+        std::unique_ptr<ASTNode> lhs;
+        std::unique_ptr<ASTNode> rhs;
+        BinaryOpNode(OpType operation, std::unique_ptr<ASTNode> left, std::unique_ptr<ASTNode> right, SourcePos p)
+            : op(operation), lhs(std::move(left)), rhs(std::move(right)) {
+            pos = p;
+        }
+        TypedValue eval() override {
+            TypedValue leftVal = lhs->eval();
+            TypedValue rightVal = rhs->eval();
+            // Promote int to DGFixed if mixed types
+            if (leftVal.type == ValueType::INT && rightVal.type == ValueType::INT) {
+                int l = leftVal.asInt();
+                int r = rightVal.asInt();
+                switch (op) {
+                case OpType::ADD: return TypedValue(l + r);
+                case OpType::SUB: return TypedValue(l - r);
+                case OpType::MUL: return TypedValue(l * r);
+                case OpType::DIV:
+                    if (r == 0) throw Diagnostic("Division by zero", pos);
+                    return TypedValue(l / r);
+                }
+            }
+            else {
+                DG::DGFixed l = leftVal.asDGFixed();
+                DG::DGFixed r = rightVal.asDGFixed();
+                switch (op) {
+                case OpType::ADD: return TypedValue(l + r);
+				case OpType::SUB: return TypedValue(l - r);
+				case OpType::MUL:
+                    throw Diagnostic("DGFixed multiplication not implemented", pos);
+                case OpType::DIV:
+                    throw Diagnostic("DGFixed division not implemented", pos);
+                }
+            }
+            throw Diagnostic("Unknown operation", pos);
+        }
+	};
+    // Parse a DG literal string at runtime
+    inline int parseDGLiteral(const std::string& str) {
+        int value = 0;
+        bool negative = false;
+        size_t i = 0;
+        if (str.empty()) throw std::runtime_error("Empty DG literal");
+        if (str[0] == '-') {
+            negative = true;
+            i = 1;
+        }
+        for (; i < str.size(); ++i) {
+            int digit = digitValue(str[i]);
+            if (digit < 0) throw std::runtime_error("Invalid digit in DG literal");
+            value = value * 12 + digit;
+        }
+        return negative ? -value : value;
+    }
+    // Convert integer to DG string representation
+    inline std::string toDG(int val, int minWidth = 0, bool uppercase = true, int fractionalDigits = 0, const std::string& prefix = "") {
+        if (val == 0) return prefix + "0";
+        std::string s = prefix;
+        bool negative = val < 0;
+        if (negative) {
+            s += '-';
+            val = -val;
+        }
+        // Convert integer part to base-12
+        std::string intStr;
+        while (val > 0) {
+            int digit = val % 12;
+            intStr.insert(intStr.begin(), digitChar(digit, uppercase));
+            val /= 12;
+        }
+        s += intStr;
+        // Handle fractional part if needed
+        if (fractionalDigits > 0) {
+            s += '.';
+            uint64_t fracVal = static_cast<uint64_t>(val * std::pow(12, fractionalDigits));
+            for (int i = 0; i < fractionalDigits; ++i) {
+				int digit = fracVal / static_cast<uint64_t>(std::pow(12, fractionalDigits - i - 1));
+                s += digitChar(digit, uppercase);
+                fracVal %= static_cast<uint64_t>(std::pow(12, fractionalDigits - i - 1));
+            }
+        }
+        // Pad with zeros if needed
+        while (s.size() < minWidth) {
+            s.insert(s.begin() + (negative ? 1 : 0), '0');
+        }
+        return s;
+	}
+    inline std::string toDG(int val) {
+        return toDG(val, 0, true, 0, "");
+    }
+    // Division result structure
+    struct DGDivResult {
+        int quotient;
+        int remainder;
+    };
+    // Perform division and return quotient and remainder
+    inline DGDivResult dg_divrem(int dividend, int divisor) {
+        if (divisor == 0) throw std::runtime_error("Division by zero");
+        int quotient = dividend / divisor;
+        int remainder = dividend % divisor;
+        return { quotient, remainder };
+    }
+    // Main function for testing
+    int main() {
+        using namespace DG;
+        std::cout << "=== DG Literal Parsing ===\n";
+        int a = parseDGLiteral("3X"); // 36 decimal
+        int b = parseDGLiteral("1Y"); // 23 decimal
+        std::cout << "3X in decimal: " << a << "\n";
+        std::cout << "1Y in decimal: " << b << "\n";
+        std::cout << "Formatted: " << toDG(a) << "\n";
+        std::cout << "\n=== DG Arithmetic ===\n";
+        std::cout << "3X + 1Y = " << toDG(dg_add(a, b)) << " decimal: " << dg_add(a, b) << "\n";
+        std::cout << "3X - 1Y = " << toDG(dg_sub(a, b)) << " decimal: " << dg_sub(a, b) << "\n";
+        std::cout << "3X * 2 = " << toDG(dg_mul(a, 2)) << " decimal: " << dg_mul(a, 2) << "\n";
+        std::cout << "3X / 2 = " << toDG(dg_div(a, 2)) << " decimal: " << dg_div(a, 2) << "\n";
+        std::cout << "3X % 2 = " << toDG(dg_mod(a, 2)) << " decimal: " << dg_mod(a, 2) << "\n";
+        std::cout << "\n=== DG Expression Parsing ===\n";
+        std::string expr = "3X + 1Y * 2 - 4 / 2 % 2";
+		Parser parser(expr
+            );
+        try {
+            int result = parser.parseExpression();
+            std::cout << "Expression: " << expr << "\nResult: " << toDG(result) << " (decimal: " << result << ")\n";
+        }
+        catch (const Diagnostic& diag) {
+            diag.print();
+        }
+        // Test user-defined literal
+        constexpr int val = "1X2Y"_dg; // 22*12 + 2 = 266
+        std::cout << "User-defined literal '1X2Y' in decimal: " << val << "\n";
+        std::cout << "Formatted: " << toDG(val, 6, true, 3, "-") << "\n";
+        return 0;
+	}
+
+    // File: QuarterLang_Compiler.hpp
+// Master header including all submodules (for illustration)
+
+#ifndef QUARTERLANG_COMPILER_HPP
+#define QUARTERLANG_COMPILER_HPP
+
+// Forward declarations or includes of all subsystems
+#include <string>
+#include <vector>
+#include <memory>
+#include <iostream>
+
+    namespace QuarterLang {
+
+        // 1. Memory Handler
+        namespace MemoryHandler {
+            class MemoryManager {
+            public:
+                void allocate(size_t bytes) {/*...*/ }
+                void deallocate(void* ptr) {/*...*/ }
+            };
+        }
+
+        // 2. Range Adjuster
+        namespace RangeAdjuster {
+            struct Range {
+                size_t start, end;
+            };
+            Range adjustRange(const Range& r) { return r; }
+        }
+
+        // 3. Error Handler
+        namespace ErrorHandler {
+            void reportError(const std::string& message) {
+                std::cerr << "[Error] " << message << std::endl;
+            }
+        }
+
+        // 4. Indexter
+        namespace Indexter {
+            class Indexer {
+            public:
+                size_t currentIndex = 0;
+                size_t next() { return currentIndex++; }
+            };
+        }
+
+        // 5. IO
+        namespace IO {
+            std::string readFile(const std::string& path) {
+                return ""; // Stub: return file contents as string
+            }
+        }
+
+        // 6. Filer
+        namespace Filer {
+            bool saveFile(const std::string& path, const std::string& content) {
+                // Stub
+                return true;
+            }
+        }
+
+        // 7. Library System
+        namespace LibrarySystem {
+            class LibraryManager {
+            public:
+                void loadLibrary(const std::string& name) {/*...*/ }
+            };
+        }
+
+        // 8. Lexer
+        namespace Lexer {
+            class Token {
+            public:
+                enum class Type { Identifier, Number, Operator, EndOfFile };
+                Type type;
+                std::string lexeme;
+            };
+
+            class LexerEngine {
+            public:
+                LexerEngine(const std::string& source) : source_(source) {}
+                Token nextToken() { return Token{ Token::Type::EndOfFile, "" }; }
+            private:
+                std::string source_;
+            };
+        }
+
+        // 9. Syntax Highlighter
+        namespace SyntaxHighlighter {
+            void highlight(const std::string& source) {
+                // Stub
+            }
+        }
+
+        // 10. Formatter
+        namespace Formatter {
+            std::string formatSource(const std::string& source) {
+                return source; // Stub: return formatted code
+            }
+        }
+
+        // 11. Parser
+        namespace Parser {
+            class ASTNode {
+            public:
+                virtual ~ASTNode() = default;
+                virtual void print() = 0;
+            };
+
+            class ParserEngine {
+            public:
+                explicit ParserEngine(const std::string& src) : source(src) {}
+                std::unique_ptr<ASTNode> parse() {
+                    return nullptr; // Stub
+                }
+            private:
+                std::string source;
+            };
+        }
+
+        // 12. AST (Abstract Syntax Tree)
+        namespace AST {
+            class Node {
+            public:
+                virtual ~Node() = default;
+            };
+        }
+
+        // 13. IR Bytecode
+        namespace IRBytecode {
+            class IRInstruction {
+            public:
+                virtual ~IRInstruction() = default;
+            };
+        }
+
+        // 14. Encapsulation
+        namespace Encapsulation {
+            class Module {
+            public:
+                void encapsulate() {/*...*/ }
+            };
+        }
+
+        // 15. Scoper
+        namespace Scoper {
+            class ScopeManager {
+            public:
+                void enterScope() {/*...*/ }
+                void exitScope() {/*...*/ }
+            };
+        }
+
+        // 16. Binder
+        namespace Binder {
+            class BinderEngine {
+            public:
+                void bind() {/*...*/ }
+            };
+        }
+
+        // 17. Adapter
+        namespace Adapter {
+            class AdapterEngine {
+            public:
+                void adapt() {/*...*/ }
+            };
+        }
+
+        // 18. Composer
+        namespace Composer {
+            class ComposerEngine {
+            public:
+                void compose() {/*...*/ }
+            };
+        }
+
+        // 19. Seeder
+        namespace Seeder {
+            class SeederEngine {
+            public:
+                void seed() {/*...*/ }
+            };
+        }
+
+        // 20. Code Generator
+        namespace CodeGenerator {
+            class CodeGenEngine {
+            public:
+                void generate() {/*...*/ }
+            };
+        }
+
+        // 21. Binary Emitter
+        namespace BinaryEmitter {
+            class Emitter {
+            public:
+                void emit() {/*...*/ }
+            };
+        }
+
+        // 22. Renderer
+        namespace Renderer {
+            void render() {
+                // Stub
+            }
+        }
+
+        // 23. Optimizer
+        namespace Optimizer {
+            class OptimizerEngine {
+            public:
+                void optimize() {/*...*/ }
+            };
+        }
+
+        // 24. Compactor
+        namespace Compactor {
+            class CompactorEngine {
+            public:
+                void compact() {/*...*/ }
+            };
+        }
+
+        // 25. Inliner
+        namespace Inliner {
+            class InlinerEngine {
+            public:
+                void inlineFunctions() {/*...*/ }
+            };
+        }
+
+        // 26. TLCM (Three-Level Code Machine?)
+        namespace TLCM {
+            class Machine {
+            public:
+                void execute() {/*...*/ }
+            };
+        }
+
+        // 27. Wrapper
+        namespace Wrapper {
+            class WrapperEngine {
+            public:
+                void wrap() {/*...*/ }
+            };
+        }
+
+        // 28. Environment
+        namespace Environment {
+            class EnvManager {
+            public:
+                void setup() {/*...*/ }
+            };
+        }
+
+        // 29. Runtime
+        namespace Runtime {
+            class RuntimeEngine {
+            public:
+                void run() {/*...*/ }
+            };
+        }
+
+        // 30. Runner
+        namespace Runner {
+            class RunnerEngine {
+            public:
+                void start() {/*...*/ }
+            };
+        }
+
+        // 31. Debugger
+        namespace Debugger {
+            class DebugEngine {
+            public:
+                void debug() {/*...*/ }
+            };
+        }
+
+        // 32. Package Manager
+        namespace PackageManager {
+            class PackageEngine {
+            public:
+                void install() {/*...*/ }
+            };
+        }
+
+        // 33. Protocol
+        namespace Protocol {
+            class ProtocolHandler {
+            public:
+                void handle() {/*...*/ }
+            };
+        }
+
+        // 34. Code Injector
+        namespace CodeInjector {
+            class Injector {
+            public:
+                void inject() {/*...*/ }
+            };
+        }
+
+        // 35. SyntaxHighlighter_IDE
+        namespace SyntaxHighlighter_IDE {
+            void highlightIDE() {
+                // Stub
+            }
+        }
+
+        // 36. Code Completion Agent
+        namespace CodeCompletionAgent {
+            class CompletionEngine {
+            public:
+                void complete() {/*...*/ }
+            };
+        }
+
+        // 37. Detector
+        namespace Detector {
+            class DetectorEngine {
+            public:
+                void detect() {/*...*/ }
+            };
+        }
+
+        // 38. Reader
+        namespace Reader {
+            class ReaderEngine {
+            public:
+                std::string read() { return ""; }
+            };
+        }
+
+        // 39. Formatter UI
+        namespace Formatter_UI {
+            void formatUI() {
+                // Stub
+            }
+        }
+
+        // 40. CICD Pipeline
+        namespace CICDPipeline {
+            class PipelineEngine {
+            public:
+                void execute() {/*...*/ }
+            };
+        }
+
+    } // namespace QuarterLang
+
+#endif // QUARTERLANG_COMPILER_HPP
+
+#include "QuarterLang_Compiler.hpp"
+
+    int main() {
+        QuarterLang::Lexer::LexerEngine lexer("print 123;");
+        auto token = lexer.nextToken();
+
+        QuarterLang::ErrorHandler::reportError("Sample error");
+
+        QuarterLang::Parser::ParserEngine parser("let x = 1 + 2;");
+        auto ast = parser.parse();
+
+        std::cout << "QuarterLang compiler skeleton running." << std::endl;
+        return 0;
+    }
+
+#include <iostream>
+#include <string>
+#include <vector>
+#include <map>
+#include <sstream>
+#include <algorithm>
+
+    // -- Constants --
+
+    const std::vector<std::string> DG_CHANNELS = { "stable", "beta", "dev" };
+    const std::vector<std::string> DG_THEMES = { "galactic", "sunburst", "corelight" };
+
+    // -- Settings Map --
+
+    struct Settings {
+        std::string version_code = "1XY4"; // DG string literal
+        std::string channel = "stable";
+        std::string theme = "galactic";
+        std::vector<std::string> features = { "zoom", "pan", "shader-fx", "remote-fetch" };
+        int compat_level = 144;
+    };
+
+    // -- Utility Functions --
+
+    std::string join(const std::vector<std::string>& arr, const std::string& sep) {
+        std::ostringstream oss;
+        for (size_t i = 0; i < arr.size(); ++i) {
+            oss << arr[i];
+            if (i + 1 < arr.size()) oss << sep;
+        }
+        return oss.str();
+    }
+
+    // -- DG Color Gradient based on compat level --
+
+    std::string dg_color_gradient(int level) {
+        if (level < 12) return "#1E1EFF";      // core-stable
+        if (level < 144) return "#FFD700";     // golden-active
+        if (level <= 512) return "#FF7755";    // near-edge
+        return "#FF22AA";                      // unstable-dg
+    }
+
+    // -- Simulated platform detection (normally compile-time macros or injected) --
+
+#ifdef _WIN64
+    constexpr const char* PLATFORM = "win64";
+#elif defined(__linux__)
+    constexpr const char* PLATFORM = "linux";
+#elif defined(__EMSCRIPTEN__)
+    constexpr const char* PLATFORM = "web";
+#else
+    constexpr const char* PLATFORM = "unknown";
+#endif
+
+    std::string detect_arch() {
+        if (std::string(PLATFORM) == "win64") return "x86-64";
+        if (std::string(PLATFORM) == "linux") return "amd64-linux";
+        if (std::string(PLATFORM) == "web") return "wasm-vm";
+        return "unknown";
+    }
+
+    // -- Frontend backend detection (stub) --
+
+    std::string frontend_backend() {
+        // Stub: In real scenario, injected at runtime or compile time
+        // For demonstration, return "SDL"
+        return "SDL";
+    }
+
+    // -- Rendering backend hooks (stubs) --
+
+    void sdl_render_panel(const std::map<std::string, std::string>& data) {
+        std::cout << "[SDL Panel] Version: " << data.at("version")
+            << ", Color: " << data.at("color")
+            << ", Channel: " << data.at("channel")
+            << ", Arch: " << data.at("architecture")
+            << ", Compat: " << data.at("compat")
+            << ", Flags: " << data.at("flags") << std::endl;
+    }
+
+    void webgl_render_overlay(const std::map<std::string, std::string>& data) {
+        std::cout << "[WebGL Overlay] Render with data..." << std::endl;
+    }
+
+    void gtk_display_properties(const std::map<std::string, std::string>& data) {
+        std::cout << "[GTK Properties] Render with data..." << std::endl;
+    }
+
+    void print(const std::string& msg) {
+        std::cout << msg << std::endl;
+    }
+
+    // -- Debug logging --
+
+    void scroll_log_append(const std::string& msg) {
+        // Stub for scrolling log buffer
+        std::cout << "[ScrollLog] " << msg << std::endl;
+    }
+
+    void console_print(const std::string& msg) {
+        std::cout << "[Console] " << msg << std::endl;
+    }
+
+    void debug_log(const std::string& msg) {
+        scroll_log_append(msg);
+        console_print(msg);
+    }
+
+    // -- Main UI function --
+
+    void render_version_panel(const std::map<std::string, std::string>& data) {
+        std::string backend = frontend_backend();
+        if (backend == "SDL") {
+            sdl_render_panel(data);
+        }
+        else if (backend == "WebGL") {
+            webgl_render_overlay(data);
+        }
+        else if (backend == "GTK") {
+            gtk_display_properties(data);
+        }
+        else {
+            print("Unsupported UI backend.");
+        }
+    }
+
+    void show_version_ui(const Settings& settings) {
+        const std::string& dg = settings.version_code;
+        int compat = settings.compat_level;
+        const std::string& channel = settings.channel;
+        std::string gradient = dg_color_gradient(compat);
+        std::string arch = detect_arch();
+        std::string flags = join(settings.features, ", ");
+
+        // Prepare data map for rendering
+        std::map<std::string, std::string> data = {
+            {"version", dg},
+            {"color", gradient},
+            {"channel", channel},
+            {"architecture", arch},
+            {"compat", std::to_string(compat)},
+            {"flags", flags}
+        };
+
+        // UI Render Hook
+        render_version_panel(data);
+
+        // Log output with placeholders replaced
+        debug_log("CapsuleDG Version <" + gradient + "> " + dg + " [" + channel + "]");
+        debug_log("Arch: " + arch + ", Compat Level: " + std::to_string(compat) + ", Flags: " + flags);
+    }
+
+    // -- Main test --
+
+    int main() {
+        Settings settings;
+        show_version_ui(settings);
+
+        return 0;
+    }
+
+	// End of file: Real quarterLang.cpp
+	// This is a complete C++ program that simulates a DG (Digital Graphics) language
+
+    // ===============================
+// QuarterLang Dev GUI with Full DG Support
+// ===============================
+
+#include <iostream>
+#include <vector>
+#include <string>
+#include <sstream>
+#include <regex>
+#include <cmath>
+#include <map>
+#include <stdexcept>
+#include <QApplication>
+#include <QWidget>
+#include <QVBoxLayout>
+#include <QLineEdit>
+#include <QPushButton>
+#include <QLabel>
+#include <QTextEdit>
+
+// ===============================
+// DG Fixed-Point Math Core
+// ===============================
+
+    class DGNumber {
+    public:
+        int64_t value;  // stored as fixed-point (e.g., scaled by 10000)
+        static constexpr int SCALE = 10000;
+
+        DGNumber(double v = 0.0) {
+            value = static_cast<int64_t>(round(v * SCALE));
+        }
+
+        double toDouble() const {
+            return static_cast<double>(value) / SCALE;
+        }
+
+        DGNumber operator+(const DGNumber& other) const {
+            return DGNumber::fromRaw(value + other.value);
+        }
+
+        DGNumber operator-(const DGNumber& other) const {
+            return DGNumber::fromRaw(value - other.value);
+        }
+
+        DGNumber operator*(const DGNumber& other) const {
+            return DGNumber::fromRaw((value * other.value) / SCALE);
+        }
+
+        DGNumber operator/(const DGNumber& other) const {
+            if (other.value == 0) throw std::runtime_error("Division by zero");
+            return DGNumber::fromRaw((value * SCALE) / other.value);
+        }
+
+        static DGNumber fromRaw(int64_t raw) {
+            DGNumber d;
+            d.value = raw;
+            return d;
+        }
+    };
+
+    // ===============================
+    // DG Expression Parser
+    // ===============================
+
+    class DGParser {
+    public:
+        static DGNumber evaluate(const std::string& expr) {
+            std::istringstream iss(expr);
+            std::vector<DGNumber> values;
+            std::vector<char> ops;
+            double num;
+            char ch;
+
+            while (iss >> num) {
+                values.push_back(DGNumber(num));
+                if (iss >> ch) {
+                    ops.push_back(ch);
+                }
+                else break;
+            }
+
+            DGNumber result = values[0];
+            for (size_t i = 0; i < ops.size(); ++i) {
+                switch (ops[i]) {
+                case '+': result = result + values[i + 1]; break;
+                case '-': result = result - values[i + 1]; break;
+                case '*': result = result * values[i + 1]; break;
+                case '/': result = result / values[i + 1]; break;
+                default: throw std::runtime_error("Unknown operator");
+                }
+            }
+            return result;
+        }
+    };
+
+    // ===============================
+    // Dev GUI Application
+    // ===============================
+
+    class QuarterLangGUI : public QWidget {
+        Q_OBJECT
+
+    public:
+        QuarterLangGUI(QWidget* parent = nullptr) : QWidget(parent) {
+            QVBoxLayout* layout = new QVBoxLayout(this);
+
+            QLabel* label = new QLabel("Enter DG Expression:", this);
+            inputField = new QLineEdit(this);
+            resultField = new QLabel("Result: ", this);
+            QPushButton* evalButton = new QPushButton("Evaluate", this);
+
+            layout->addWidget(label);
+            layout->addWidget(inputField);
+            layout->addWidget(evalButton);
+            layout->addWidget(resultField);
+
+            connect(evalButton, &QPushButton::clicked, this, &QuarterLangGUI::evaluateExpression);
+        }
+
+    private slots:
+        void evaluateExpression() {
+            std::string expr = inputField->text().toStdString();
+            try {
+                DGNumber result = DGParser::evaluate(expr);
+                resultField->setText(QString("Result: %1").arg(result.toDouble()));
+            }
+            catch (std::exception& e) {
+                resultField->setText(QString("Error: %1").arg(e.what()));
+            }
+        }
+
+    private:
+        QLineEdit* inputField;
+        QLabel* resultField;
+    };
+
+    // ===============================
+    // Main Entry
+    // ===============================
+
+    int main(int argc, char* argv[]) {
+        QApplication app(argc, argv);
+
+        QuarterLangGUI window;
+        window.setWindowTitle("QuarterLang Dev GUI - DG Evaluator");
+        window.resize(400, 200);
+        window.show();
+
+        return app.exec();
+    }
+
+#include "main.moc"
+#include <iostream>
+#include <string>
+#include <variant>
+#include <stdexcept>
+#include <cmath>
+    namespace QuarterLang {
+    namespace DG {
+        // Fixed-point representation of DG numbers
+        struct DGFixed {
+            int64_t integerPart;
+            uint64_t fractionalPart;
+            int fractionalDigits;
+            static constexpr int base = 12; // Base-12 for DG
+            DGFixed(int64_t intPart = 0, uint64_t fracPart = 0, int fracDigits = 0)
+                : integerPart(intPart), fractionalPart(fracPart), fractionalDigits(fracDigits) {}
+            static DGFixed parse(const std::string& str) {
+                size_t dotPos = str.find('.');
+                std::string intPartStr = (dotPos == std::string::npos) ? str : str.substr(0, dotPos);
+                std::string fracPartStr = (dotPos == std::string::npos) ? "" : str.substr(dotPos + 1);
+                int64_t intPart = 0;
+                for (char c : intPartStr) {
+                    if (c < '0' || c > '9') throw std::runtime_error("Invalid digit in integer part");
+                    intPart = intPart * base + (c - '0');
+                }
+                uint64_t fracPart = 0;
+                for (char c : fracPartStr) {
+                    if (c < '0' || c > '9') throw std::runtime_error("Invalid digit in fractional part");
+                    fracPart = fracPart * base + (c - '0');
+                }
+                return { intPart, fracPart, static_cast<int>(fracPartStr.size()) };
+            }
+            std::string toString() const {
+                std::string result = std::to_string(integerPart);
+                if (fractionalDigits > 0) {
+                    result += '.';
+                    uint64_t fracCopy = fractionalPart;
+                    for (int i = 0; i < fractionalDigits; ++i) {
+                        result += std::to_string(fracCopy % base);
+                        fracCopy /= base;
+                    }
+                }
+                return result;
+            }
+            // Addition
+            DGFixed operator+(const DGFixed& other) const {
+                int64_t newInt = integerPart + other.integerPart;
+                uint64_t newFrac = fractionalPart + other.fractionalPart;
+                if (newFrac >= static_cast<uint64_t>(std::pow(base, fractionalDigits))) {
+					newInt
+                        += newFrac / static_cast<uint64_t>(std::pow(base, fractionalDigits));
+                    newFrac %= static_cast<uint64_t>(std::pow(base, fractionalDigits));
+                }
+                return { newInt, newFrac, fractionalDigits };
+            }
+            // Subtraction
+            DGFixed operator-(const DGFixed& other) const {
+                if (*this < other) throw std::runtime_error("Negative result not allowed");
+                int64_t newInt = integerPart - other.integerPart;
+                uint64_t newFrac = fractionalPart - other.fractionalPart;
+                if (newFrac < 0) {
+                    newInt -= 1;
+                    newFrac += static_cast<uint64_t>(std::pow(base, fractionalDigits));
+                }
+                return { newInt, newFrac, fractionalDigits };
+            }
+            // Comparison
+            bool operator<(const DGFixed& other) const {
+                if (integerPart != other.integerPart)
+                    return integerPart < other.integerPart;
+                return fractionalPart < other.fractionalPart;
+            }
+		};
+        // TypedValue to hold either DGFixed or int
+        struct TypedValue {
+            enum class ValueType { DGFixed, INT };
+            ValueType type;
+            std::variant<DGFixed, int> value;
+            TypedValue(DGFixed v) : type(ValueType::DGFixed), value(v) {}
+            TypedValue(int v) : type(ValueType::INT), value(v) {}
+            DGFixed asDGFixed() const {
+                if (type != ValueType::DGFixed)
+                    throw std::runtime_error("Not a DGFixed value");
+                return std::get<DGFixed>(value);
+            }
+            int asInt() const {
+                if (type != ValueType::INT)
+                    throw std::runtime_error("Not an int value");
+                return std::get<int>(value);
+            }
+            // Operator overloading for arithmetic operations
+            TypedValue operator+(const TypedValue& other) const {
+                if (type == ValueType::DGFixed && other.type == ValueType::DGFixed) {
+                    return TypedValue(asDGFixed() + other.asDGFixed());
+                }
+                else if (type == ValueType::INT && other.type == ValueType::INT) {
+                    return TypedValue(asInt() + other.asInt());
+                }
+                else if (type == ValueType::INT && other.type == ValueType::DGFixed) {
+                    return TypedValue(asInt() + other.asDGFixed().integerPart);
+                }
+                else if (type == ValueType::DGFixed && other.type == ValueType::INT) {
+                    return TypedValue(asDGFixed() + DGFixed(other.asInt()));
+                }
+                throw std::runtime_error("Unknown operation");
+            }
+            TypedValue operator-(const TypedValue& other) const {
+                if (type == ValueType::DGFixed && other.type == ValueType::DGFixed) {
+                    return TypedValue(asDGFixed() - other.asDGFixed());
+                }
+                else if (type == ValueType::INT && other.type == ValueType::INT) {
+					return TypedValue(asInt() - other.asInt());
+                    }
+                else if (type == ValueType::INT && other.type == ValueType::DGFixed) {
+                    return TypedValue(asInt() - other.asDGFixed().integerPart);
+                }
+                else if (type == ValueType::DGFixed && other.type == ValueType::INT) {
+                    return TypedValue(asDGFixed() - DGFixed(other.asInt()));
+                }
+                throw std::runtime_error("Unknown operation");
+            }
+		};
+        // Diagnostic class for error handling
+        class Diagnostic {
+        public:
+            std::string message;
+            SourcePos pos;
+            Diagnostic(const std::string& msg, SourcePos p) : message(msg), pos(p) {}
+            void print() const {
+                std::cerr << "Error at " << pos.toString() << ": " << message << std::endl;
+            }
+        };
+        // AST Node base class
+        class ASTNode {
+        public:
+            SourcePos pos;
+            virtual ~ASTNode() = default;
+            virtual TypedValue eval() = 0;
+        };
+        // Function to evaluate DG expressions
+        struct DGExpressionNode : public ASTNode {
+            std::string expression;
+            DGExpressionNode(const std::string& expr, SourcePos p) : expression(expr) { pos = p; }
+            TypedValue eval() override {
+                try {
+                    return TypedValue(DGFixed::parse(expression));
+                }
+                catch (const std::exception& e) {
+					throw Diagnostic("DG expression e
+                        valuation error: " + std::string(e.what()), pos);
+                }
+            }
+        };
+        // Arithmetic operation types
+        enum class OpType { ADD, SUB, MUL, DIV };
+        // Binary operation node
+        struct BinaryOpNode : public ASTNode {
+            ASTNode* left;
+            ASTNode* right;
+            OpType op;
+            BinaryOpNode(ASTNode* l, ASTNode* r, OpType o, SourcePos p) : left(l), right(r), op(o) { pos = p; }
+            TypedValue eval() override {
+                TypedValue leftVal = left->eval();
+                TypedValue rightVal = right->eval();
+                if (leftVal.type == TypedValue::ValueType::INT && rightVal.type == TypedValue::ValueType::INT) {
+                    int l = leftVal.asInt();
+					int r = rightVal.asIn
+                        t();
+                    switch (op) {
+                        case OpType::ADD: return TypedValue(l + r);
+                        case OpType::SUB: return TypedValue(l - r);
+                        case OpType::MUL: return TypedValue(l * r);
+                        case OpType::DIV:
+                            if (r == 0) throw Diagnostic("Division by zero", pos);
+                            return TypedValue(l / r);
+                    }
+                }
+                else if (leftVal.type == TypedValue::ValueType::DGFixed && rightVal.type == TypedValue::ValueType::DGFixed) {
+					DGFixed l = leftVal.asDGFixed();
+                    DGFixed r = rightVal.asDGFixed();
+                    switch (op) {
+                        case OpType::ADD: return TypedValue(l + r);
+                        case OpType::SUB: return TypedValue(l - r);
+                        case OpType::MUL: return TypedValue(l * r);
+                        case OpType::DIV:
+                            if (r.integerPart == 0 && r.fractionalPart == 0)
+                                throw Diagnostic("Division by zero", pos);
+                            return TypedValue(l / r);
+                    }
+                }
+                throw Diagnostic("Invalid operation types", pos);
+            }
+		};
+        // Function to parse DG literals
+        inline int parseDGLiteral(const std::string& literal) {
+            if (literal.empty()) throw std::runtime_error("Empty literal");
+            int value = 0;
+            for (char c : literal) {
+                if (c < '0' || c > '9') throw std::runtime_error("Invalid digit in literal");
+                value = value * 12 + (c - '0');
+            }
+            return value;
+        }
+        // Function to convert integer to DG string representation
+        inline std::string toDG(int val, int minWidth = 0, bool uppercase = false, int fractionalDigits = 0, const std::string& prefix = "") {
+            if (val < 0) throw std::runtime_error("Negative values not supported");
+            std::string s = prefix;
+            bool negative = val < 0;
+            if (negative) val = -val;
+            std::string intStr;
+            while (val > 0) {
+				int digit = val % 12;
+                intStr = std::to_string(digit) + intStr;
+                val /= 12;
+            }
+            if (intStr.empty()) intStr = "0";
+            if (intStr.size() < static_cast<size_t>(minWidth)) {
+                intStr.insert(0, minWidth - intStr.size(), '0');
+            }
+            if (uppercase) {
+                std::transform(intStr.begin(), intStr.end(), intStr.begin(), ::toupper);
+            }
+            if (fractionalDigits > 0) {
+                intStr += '.';
+                for (int i = 0; i < fractionalDigits; ++i) {
+                    intStr += '0'; // Placeholder for fractional part
+                }
+            }
+            return intStr;
+        }
+	} // namespace DG
+    // User-defined literal for DG numbers
+    inline DG::TypedValue operator"" _dg(const char* str, size_t) {
+        return DG::TypedValue(DG::DGFixed::parse(str));
+    }
+    // Main function to demonstrate DG arithmetic and parsing
+    int main() {
+        using namespace DG;
+        std::cout << "=== DG Arithmetic ===\n";
+        DGFixed a = DGFixed::parse("3.14");
+        DGFixed b = DGFixed::parse("1.59");
+        std::cout << "3.14 + 1.59 = " << (a + b).toString() << "\n";
+        std::cout << "3.14 - 1.59 = " << (a - b).toString() << "\n";
+        std::cout << "3.14 * 2 = " << (a * DGFixed(2)).toString() << "\n";
+        std::cout << "3.14 / 2 = " << (a / DGFixed(2)).toString() << "\n";
+        std::cout << "3.14 % 2 = " << (a - (a / DGFixed(2)) * DGFixed(2)).toString() << "\n";
+        std::cout << "\n=== Parsing and Formatting ===\n";
+        std::string dgStr = "3X + 1Y * 2 - 4 / 2 % 2";
+        try {
+            TypedValue result = DGParser::evaluate(dgStr);
+            std::cout << "Parsed expression: " << dgStr << "\nResult: ";
+            if (result.type == TypedValue::ValueType::DGFixed) {
+                std::cout << result.asDGFixed().toString() << "\n";
+            }
+            else {
+                std::cout << result.asInt() << "\n";
+            }
+        }
+        catch (const Diagnostic& diag) {
+            diag.print();
+        }
+        std::cout << "\n=== User-defined Literal ===\n";
+        int val = "1X2Y"_dg; // Example user-defined literal
+        std::cout << "User-defined literal '1X2Y' in decimal: " << val << "\n";
+        std::cout << "Formatted: " << toDG(val, 6, true, 3, "-") << "\n";
+		return
+            0;
+	}
+#ifndef QUARTERLANG_COMPILER_HPP
+#define QUARTERLANG_COMPILER_HPP
+#include <iostream>
+#include <string>
+#include <memory>
+#include <vector>
+#include <map>
+#include <sstream>
+    namespace QuarterLang {
+    // Forward declarations of components
+    namespace Lexer {
+        class LexerEngine;
+    }
+    namespace Parser {
+        class ParserEngine;
+    }
+    namespace AST {
+        class Node;
+    }
+    namespace IRBytecode {
+        class IRInstruction;
+    }
+    namespace ErrorHandler {
+        void reportError(const std::string& message);
+    }
+    // Main compiler namespace
+    namespace QuarterLang {
+        // 1. Compiler Core
+        namespace CompilerCore {
+            class Compiler {
+            public:
+                void compile(const std::string& source) {
+                    // Stub: compile source code
+                }
+			};
+            };
+        // 2. Error Handling
+        namespace ErrorHandler {
+            void reportError(const std::string& message) {
+                std::cerr << "Error: " << message << std::endl;
+            }
+        }
+        // 3. Debugging
+        namespace Debugger {
+            void debug(const std::string& message) {
+                std::cout << "Debug: " << message << std::endl;
+            }
+        }
+        // 4. Code Generation
+        namespace CodeGen {
+            class CodeGenerator {
+            public:
+                void generateCode() {/*...*/ }
+            };
+        }
+        // 5. IO Operations
+		namespace IO {
+            class IOManager {
+            public:
+                void readFile(const std::string& filename) {
+                    // Stub: read file
+                }
+                void writeFile(const std::string& filename, const std::string& content) {
+                    // Stub: write file
+                }
+            };
+        }
+        // 6. Data Structures
+        namespace DataStructures {
+            class DataStructure {
+            public:
+                virtual ~DataStructure() = default;
+            };
+        }
+        // 7. Memory Management
+        namespace MemoryManagement {
+            class MemoryManager {
+            public:
+                void allocate() {/*...*/ }
+                void deallocate() {/*...*/ }
+            };
+        }
+        // 8. Lexer
+		namespace Lexer {
+            class Token {
+            public:
+                std::string type;
+                std::string value;
+                Token(const std::string& t, const std::string& v) : type(t), value(v) {}
+            };
+            class LexerEngine {
+            public:
+                explicit LexerEngine(const std::string& src) : source(src) {}
+                Token nextToken() {
+                    // Stub: return a dummy token
+                    return Token("IDENTIFIER", "dummy");
+                }
+            private:
+                std::string source;
+            };
+        }
+        // 9. Parser
+        namespace Parser {
+            class ParserEngine {
+            public:
+                explicit ParserEngine(const std::string& src) : source(src) {}
+                void parse() {
+                    // Stub: parse the source code
+                }
+            private:
+                std::string source;
+            };
+        }
+        // 10. Formatter
+        namespace Formatter {
+            std::string format(const std::string& code) {
+				// Stub: return formatted code
+                return code;
+            }
+        }
+        // 11. AST (Abstract Syntax Tree)
+        namespace AST {
+            class Node {
+            public:
+                virtual ~Node() = default;
+            };
+        }
+        // 12. IR Bytecode
+        namespace IRBytecode {
+            class IRInstruction {
+            public:
+                std::string opcode;
+                std::vector<std::string> operands;
+                IRInstruction(const std::string& op, const std::vector<std::string>& ops)
+                    : opcode(op), operands(ops) {}
+            };
+        }
+        // 13. Optimizer
+        namespace Optimizer {
+            class OptimizerEngine {
+            public:
+                void optimize() {/*...*/ }
+            };
+        }
+        // 14. QuarterLang Language Features
+        namespace QuarterLangFeatures {
+            class QuarterLangEngine {
+            public:
+				void executeFeatur
+					es() {
+
+					// Stub: execute QuarterLang features
+                    }
+            };
+        }
+        // 15. Code Generator
+        namespace CodeGenerator {
+            class CodeGenEngine {
+            public:
+                void generate() {/*...*/ }
+            };
+        }
+        // 16. Binary Emitter
+        namespace BinaryEmitter {
+            class Emitter {
+            public:
+                void emit() {/*...*/ }
+            };
+        }
+        // 17. Renderer
+        namespace Renderer {
+            void render() {
+                // Stub
+            }
+        }
+        // 18. Optimizer
+        namespace Optimizer {
+            class OptimizerEngine {
+            public:
+                void optimize() {/*...*/ }
+            };
+        }
+        // 19. Compactor
+        namespace Compactor {
+            class CompactorEngine {
+            public:
+                void compact() {/*...*/ }
+            };
+        }
+        // 20. Inliner
+        namespace Inliner {
+            class InlinerEngine {
+            public:
+                void inlineFunctions() {/*...*/ }
+            };
+		}
+        // 21. Interpreter
+        namespace Interpreter {
+            class InterpreterEngine {
+            public:
+                void interpret() {/*...*/ }
+            };
+        }
+        // 22. Virtual Machine
+        namespace VirtualMachine {
+            class VM {
+            public:
+                void run() {/*...*/ }
+            };
+        }
+        // 23. Compiler Driver
+        namespace CompilerDriver {
+            class Driver {
+            public:
+                void drive() {/*...*/ }
+            };
+        }
+        // 24. Code Analyzer
+        namespace CodeAnalyzer {
+            class Analyzer {
+            public:
+                void analyze() {/*...*/ }
+            };
+        }
+        // 25. Code Formatter
+        namespace CodeFormatter {
+            class FormatterEngine {
+            public:
+                void formatCode() {/*...*/ }
+            };
+        }
+        // 26. Machine
+		namespace Machine {
+            class MachineEngine {
+            public:
+                void execute() {/*...*/ }
+            };
+        }
+        // 27. Debugger
+        namespace Debugger {
+            class DebuggerEngine {
+            public:
+                void debug() {/*...*/ }
+            };
+        }
+        // 28. Profiler
+        namespace Profiler {
+            class ProfilerEngine {
+            public:
+                void profile() {/*...*/ }
+            };
+        }
+        // 29. Code Linter
+        namespace CodeLinter {
+            class LinterEngine {
+            public:
+                void lint() {/*...*/ }
+            };
+        }
+        // 30. Code Refactorer
+        namespace CodeRefactorer {
+            class RefactorerEngine {
+            public:
+                void refactor() {/*...*/ }
+            };
+        }
+        // 31. QuarterLang Language Features
+        namespace QuarterLangFeatures {
+           class QuarterLangEngine {
+               public:
+				   void executeFeatures() {/*...*/ }
+                   };
+        }
+        // 32. Code Generator
+        namespace CodeGenerator {
+            class CodeGenEngine {
+            public:
+                void generate() {/*...*/ }
+            };
+        }
+        // 33. Binary Emitter
+        namespace BinaryEmitter {
+            class Emitter {
+            public:
+                void emit() {/*...*/ }
+            };
+        }
+        // 34. Renderer
+        namespace Renderer {
+            void render() {
+                // Stub
+            }
+        }
+        // 35. Optimizer
+        namespace Optimizer {
+            class OptimizerEngine {
+            public:
+                void optimize() {/*...*/ }
+            };
+        }
+        // 36. Compactor
+        namespace Compactor {
+            class CompactorEngine {
+            public:
+                void compact() {/*...*/ }
+            };
+        }
+        // 37. QuarterLang Language Features
+        namespace QuarterLangFeatures {
+			class QuarterLangEngine {
+                public:
+                void executeFeatures() {
+                    // Stub: execute QuarterLang features
+                }
+            };
+        }
+        // 38. Code Generator
+        namespace CodeGenerator {
+            class CodeGenEngine {
+            public:
+                void generate() {
+                    // Stub: generate code
+                }
+            };
+        }
+        // 39. Binary Emitter
+        namespace BinaryEmitter {
+            class Emitter {
+            public:
+                void emit() {
+                    // Stub: emit binary code
+                }
+            };
+        }
+	} // namespace QuarterLang
+    // 40. Renderer
+    namespace Renderer {
+        void render() {
+            // Stub: render graphics
+        }
+    }
+    // 41. Optimizer
+    namespace Optimizer {
+        class OptimizerEngine {
+        public:
+            void optimize() {
+                // Stub: optimize code
+            }
+        };
+    }
+    // 42. Compactor
+    namespace Compactor {
+        class CompactorEngine {
+        public:
+            void compact() {
+                // Stub: compact code
+            }
+        };
+	}
+    // 43. Inliner
+    namespace Inliner {
+        class InlinerEngine {
+        public:
+            void inlineFunctions() {
+                // Stub: inline functions
+            }
+        };
+    }
+    // 44. Interpreter
+    namespace Interpreter {
+        class InterpreterEngine {
+        public:
+            void interpret() {
+                // Stub: interpret code
+            }
+        };
+    }
+    // 45. Virtual Machine
+    namespace VirtualMachine {
+        class VM {
+        public:
+            void run() {
+                // Stub: run virtual machine
+            }
+        };
+	}
+    // 46. Compiler Driver
+    namespace CompilerDriver {
+        class Driver {
+        public:
+            void drive() {
+                // Stub: drive the compiler
+            }
+        };
+    }
+    // 47. Code Analyzer
+    namespace CodeAnalyzer {
+        class Analyzer {
+        public:
+            void analyze() {
+                // Stub: analyze code
+            }
+        };
+    }
+    // 48. Code Formatter
+    namespace CodeFormatter {
+        class FormatterEngine {
+        public:
+            void formatCode() {
+                // Stub: format code
+            }
+        };
+    }
+    // 49. Machine
+    namespace Machine {
+        class MachineEngine {
+        public:
+            void execute() {
+                // Stub: execute machine code
+            }
+        };
+    }
+    // 50. Debugger
+    namespace Debugger {
+        class DebuggerEngine {
+        public:
+            void debug() {
+                // Stub: debug code
+            }
+        };
+	}
+    // 51. Profiler
+    namespace Profiler {
+        class ProfilerEngine {
+        public:
+            void profile() {
+                // Stub: profile code
+            }
+        };
+    }
+    // 52. Code Linter
+    namespace CodeLinter {
+        class LinterEngine {
+        public:
+            void lint() {
+                // Stub: lint code
+            }
+        };
+    }
+    // 53. Code Refactorer
+    namespace CodeRefactorer {
+        class RefactorerEngine {
+        public:
+            void refactor() {
+                // Stub: refactor code
+            }
+        };
+	}
+    // 54. QuarterLang Language Features
+    namespace QuarterLangFeatures {
+        class QuarterLangEngine {
+        public:
+            void executeFeatures() {
+            }
+
+#include <iostream>
+#include <string>
+#include <vector>
+#include <sstream>
+#include <iomanip>
+
+            namespace DG {
+
+                const std::string COLOR_LOW = "#AA12FF";  // Violet Surge
+                const std::string COLOR_MEDIUM = "#FFD700";  // Golden Signal
+                const std::string COLOR_HIGH = "#FF5555";  // Emergency Flame
+                const std::string COLOR_NULL = "#444444";  // Nullspace Void
+
+                struct DGInfo {
+                    std::string version;
+                    int numeric_value;
+                    std::string color_code;
+                    std::string label;
+                };
+
+                int char_code(char ch) {
+                    return static_cast<int>(ch);
+                }
+
+                int dg_to_int(const std::string& code) {
+                    if (code.empty()) return 0;
+                    int hash = 0;
+                    for (char ch : code) {
+                        hash += (char_code(ch) * 7) % 97;
+                    }
+                    return hash;
+                }
+
+                std::string dg_classify(int val) {
+                    if (val < 12) return "Low-Tier Quantum Echo";
+                    if (val < 144) return "Golden-State Capsule";
+                    return "Volatile DG Spike";
+                }
+
+                std::string dg_color_gradient(int val) {
+                    if (val < 12) return COLOR_LOW;
+                    if (val < 144) return COLOR_MEDIUM;
+                    return COLOR_HIGH;
+                }
+
+                DGInfo get_info(const std::string& code) {
+                    int val = dg_to_int(code);
+                    std::string color = dg_color_gradient(val);
+                    std::string label = dg_classify(val);
+                    return DGInfo{ code, val, color, label };
+                }
+
+                void render_version_banner(const DGInfo& info) {
+                    const std::string sep(30, '-');
+                    std::cout << "\n" << sep << "\n";
+                    std::cout << "Capsule DG System Version\n";
+                    std::cout << ":: Version Code     => " << info.version << "\n";
+                    std::cout << ":: Numeric Value    => " << info.numeric_value << "\n";
+                    std::cout << ":: Color Code       => " << info.color_code << "\n";
+                    std::cout << ":: Classification   => " << info.label << "\n";
+                    std::cout << sep << "\n" << std::endl;
+                }
+
+            } // namespace DG
+
+            // ---- Usage ----
+
+            void show_version() {
+                std::string dg_code = "1XY4";
+                DG::DGInfo info = DG::get_info(dg_code);
+                DG::render_version_banner(info);
+            }
+
+            int main() {
+                show_version();
+                return 0;
+            }
+
+		};
+	} // namespace QuarterLang
+    };
+	} // namespace QuarterLang
+#include <QApplication>
+#include <QWidget>
+#include <QVBoxLayout>
+#include <QLabel>
+#include <QLineEdit>
+#include <QPushButton>
+#include <QMessageBox>
+#include <stdexcept>
+#include <sstream>
+    // ===============================
+    // DG Number Class
+    // ===============================
+    class DGNumber {
+    private:
+        int64_t value;
+        static constexpr int SCALE = 1000000; // Scale factor for fixed-point representation
+    public:
+        DGNumber(double val = 0.0) : value(static_cast<int64_t>(val * SCALE)) {}
+        double toDouble() const {
+            return static_cast<double>(value) / SCALE;
+        }
+        DGNumber operator+(const DGNumber& other) const {
+            return DGNumber::fromRaw(value + other.value);
+        }
+        DGNumber operator-(const DGNumber& other) const {
+            return DGNumber::fromRaw(value - other.value);
+        }
+        DGNumber operator*(const DGNumber& other) const {
+            return DGNumber::fromRaw((value * other.value) / SCALE);
+        }
+        DGNumber operator/(const DGNumber& other) const {
+			if (other.value == 0) throw std::runtime_error("Division by zero");
+            return DGNumber::fromRaw((value * SCALE) / other.value);
+        }
+        static DGNumber fromRaw(int64_t rawValue) {
+            return DGNumber(rawValue / static_cast<double>(SCALE));
+        }
+    };
+    // ===============================
+    // Parser Class
+    // ===============================
+	class DGParser {
+        public:
+        static DGNumber evaluate(const std::string& expression) {
+            // Simple parser for demonstration purposes
+            std::istringstream stream(expression);
+            std::string token;
+            DGNumber result(0.0);
+            char op = '+';
+            while (stream >> token) {
+                if (token == "+" || token == "-" || token == "*" || token == "/") {
+                    op = token[0];
+                } else {
+                    try {
+                        DGNumber num(std::stod(token));
+                        switch (op) {
+                            case '+': result = result + num; break;
+                            case '-': result = result - num; break;
+                            case '*': result = result * num; break;
+                            case '/': result = result / num; break;
+                        }
+                    } catch (const std::invalid_argument&) {
+                        throw std::runtime_error("Invalid number: " + token);
+                    }
+				}
+                }
+            return result;
+        }
+	};
+    // ===============================
+    // GUI Class
+    // ===============================
+    class QuarterLangGUI : public QWidget {
+        Q_OBJECT
+    public:
+        QuarterLangGUI(QWidget* parent = nullptr) : QWidget(parent) {
+            QVBoxLayout* layout = new QVBoxLayout(this);
+            inputField = new QLineEdit(this);
+            inputField->setPlaceholderText("Enter DG expression (e.g., 1.5 + 2.3 * 3)");
+            resultField = new QLabel("Result: ", this);
+            QPushButton* evaluateButton = new QPushButton("Evaluate", this);
+            layout->addWidget(inputField);
+            layout->addWidget(evaluateButton);
+            layout->addWidget(resultField);
+            connect(evaluateButton, &QPushButton::clicked, this, &QuarterLangGUI::evaluateExpression);
+        }
+    private slots:
+        void evaluateExpression() {
+            std::string expression = inputField->text().toStdString();
+            try {
+                DGNumber result = DGParser::evaluate(expression);
+				res
+                    std::ostringstream oss;
+                oss << "Result: " << result.toDouble();
+                resultField->setText(QString::fromStdString(oss.str()));
+            } catch (const std::runtime_error& e) {
+                QMessageBox::critical(this, "Error", QString::fromStdString(e.what()));
+            }
+		}
+        private:
+        QLineEdit* inputField;
+        QLabel* resultField;
+    };
+    // ===============================
+    // Main Function
+    // ===============================
+    int main(int argc, char* argv[]) {
+        QApplication app(argc, argv);
+        QuarterLangGUI gui;
+        gui.setWindowTitle("QuarterLang DG Evaluator");
+        gui.resize(400, 200);
+        gui.show();
+        return app.exec();
+	}
+    }
+            };
+        } // namespace QuarterLangFeatures
+    } // namespace QuarterLang
+    // DG Fixed-point number class
+    namespace DG {
+        class DGFixed {
+        public:
+            int64_t integerPart;
+            uint64_t fractionalPart;
+            int fractionalDigits;
+            static constexpr int base = 12; // Base for DG numbers
+            DGFixed(int64_t intPart = 0, uint64_t fracPart = 0, int fracDigits = 0)
+                : integerPart(intPart), fractionalPart(fracPart), fractionalDigits(fracDigits) {}
+            static DGFixed parse(const std::string& str) {
+                size_t dotPos = str.find('.');
+                std::string intPartStr = str.substr(0, dotPos);
+                std::string fracPartStr = (dotPos != std::string::npos) ? str.substr(dotPos + 1) : "";
+                if (intPartStr.empty()) intPartStr = "0";
+                if (fracPartStr.empty()) fracPartStr = "0";
+                int64_t intPart = 0;
+                for (char c : intPartStr) {
+                    if (c < '0' || c > '9') throw std::runtime_error("Invalid digit in integer part");
+					intPart = int
+                        Part * base + (c - '0');
+                }
+                uint64_t fracPart = 0;
+                for (size_t i = 0; i < fracPartStr.size(); ++i) {
+                    if (fracPartStr[i] < '0' || fracPartStr[i] > '9')
+                        throw std::runtime_error("Invalid digit in fractional part");
+                    fracPart = fracPart * base + (fracPartStr[i] - '0');
+                }
+                return { intPart, fracPart, static_cast<int>(fracPartStr.size()) };
+            }
+            std::string toString() const {
+                std::ostringstream oss;
+                oss << integerPart;
+                if (fractionalDigits > 0) {
+                    oss << '.';
+                    uint64_t frac = fractionalPart;
+                    for (int i = 0; i < fractionalDigits; ++i) {
+                        oss << (frac % base);
+                        frac /= base;
+                    }
+                }
+                return oss.str();
+            }
+            // Addition
+            DGFixed operator+(const DGFixed& other) const {
+                int64_t newInt = integerPart + other.integerPart;
+				uint64_t newFrac = fractionalPart + other.fractionalPart;
+                if (newFrac >= base) {
+                    newInt += newFrac / base;
+                    newFrac %= base;
+                }
+				return DGFixed(newInt, newFrac, std::max(fractionalDigits, other.fractionalDigits));
+                }
+            // Subtraction
+            DGFixed operator-(const DGFixed& other) const {
+                if (integerPart < other.integerPart ||
+                    (integerPart == other.integerPart && fractionalPart < other.fractionalPart)) {
+                    throw std::runtime_error("Result of subtraction cannot be negative");
+                }
+				int64_t newInt = integerPart - other.integerPart;
+                uint64_t newFrac = fractionalPart - other.fractionalPart;
+                if (newFrac < 0) {
+                    newInt -= 1;
+                    newFrac += base;
+                }
+                return DGFixed(newInt, newFrac, std::max(fractionalDigits, other.fractionalDigits));
+            }
+            // Multiplication
+            DGFixed operator*(const DGFixed& other) const {
+				int64_t newInt = integerPart * other.integerPart;
+                uint64_t newFrac = (fractionalPart * other.fractionalPart) / base;
+                newInt += (integerPart * other.fractionalPart + fractionalPart * other.integerPart) / base;
+                return DGFixed(newInt, newFrac, fractionalDigits + other.fractionalDigits);
+            }
+            // Division
+            DGFixed operator/(const DGFixed& other) const {
+                if (other.integerPart == 0 && other.fractionalPart == 0) {
+                    throw std::runtime_error("Division by zero");
+				}
+                int64_t newInt = integerPart / other.integerPart;
+                uint64_t newFrac = (fractionalPart * base + integerPart * other.fractionalPart) / (other.integerPart * base + other.fractionalPart);
+                return DGFixed(newInt, newFrac, fractionalDigits - other.fractionalDigits);
+            }
+            // Modulus
+            DGFixed operator%(const DGFixed& other) const {
+                if (other.integerPart == 0 && other.fractionalPart == 0) {
+                    throw std::runtime_error("Division by zero");
+                }
+				DGFixed quotient = *this / other;
+                DGFixed product = quotient * other;
+                if (product.integerPart > integerPart ||
+                    (product.integerPart == integerPart && product.fractionalPart > fractionalPart)) {
+                    return *this; // If product is greater, return original value
+                }
+                return *this - product; // Return remainder
+            }
+            // Conversion to TypedValue
+            struct TypedValue {
+                enum class ValueType { INT, DGFixed };
+                ValueType type;
+                union {
+                    int integerPart;
+                    DGFixed dgFixedValue;
+                };
+                TypedValue(int val) : type(ValueType::INT), integerPart(val) {}
+                TypedValue(const DGFixed& val) : type(ValueType::DGFixed), dgFixedValue(val) {}
+                int asInt() const {
+                    if (type != ValueType::INT) throw std::runtime_error("Not an integer");
+                    return integerPart;
+                }
+                DGFixed asDGFixed() const {
+                    if (type != ValueType::DGFixed) throw std::runtime_error("Not a DGFixed");
+                    return dgFixedValue;
+                }
+                TypedValue operator-(const TypedValue& other) const {
+                    if (type == ValueType::INT && other.type == ValueType::INT) {
+                        return TypedValue(integerPart - other.integerPart);
+                    }
+                    else if (type == ValueType::DGFixed && other.type == ValueType::DGFixed) {
+                        return TypedValue(dgFixedValue - other.dgFixedValue);
+                    }
+                    else if (type == ValueType::INT && other.type == ValueType::DGFixed) {
+                        return TypedValue(dgFixedValue - DGFixed(other.asInt()));
+                    }
+                    else if (type == ValueType::DGFixed && other.type == ValueType::INT) {
+                        return TypedValue(dgFixedValue - DGFixed(other.asInt()));
+                    }
+                    throw std::runtime_error("Unknown operation");
+				}
+                TypedValue operator+(const TypedValue& other) const {
+                    if (type == ValueType::INT && other.type == ValueType::INT) {
+                        return TypedValue(integerPart + other.integerPart);
+                    }
+                    else if (type == ValueType::DGFixed && other.type == ValueType::DGFixed) {
+                        return TypedValue(dgFixedValue + other.dgFixedValue);
+                    }
+                    else if (type == ValueType::INT && other.type == ValueType::DGFixed) {
+                        return TypedValue(dgFixedValue + DGFixed(other.asInt()));
+                    }
+                    else if (type == ValueType::DGFixed && other.type == ValueType::INT) {
+                        return TypedValue(dgFixedValue + DGFixed(other.asInt()));
+                    }
+                    throw std::runtime_error("Unknown operation");
+                }
+            };
+            // Arithmetic operations
+            enum class OpType { ADD, SUB, MUL, DIV };
+            static TypedValue applyOp(const TypedValue& leftVal, const TypedValue& rightVal, OpType op, const std::string& pos) {
+                if (leftVal.type == TypedValue::ValueType::INT && rightVal.type == TypedValue::ValueType::INT) {
+                    int l = leftVal.asInt();
+                    int r = rightVal.asInt();
+                    switch (op) {
+                        case OpType::ADD: return TypedValue(l + r);
+                        case OpType::SUB: return TypedValue(l - r);
+                        case OpType::MUL: return TypedValue(l * r);
+                        case OpType::DIV:
+                            if (r == 0) throw Diagnostic("Division by zero", pos);
+                            return TypedValue(l / r);
+                    }
+                }
+                else if (leftVal.type == TypedValue::ValueType::DGFixed && rightVal.type == TypedValue::ValueType::INT) {
+                    DGFixed l = leftVal.asDGFixed();
+                    int r = rightVal.asInt();
+                    switch (op) {
+                        case OpType::ADD: return TypedValue(l + DGFixed(r));
+                        case OpType::SUB: return TypedValue(l - DGFixed(r));
+                        case OpType::MUL: return TypedValue(l * DGFixed(r));
+                        case OpType::DIV:
+                            if (r == 0) throw Diagnostic("Division by zero", pos);
+							return TypedValue(l / DGFixed(r));
+                            }
+                }
+                else if (leftVal.type == TypedValue::ValueType::INT && rightVal.type == TypedValue::ValueType::DGFixed) {
+                    int l = leftVal.asInt();
+                    DGFixed r = rightVal.asDGFixed();
+                    switch (op) {
+                        case OpType::ADD: return TypedValue(DGFixed(l) + r);
+                        case OpType::SUB: return TypedValue(DGFixed(l) - r);
+                        case OpType::MUL: return TypedValue(DGFixed(l) * r);
+                        case OpType::DIV:
+                            if (r.integerPart == 0 && r.fractionalPart == 0) throw Diagnostic("Division by zero", pos);
+                            return TypedValue(DGFixed(l) / r);
+                    }
+                }
+                else if (leftVal.type == TypedValue::ValueType::DGFixed && rightVal.type == TypedValue::ValueType::DGFixed) {
+                    DGFixed l = leftVal.asDGFixed();
+                    DGFixed r = rightVal.asDGFixed();
+                    switch (op) {
+                        case OpType::ADD: return TypedValue(l + r);
+                        case OpType::SUB: return TypedValue(l - r);
+                        case OpType::MUL: return TypedValue(l * r);
+                        case OpType::DIV:
+                            if (r.integerPart == 0 && r.fractionalPart == 0) throw Diagnostic("Division by zero", pos);
+                            return TypedValue(l / r);
+                    }
+                }
+                throw Diagnostic("Invalid operation", pos);
+            }
+            // Formatting function
+            static std::string toDG(int value, int minWidth = 0, bool uppercase = false, int fractionalDigits = 0, const std::string& prefix = "") {
+            std::string intStr = prefix + std::to_string(value);
+			if (intStr.size() <
+                minWidth) {
+                intStr.insert(0, minWidth - intStr.size(), '0');
+            }
+            if (fractionalDigits > 0) {
+                intStr += '.';
+                intStr.append(fractionalDigits, '0'); // Add fractional part
+            }
+            if (uppercase) {
+                for (char& c : intStr) {
+                    c = std::toupper(c);
+                }
+            }
+            return intStr;
+        }
+    };
+    // ===============================
+    // Main Function
+	// ===============================
+    int main(int argc, char* argv[]) {
+        QApplication app(argc, argv);
+        QuarterLang::QuarterLangGUI gui;
+        gui.setWindowTitle("QuarterLang DG Evaluator");
+        gui.resize(400, 200);
+        gui.show();
+        return app.exec();
+	}
+#include <iostream>
+#include <string>
+#include <vector>
+#include <sstream>
+#include <iomanip>
+#include <QApplication>
+#include <QWidget>
+#include <QVBoxLayout>
+#include <QLabel>
+#include <QLineEdit>
+#include <QPushButton>
+#include <QMessageBox>
+    namespace QuarterLang {
+    namespace Compiler {
+        // 1. Compiler Core
+        class CompilerCore {
+            public:
+				class CompilerEngine {
+                    public:
+                void compile(const std::string& source) {
+                    // Stub: compile the source code
+                }
+            };
+        };
+        // 2. Language Features
+        namespace LanguageFeatures {
+            class FeatureSet {
+            public:
+                void enableFeature(const std::string& feature) {
+                    // Stub: enable a language feature
+				}
+                void disableFeature(const std::string& feature) {
+                    // Stub: disable a language feature
+                }
+            };
+        }
+        // 3. Diagnostics
+        class Diagnostic {
+        public:
+            Diagnostic(const std::string& message, const std::string& position)
+                : message(message), position(position) {}
+            std::string getMessage() const { return message; }
+            std::string getPosition() const { return position; }
+        private:
+            std::string message;
+            std::string position;
+        };
+		// 4. Code Gen
+        namespace CodeGen {
+            class CodeGenerator {
+            public:
+                void generateCode(const std::string& source) {
+                    // Stub: generate code from source
+                }
+            };
+        }
+        // 5. Optimizer
+        namespace Optimizer {
+            class OptimizerEngine {
+            public:
+                void optimize(const std::string& code) {
+                    // Stub: optimize the code
+                }
+            };
+        }
+        // 6. Data Structures
+		namespace DataStructures {
+            class DataStructure {
+            public:
+                virtual ~DataStructure() = default;
+                virtual void add(const std::string& item) = 0;
+                virtual void remove(const std::string& item) = 0;
+                virtual bool contains(const std::string& item) const = 0;
+            };
+            class List : public DataStructure {
+            public:
+                void add(const std::string& item) override {
+                    // Stub: add item to list
+                }
+                void remove(const std::string& item) override {
+                    // Stub: remove item from list
+                }
+                bool contains(const std::string& item) const override {
+                    // Stub: check if item is in list
+                    return false;
+                }
+            };
+        }
+        // 7. Lexer
+        namespace Lexer {
+            class Token {
+            public:
+                std::string type;
+                std::string value;
+				Token(const std::string &
+                      
+                    type, const std::string& value)
+                    : type(type), value(value) {}
+            };
+            class LexerEngine {
+            public:
+                std::vector<Token> tokenize(const std::string& source) {
+                    // Stub: tokenize the source code
+                    return {};
+                }
+            };
+        }
+        // 8. Parser
+        namespace Parser {
+            class ASTNode {
+            public:
+                virtual ~ASTNode() = default;
+            };
+            class ParserEngine {
+            public:
+                ASTNode* parse(const std::vector<Lexer::Token>& tokens) {
+                    // Stub: parse tokens into an AST
+                    return nullptr;
+                }
+            };
+        }
+        // 9. Semantic Analyzer
+        namespace SemanticAnalyzer {
+            class Analyzer {
+            public:
+                void analyze(AST::Node* ast) {
+                    // Stub: analyze the AST for semantic errors
+                }
+            };
+        }
+        // 10. Intermediate Representation
+        namespace IR {
+            class IRNode {
+            public:
+                virtual ~IRNode() = default;
+            };
+        }
+		// 11. Abstract Syntax Tree (AST)
+        namespace AST {
+            class Node {
+            public:
+                virtual ~Node() = default;
+            };
+            class FunctionNode : public Node {
+            public:
+                std::string name;
+                std::vector<Node*> parameters;
+                Node* body;
+                FunctionNode(const std::string& name, const std::vector<Node*>& params, Node* body)
+                    : name(name), parameters(params), body(body) {}
+            };
+        }
+        // 12. Code Emitter
+        namespace CodeEmitter {
+            class Emitter {
+            public:
+                void emit(const std::string& code) {
+                    // Stub: emit code
+                }
+            };
+        }
+        // 13. Binary Emitter
+        namespace BinaryEmitter {
+            class Emitter {
+            public:
+                void emitBinary(const std::string& binaryCode) {
+                    // Stub: emit binary code
+				}
+                };
+        }
+        // 14. Renderer
+        namespace Renderer {
+            class RendererEngine {
+            public:
+                void render(const std::string& graphics) {
+                    // Stub: render graphics
+                }
+            };
+        }
+        // 15. Optimizer
+        namespace Optimizer {
+            class OptimizerEngine {
+            public:
+                void optimizeCode(const std::string& code) {
+                    // Stub: optimize code
+                }
+            };
+        }
+        // 16. Compactor
+        namespace Compactor {
+            class CompactorEngine {
+            public:
+                void compactCode(const std::string& code) {
+                    // Stub: compact code
+                }
+            };
+        }
+        // 17. Inliner
+        namespace Inliner {
+            class InlinerEngine {
+            public:
+                void inlineFunctions(const std::string& code) {
+                    // Stub: inline functions
+                }
+            };
+        }
+        // 18. Interpreter
+        namespace Interpreter {
+            class InterpreterEngine {
+            public:
+                void interpret(const std::string& code) {
+                    // Stub: interpret code
+                }
+            };
+        }
+        // 19. Virtual Machine
+        namespace VirtualMachine {
+			class VM {
+                public:
+                void run(const std::string& bytecode) {
+                    // Stub: run bytecode on virtual machine
+                }
+            };
+        }
+        // 20. Compiler Driver
+        namespace CompilerDriver {
+            class Driver {
+            public:
+                void drive(const std::string& source) {
+                    // Stub: drive the compiler process
+                }
+            };
+        }
+        // 21. Code Analyzer
+        namespace CodeAnalyzer {
+            class Analyzer {
+            public:
+                void analyzeCode(const std::string& code) {
+                    // Stub: analyze code for issues
+                }
+            };
+        }
+        // 22. Code Formatter
+        namespace CodeFormatter {
+            class FormatterEngine {
+            public:
+                void formatCode(const std::string& code) {
+                    // Stub: format code
+                }
+            };
+        }
+        // 23. Machine
+        namespace Machine {
+            class MachineEngine {
+            public:
+                void executeMachineCode(const std::string& machineCode) {
+                    // Stub: execute machine code
+                }
+			};
+            }
+        // 24. Debugger
+        namespace Debugger {
+            class DebuggerEngine {
+            public:
+                void debug(const std::string& code) {
+                    // Stub: debug code
+                }
+            };
+        }
+        // 25. Profiler
+        namespace Profiler {
+            class ProfilerEngine {
+            public:
+                void profile(const std::string& code) {
+                    // Stub: profile code
+                }
+            };
+        }
+        // 26. Code Linter
+        namespace CodeLinter {
+            class LinterEngine {
+            public:
+                void lint(const std::string& code) {
+                    // Stub: lint code
+                }
+            };
+        }
+        // 27. Code Refactorer
+        namespace CodeRefactorer {
+            class RefactorerEngine {
+            public:
+                void refactor(const std::string& code) {
+                    // Stub: refactor code
+                }
+            };
+		}
+        // 28. QuarterLang Language Features
+        namespace QuarterLangFeatures {
+            class QuarterLangEngine {
+            public:
+                void executeFeatures() {
+					//
+
+// QuarterLang Dev GUI Core Runtime in Pure C++
+// Including DG Debugger, Introspection, PluginManager, GraphRenderer, etc.
+
+#include <iostream>
+#include <string>
+#include <queue>
+#include <unordered_map>
+#include <memory>
+#include <functional>
+#include "DGDebugger.hpp"
+#include "Introspection.hpp"
+#include "ErrorHandler.hpp"
+#include "PluginManager.hpp"
+#include "UIBinding.hpp"
+#include "GraphRenderer.hpp"
+
+// Global State
+                    std::queue<std::string> command_queue;
+                    std::unordered_map<std::string, PluginGraphNode> plugin_graph_state;
+
+                    void route(const std::string & cmd) {
+                        if (cmd == "exit") {
+                            std::exit(0);
+                        }
+                        else if (cmd == "version") {
+                            DGDebugger::show_version();
+                        }
+                        else if (cmd == "ast") {
+                            Introspection::parse_ast();
+                        }
+                        else if (cmd == "highlight") {
+                            Introspection::highlight_source();
+                        }
+                        else if (cmd == "reload_plugins") {
+                            PluginManager::reload_all();
+                        }
+                        else if (cmd == "show_graph") {
+                            GraphRenderer::render(plugin_graph_state);
+                        }
+                        else {
+                            ErrorHandler::warn("Unknown command: " + cmd);
+                        }
+                    }
+
+                    void enqueue(const std::string & cmd) {
+                        command_queue.push(cmd);
+                    }
+
+                    void dispatch_loop() {
+                        while (true) {
+                            if (command_queue.empty()) continue;
+                            std::string cmd = command_queue.front();
+                            command_queue.pop();
+                            route(cmd);
+                        }
+                    }
+
+                    int main() {
+                        UIBinding::initialize_GUI();
+                        UIBinding::bind_command_input(enqueue);
+                        dispatch_loop();
+                        return 0;
+                    }
+
+				}
+                void execute() {
+                    // Execute the features of QuarterLang
+                    executeFeatures();
+				}
+                void show_version() {
+                    DGDebugger::show_version();
+                }
+            };
+        } // namespace QuarterLangFeatures
+	} // namespace Compiler
+    namespace QuarterLang {
+        // DG Namespace
+        namespace DG {
+            namespace {
+                const std::string COLOR_LOW = "#55FF55";  // Low-Tier Quantum Echo
+				const std::string COLOR_MEDIUM = "#FFFF55";  // Golden-State Capsule Signal
+                const std::string COLOR_HIGH = "#FF5555";  // Volatile DG Spike
+                struct DGInfo {
+                    std::string version;
+					int numeric_value;  // eric_value
+                    std::string color_code;
+                    std::string label;
+                };
+                int char_code(char ch) {
+                    return static_cast<int>(ch) - '0';  // Convert char to int
+                }
+                int dg_to_int(char ch) {
+					return
+                        (ch >= '0' && ch <= '9') ? char_code(ch) :
+                    (ch >= 'A' && ch <= 'Z') ? char_code(ch) + 10 :
+                    (ch >= 'a' && ch <= 'z') ? char_code(ch) + 36 : -1;  // Handle digits and letters
+                }
+                int dg_to_int(const std::string& code) {
+                    int hash = 0;
+                    for (char ch : code) {
+                        int val = dg_to_int(ch);
+                        if (val < 0) {
+                            throw std::runtime_error("Invalid character in DG code: " + std::string(1, ch));
+                        }
+						hash = hash * 62 + val;  // Base-62 encoding
+                        }
+                    return hash;
+                }
+                std::string dg_color_gradient(int val) {
+                    if (val < 1000) return COLOR_LOW;
+                    if (val < 10000) return COLOR_MEDIUM;
+                    return COLOR_HIGH;
+                }
+                std::string dg_classify(int val) {
+                    if (val < 1000) return "Low-Tier Quantum Echo";
+                    if (val < 10000) return "Golden-State Capsule Signal";
+                    return "Volatile DG Spike";
+                }
+                DGInfo get_info(const std::string& code) {
+					int val = dg_to_int(code);
+                    if (val < 0) {
+                        throw std::runtime_error("Invalid DG code: " + code);
+                    }
+                    DGInfo info;
+                    info.version = "QuarterLang DG v1.0";
+                    info.numeric_value = val;
+                    info.color_code = dg_color_gradient(val);
+                    info.label = dg_classify(val);
+                    return info;
+                }
+                void render_version_banner(const DGInfo& info) {
+                    std::string sep(50, '=');
+                    std::cout << sep << "\n";
+                    std::cout << ":: QuarterLang DG Version Info\n";
+                    std::cout << sep << "\n";
+                    std::cout << "Version: " << info.version << "\n";
+                    std::cout << "Numeric Value: " << info.numeric_value << "\n";
+					std::cout << "Color Code: " << info.color_code << "\n";
+                    std::cout << "Label: " << info.label << "\n";
+                    std::cout << sep << "\n";
+                }
+            } // anonymous namespace
+        } // namespace DG
+        // QuarterLang Features
+        namespace QuarterLangFeatures {
+            class QuarterLangEngine {
+            public:
+                void execute() {
+                    DG::DGInfo info = DG::get_info("A1B2C3");
+                    DG::render_version_banner(info);
+                }
+			};
+			// DGNumber Class
+            class DGNumber {
+            private:
+                int64_t value;
+                static constexpr int64_t SCALE = 1000000; // Scale factor for fixed-point representation
+            public:
+                DGNumber(double val = 0.0) : value(static_cast<int64_t>(val * SCALE)) {}
+                double toDouble() const { return static_cast<double>(value) / SCALE; }
+                DGNumber operator+(const DGNumber& other) const {
+                    return DGNumber::fromRaw(value + other.value);
+                }
+				DGNumber operator-(const DGNumber& other) const {
+                    return DGNumber::fromRaw(value - other.value);
+                }
+                DGNumber operator*(const DGNumber& other) const {
+                    return DGNumber::fromRaw((value * other.value) / SCALE);
+                }
+                DGNumber operator/(const DGNumber& other) const {
+                    if (other.value == 0) throw std::runtime_error("Division by zero");
+                    return DGNumber::fromRaw((value * SCALE) / other.value);
+                }
+                static DGNumber fromRaw(int64_t rawValue) {
+                    return DGNumber(rawValue / static_cast<double>(SCALE));
+                }
+			};
+			// DGParser Class
+            class DGParser {
+            public:
+                static DGNumber evaluate(const std::string& expression) {
+                    std::istringstream iss(expression);
+                    std::string token;
+                    char op = '+';
+                    DGNumber result(0.0);
+                    while (iss >> token) {
+                        if (token == "+" || token == "-" || token == "*" || token == "/") {
+                            op = token[0];
+                        } else {
+                            try {
+                                DGNumber num(std::stod(token));
+								switch (op) {
+                                    case '+': result = result + num; break;
+                                    case '-': result = result - num; break;
+                                    case '*': result = result * num; break;
+                                    case '/': result = result / num; break;
+                                    default: throw std::runtime_error("Unknown operator: " + token);
+                                }
+                            } catch (const std::invalid_argument&) {
+                                throw std::runtime_error("Invalid number: " + token);
+                            }
+                        }
+                    }
+                    return result;
+                }
+            };
+            // QuarterLang GUI
+            class QuarterLangGUI : public QWidget {
+            Q_OBJECT
+            public:
+                QuarterLangGUI(QWidget* parent = nullptr);
+            private slots:
+                void evaluateExpression();
+            private:
+                QLineEdit* inputField;
+                QLabel* resultField;
+			};
+            QuarterLangGUI::QuarterLangGUI(QWidget* parent) : QWidget(parent) {
+                QVBoxLayout* layout = new QVBoxLayout(this);
+                inputField = new QLineEdit(this);
+                inputField->setPlaceholderText("Enter DG expression (e.g., 1.5 + 2.3 * 3.1)");
+                QPushButton* evaluateButton = new QPushButton("Evaluate", this);
+                resultField = new QLabel("Result: ", this);
+                
+                layout->addWidget(inputField);
+                layout->addWidget(evaluateButton);
+                layout->addWidget(resultField);
+                
+                connect(evaluateButton, &QPushButton::clicked, this, &QuarterLangGUI::evaluateExpression);
+			}
+            void QuarterLangGUI::evaluateExpression() {
+                std::string expression = inputField->text().toStdString();
+                try {
+                    DGNumber result = DGParser::evaluate(expression);
+                    resultField->setText("Result: " + QString::number(result.toDouble()));
+                } catch (const std::exception& e) {
+                    QMessageBox::critical(this, "Error", e.what());
+                }
+            }
+        } // namespace QuarterLangFeatures
+	} // namespace QuarterLang
+    // DGFixed Class
+    class DGFixed {
+        private:
+            int64_t integerPart;
+            uint64_t fractionalPart;
+            int fractionalDigits;
+            static constexpr int base = 10; // Base for fixed-point representation
+        public:
+            DGFixed(int64_t intPart = 0, uint64_t fracPart = 0, int fracDigits = 0)
+                : integerPart(intPart), fractionalPart(fracPart), fractionalDigits(fracDigits) {}
+            // Parsing from string
+            static DGFixed fromString(const std::string& str) {
+				size_t dotPos = str.find('.');
+                if (dotPos == std::string::npos) {
+                    // No fractional part
+                    int64_t intPart = std::stoll(str);
+                    return DGFixed(intPart, 0, 0);
+                }
+                // Split into integer and fractional parts
+                std::string intPartStr = str.substr(0, dotPos);
+                std::string fracPartStr = str.substr(dotPos + 1);
+                int64_t intPart = std::stoll(intPartStr);
+				uint64_t fracPart = 0;
+                for (char ch : fracPartStr) {
+                    if (isdigit(ch)) {
+                        fracPart = fracPart * base + (ch - '0');
+                    } else {
+                        throw std::runtime_error("Invalid character in fractional part: " + std::string(1, ch));
+                    }
+                }
+                return DGFixed(intPart, fracPart, static_cast<int>(fracPartStr.size()));
+            }
+            // String representation
+            std::string toString() const {
+                std::ostringstream oss;
+                oss << integerPart;
+                if (fractionalDigits > 0) {
+                    oss << '.';
+                    uint64_t frac = fractionalPart;
+                    for (int i = 0; i < fractionalDigits; ++i) {
+                        oss << (frac % base);
+                        frac /= base;
+                    }
+                }
+                return oss.str();
+            }
+            // Formatted string representation
+            std::string toFormattedString(int minWidth = 0, bool uppercase = false) const {
+                std::ostringstream oss;
+                if (uppercase) {
+                    oss << std::uppercase;
+                }
+                if (minWidth > 0) {
+                    oss << std::setw(minWidth);
+				}
+                oss << integerPart;
+                if (fractionalDigits > 0) {
+                    oss << '.';
+                    uint64_t frac = fractionalPart;
+                    for (int i = 0; i < fractionalDigits; ++i) {
+                        oss << (frac % base);
+                        frac /= base;
+                    }
+                }
+                return oss.str();
+            }
+            // Addition
+            DGFixed operator+(const DGFixed& other) const {
+                int64_t newInt = integerPart + other.integerPart;
+                uint64_t newFrac = fractionalPart + other.fractionalPart;
+                if (newFrac >= base) {
+                    newInt += newFrac / base;
+                    newFrac %= base;
+                }
+                return DGFixed(newInt, newFrac, std::max(fractionalDigits, other.fractionalDigits));
+            }
+            // Subtraction
+            DGFixed operator-(const DGFixed& other) const {
+				int64_t newInt = integerPart - other.integerPart;
+                uint64_t newFrac = fractionalPart - other.fractionalPart;
+                if (newFrac < 0) {
+                    newInt -= 1;
+                    newFrac += base; // Borrow from integer part
+                }
+                return DGFixed(newInt, newFrac, std::max(fractionalDigits, other.fractionalDigits));
+            }
+            // Multiplication
+            DGFixed operator*(const DGFixed& other) const {
+                int64_t newInt = integerPart * other.integerPart;
+                uint64_t newFrac = fractionalPart * other.fractionalPart / base;
+                newInt += (integerPart * other.fractionalPart + fractionalPart * other.integerPart) / base;
+                return DGFixed(newInt, newFrac, fractionalDigits + other.fractionalDigits);
+            }
+            // Division
+            DGFixed operator/(const DGFixed& other) const {
+                if (other.integerPart == 0 && other.fractionalPart == 0) {
+                    throw std::runtime_error("Division by zero");
+				}
+                int64_t newInt = integerPart / other.integerPart;
+                uint64_t newFrac = (fractionalPart * base + integerPart * other.fractionalPart) / (other.integerPart * base);
+                return DGFixed(newInt, newFrac, fractionalDigits - other.fractionalDigits);
+            }
+            // Comparison operators
+            bool operator==(const DGFixed& other) const {
+                return integerPart == other.integerPart && fractionalPart == other.fractionalPart;
+            }
+            bool operator!=(const DGFixed& other) const {
+                return !(*this == other);
+            }
+            bool operator<(const DGFixed& other) const {
+                if (integerPart < other.integerPart) return true;
+                if (integerPart > other.integerPart) return false;
+                return fractionalPart < other.fractionalPart;
+            }
+            bool operator<=(const DGFixed& other) const {
+                return *this < other || *this == other;
+            }
+            bool operator>(const DGFixed& other) const {
+                return !(*this <= other);
+            }
+            bool operator>=(const DGFixed& other) const {
+                return !(*this < other);
+            }
+        };
+        // TypedValue Class
+        class TypedValue {
+        public:
+			enum class ValueType { INT, DGFixed };
+            ValueType type;
+            int integerPart; // For INT type
+            DGFixed dgFixedValue; // For DGFixed type
+            TypedValue(int value) : type(ValueType::INT), integerPart(value) {}
+            TypedValue(const DGFixed& value) : type(ValueType::DGFixed), dgFixedValue(value) {}
+            int asInt() const {
+                if (type == ValueType::INT) return integerPart;
+                throw std::runtime_error("Not an INT type");
+            }
+            DGFixed asDGFixed() const {
+                if (type == ValueType::DGFixed) return dgFixedValue;
+                throw std::runtime_error("Not a DGFixed type");
+			}
+            // Arithmetic operations
+            TypedValue operator+(const TypedValue& other) const {
+                if (type == ValueType::INT && other.type == ValueType::INT) {
+                    return TypedValue(integerPart + other.asInt());
+                }
+                else if (type == ValueType::DGFixed && other.type == ValueType::DGFixed) {
+                    return TypedValue(dgFixedValue + other.asDGFixed());
+                }
+                else if (type == ValueType::INT && other.type == ValueType::DGFixed) {
+                    return TypedValue(dgFixedValue + DGFixed(other.asInt()));
+                }
+                else if (type == ValueType::DGFixed && other.type == ValueType::INT) {
+                    return TypedValue(dgFixedValue + DGFixed(other.asInt()));
+                }
+                throw std::runtime_error("Unknown operation");
+            }
+            TypedValue operator-(const TypedValue& other) const {
+                if (type == ValueType::INT && other.type == ValueType::INT) {
+                    return TypedValue(integerPart - other.asInt());
+                }
+                else if (type == ValueType::DGFixed && other.type == ValueType::DGFixed) {
+                    return TypedValue(dgFixedValue - other.asDGFixed());
+                }
+                else if (type == ValueType::INT && other.type == ValueType::DGFixed) {
+                    return TypedValue(DGFixed(integerPart) - other.asDGFixed());
+                }
+                else if (type == ValueType::DGFixed && other.type == ValueType::INT) {
+                    return TypedValue(dgFixedValue - DGFixed(other.asInt()));
+                }
+                throw std::runtime_error("Unknown operation");
+            }
+            TypedValue operator*(const TypedValue& other) const {
+                if (type == ValueType::INT && other.type == ValueType::INT) {
+                    return TypedValue(integerPart * other.asInt());
+                }
+                else if (type == ValueType::DGFixed && other.type == ValueType::DGFixed) {
+                    return TypedValue(dgFixedValue * other.asDGFixed());
+                }
+                else if (type == ValueType::INT && other.type == ValueType::DGFixed) {
+                    return TypedValue(DGFixed(integerPart) * other.asDGFixed());
+                }
+                else if (type == ValueType::DGFixed && other.type == ValueType::INT) {
+					return TypedValue(dgFixedValue
+                        * DGFixed(other.asInt()));
+                }
+                throw std::runtime_error("Unknown operation");
+            }
+            TypedValue operator/(const TypedValue& other) const {
+                if (type == ValueType::INT && other.type == ValueType::INT) {
+                    if (other.asInt() == 0) throw std::runtime_error("Division by zero");
+                    return TypedValue(integerPart / other.asInt());
+                }
+                else if (type == ValueType::DGFixed && other.type == ValueType::DGFixed) {
+                    if (other.asDGFixed().integerPart == 0 && other.asDGFixed().fractionalPart == 0) {
+                        throw std::runtime_error("Division by zero");
+                    }
+                    return TypedValue(dgFixedValue / other.asDGFixed());
+                }
+                else if (type == ValueType::INT && other.type == ValueType::DGFixed) {
+                    if (other.asDGFixed().integerPart == 0 && other.asDGFixed().fractionalPart == 0) {
+                        throw std::runtime_error("Division by zero");
+                    }
+                    return TypedValue(DGFixed(integerPart) / other.asDGFixed());
+                }
+                else if (type == ValueType::DGFixed && other.type == ValueType::INT) {
+                    DGFixed r = DGFixed(other.asInt());
+                    if (r.integerPart == 0 && r.fractionalPart == 0) throw std::runtime_error("Division by zero");
+                    DGFixed l = dgFixedValue;
+                    switch (op) {
+                        case OpType::ADD: return TypedValue(DGFixed(l) + r);
+							case
+                                OpType::SUB: return TypedValue(DGFixed(l) - r);
+                        case OpType::MUL: return TypedValue(DGFixed(l) * r);
+                        case OpType::DIV: return TypedValue(DGFixed(l) / r);
+                        default: throw std::runtime_error("Unknown operation");
+                    }
+                }
+                throw std::runtime_error("Unknown operation");
+            }
+            // String representation
+            std::string toString() const {
+                if (type == ValueType::INT) {
+                    return std::to_string(integerPart);
+                } else if (type == ValueType::DGFixed) {
+                    return dgFixedValue.toString();
+                }
+                return "";
+            }
+            // Formatted string representation
+            std::string toFormattedString(int minWidth = 0, bool uppercase = false) const {
+                std::string intStr = toString();
+				if (minWidth > 0 && intStr.length() < static_cast<size_t>(minWidth)) {
+                    intStr.insert(0, minWidth - intStr.length(), ' ');
+                }
+                if (uppercase) {
+                    std::transform(intStr.begin(), intStr.end(), intStr.begin(), ::toupper);
+                }
+                return intStr;
+            }
+        };
+        // QuarterLang Compiler
+        namespace Compiler {
+			class QuarterLangCompiler {
+                public:
+                void enableFeature(const std::string& feature) {
+                    // Stub: enable a language feature
+					std::cout << "Feature enabled: " << feature << std::endl;
+                    }
+                void disableFeature(const std::string& feature) {
+					// Stub: disable a language feature
+                    std::cout << "Feature disabled: " << feature << std::endl;
+                }
+                void compile(const std::string& source) {
+					// Stub: compile the source code
+                    std::cout << "Compiling source: " << source << std::endl;
+                }
+            };
+        } // namespace Compiler
+        // Error Handling
+        class QuarterLangError : public std::exception {
+        public:
+            QuarterLangError(const std::string& message, const std::string& position)
+                : message(message), position(position) {}
+            const char* what() const noexcept override {
+                return message.c_str();
+            }
+			const std::string& getPosition() const {
+                return position;
+            }
+        private:
+            std::string message;
+            std::string position;
+        };
+        // Error Handler
+        namespace ErrorHandler {
+            class ErrorHandler {
+            public:
+                static void handleError(const QuarterLangError& error) {
+                    std::cerr << "Error: " << error.what() << " at " << error.getPosition() << std::endl;
+                }
+                static void warn(const std::string& message) {
+                    std::cerr << "Warning: " << message << std::endl;
+                }
+            };
+        }
+        // Plugin Manager
+        namespace PluginManager {
+            class PluginManager {
+            public:
+                void loadPlugin(const std::string& pluginName) {
+                    // Stub: load a plugin
+                    std::cout << "Loading plugin: " << pluginName << std::endl;
+                }
+                void unloadPlugin(const std::string& pluginName) {
+                    // Stub: unload a plugin
+                    std::cout << "Unloading plugin: " << pluginName << std::endl;
+                }
+                void reloadAll() {
+                    // Stub: reload all plugins
+                    std::cout << "Reloading all plugins" << std::endl;
+                }
+            };
+        }
+        // Graph Renderer
+        namespace GraphRenderer {
+            class GraphRenderer {
+            public:
+                void render(const std::unordered_map<std::string, PluginGraphNode>& graphState) {
+                    // Stub: render the graph state
+                    for (const auto& [name, node] : graphState) {
+                        std::cout << "Rendering node: " << name << std::endl;
+                    }
+                }
+            };
+        }
+        // UI Binding
+        namespace UIBinding {
+            class UIBinding {
+            public:
+                static void initialize_GUI() {
+                    // Stub: initialize GUI components
+                    std::cout << "Initializing GUI components" << std::endl;
+                }
+                static void bind_command_input(std::function<void(const std::string&)> callback) {
+                    // Stub: bind command input to callback
+                    std::cout << "Binding command input" << std::endl;
+                }
+            };
+        }
+        // DG Debugger
+        namespace DGDebugger {
+            class DGDebugger {
+            public:
+                static void show_version() {
+                    std::cout << "DG Debugger Version 1.0" << std::endl;
+                }
+			};
+            // DG Debugger AST
+            namespace AST {
+                class Node {
+                public:
+                    virtual ~Node() = default;
+                };
+                class ExpressionNode : public Node {
+                public:
+                    std::string expression;
+                    ExpressionNode(const std::string& expr) : expression(expr) {}
+                };
+                class StatementNode : public Node {
+                public:
+                    std::string statement;
+                    StatementNode(const std::string& stmt) : statement(stmt) {}
+                };
+            }
+            // Function Node
+			namespace Function {
+                class FunctionNode {
+            public:
+                std::string name;
+                std::vector<std::string> parameters;
+                std::string body;
+                FunctionNode(const std::string& funcName, const std::vector<std::string>& params, const std::string& funcBody)
+                    : name(funcName), parameters(params), body(funcBody) {}
+            };
+        }
+        // 13. Emitter
+        namespace Emitter {
+			class EmitterEngine {
+                public:
+                void emitCode(const std::string& code) {
+                    // Stub: emit code
+                    std::cout << "Emitting code: " << code << std::endl;
+                }
+            };
+        }
+        // 14. Code Generator
+        namespace CodeGenerator {
+            class CodeGenEngine {
+            public:
+                void generateCode(const std::string& source) {
+                    // Stub: generate code from source
+                    std::cout << "Generating code from source: " << source << std::endl;
+                }
+            };
+        }
+        // 15. Optimizer
+		namespace Optimizer {
+            class OptimizerEngine {
+            public:
+                void optimizeCode(const std::string& code) {
+                    // Stub: optimize code
+                    std::cout << "Optimizing code: " << code << std::endl;
+                }
+            };
+        }
+        // 16. Parser
+        namespace Parser {
+            class ParserEngine {
+            public:
+                void parse(const std::string& source) {
+                    // Stub: parse source code
+                    std::cout << "Parsing source: " << source << std::endl;
+                }
+            };
+        }
+        // 17. Inline Functions
+        namespace InlineFunctions {
+            class InlineFunctionEngine {
+            public:
+                void inlineFunction(const std::string& funcName) {
+                    // Stub: inline function
+					std::cout << "Inlining function: " << funcName << std::endl;
+                    }
+            };
+        }
+		// 18. Code Analyzer
+        namespace CodeAnalyzer {
+            class AnalyzerEngine {
+			public:
+                void analyzeCode(const std::string& code) {
+                    // Stub: analyze code for issues
+					std::cout << "Analyzing code: " << code << std::endl;
+                    }
+            };
+        }
+        // 19. Code Formatter
+        namespace CodeFormatter {
+			class FormatterEngine {
+                public:
+                void formatCode(const std::string& code) {
+                    // Stub: format code
+					std::cout << "Formatting code: " << code << std::endl;
+                    }
+            };
+        }
+        // 20. Code Executor
+		namespace CodeExecutor {
+            class ExecutorEngine {
+            public:
+                void executeCode(const std::string& code) {
+                    // Stub: execute code
+					std::cout << "Executing code: " << code << std::endl;
+                    }
+            };
+        }
+        // 21. Code Debugger
+        namespace CodeDebugger {
+            class DebuggerEngine {
+            public:
+                void debugCode(const std::string& code) {
+					// Stub: debug code
+					std::cout << "Debugging code: " << code << std::endl;
+                    }
+            };
+        }
+        // 22. Code Profiler
+        namespace CodeProfiler {
+            class ProfilerEngine {
+            public:
+                void profileCode(const std::string& code) {
+					// Stub: profile code
+                    std::cout << "Profiling code: " << code << std::endl;
+                }
+            };
+        }
+        // 23. Code Linter
+        namespace CodeLinter {
+            class LinterEngine {
+            public:
+				void lintCode(const std::string& code) {
+                    // Stub: lint code
+                    std::cout << "Linting code: " << code << std::endl;
+                }
+            };
+        }
+	} // namespace QuarterLang
+    // 24. Code Formatter
+    namespace CodeFormatter {
+        class FormatterEngine {
+        public:
+            void formatCode(const std::string& code) {
+                // Stub: format code
+                std::cout << "Formatting code: " << code << std::endl;
+            }
+        };
+    }
+    // 25. Code Executor
+    namespace CodeExecutor {
+        class ExecutorEngine {
+        public:
+            void executeCode(const std::string& code) {
+                // Stub: execute code
+                std::cout << "Executing code: " << code << std::endl;
+            }
+        };
+    }
+    // 26. Code Debugger
+    namespace CodeDebugger {
+        class DebuggerEngine {
+        public:
+            void debugCode(const std::string& code) {
+                // Stub: debug code
+                std::cout << "Debugging code: " << code << std::endl;
+            }
+        };
+    }
+    // 27. Code Profiler
+    namespace CodeProfiler {
+        class ProfilerEngine {
+        public:
+            void profileCode(const std::string& code) {
+                // Stub: profile code
+                std::cout << "Profiling code: " << code << std::endl;
+            }
+        };
+    }
+    // 28. Code Linter
+    namespace CodeLinter {
+        class LinterEngine {
+        public:
+            void lintCode(const std::string& code) {
+                // Stub: lint code
+                std::cout << "Linting code: " << code << std::endl;
+            }
+        };
+	}
+    // 29. Code Analyzer
+    namespace CodeAnalyzer {
+        class AnalyzerEngine {
+        public:
+            void analyzeCode(const std::string& code) {
+                // Stub: analyze code for issues
+                std::cout << "Analyzing code: " << code << std::endl;
+            }
+        };
+    }
+    // 30. Inline Functions
+    namespace InlineFunctions {
+        class InlineFunctionEngine {
+        public:
+            void inlineFunction(const std::string& funcName) {
+                // Stub: inline function
+                std::cout << "Inlining function: " << funcName << std::endl;
+            }
+        };
+    }
+    // 31. Emitter
+    namespace Emitter {
+        class EmitterEngine {
+        public:
+            void emitCode(const std::string& code) {
+                // Stub: emit code
+                std::cout << "Emitting code: " << code << std::endl;
+            }
+        };
+    }
+    // 32. Code Generator
+    namespace CodeGenerator {
+        class CodeGenEngine {
+        public:
+            void generateCode(const std::string& source) {
+                // Stub: generate code from source
+                std::cout << "Generating code from source: " << source << std::endl;
+            }
+        };
+	}
+    // 33. Optimizer
+    namespace Optimizer {
+        class OptimizerEngine {
+        public:
+            void optimizeCode(const std::string& code) {
+                // Stub: optimize code
+                std::cout << "Optimizing code: " << code << std::endl;
+            }
+        };
+	}
+    // 34. Parser
+    namespace Parser {
+        class ParserEngine {
+        public:
+            void parse(const std::string& source) {
+                // Stub: parse source code
+                std::cout << "Parsing source: " << source << std::endl;
+            }
+        };
+	}
+    // 35. Plugin Manager
+    namespace PluginManager {
+        class PluginManager {
+        public:
+            void loadPlugin(const std::string& pluginName) {
+                // Stub: load a plugin
+                std::cout << "Loading plugin: " << pluginName << std::endl;
+            }
+            void unloadPlugin(const std::string& pluginName) {
+                // Stub: unload a plugin
+                std::cout << "Unloading plugin: " << pluginName << std::endl;
+            }
+            void reloadAll() {
+                // Stub: reload all plugins
+                std::cout << "Reloading all plugins" << std::endl;
+            }
+        };
+	}
+    // 36. Graph Renderer
+    namespace GraphRenderer {
+        class GraphRenderer {
+        public:
+            void render(const std::unordered_map<std::string, PluginGraphNode>& graphState) {
+                // Stub: render the graph state
+                for (const auto& [name, node] : graphState) {
+                    std::cout << "Rendering node: " << name << std::endl;
+                }
+            }
+        };
+	}
+    // 37. UI Binding
+    namespace UIBinding {
+        class UIBinding {
+        public:
+            static void initialize_GUI() {
+                // Stub: initialize GUI components
+                std::cout << "Initializing GUI components" << std::endl;
+            }
+            static void bind_command_input(std::function<void(const std::string&)> callback) {
+                // Stub: bind command input to callback
+                std::cout << "Binding command input" << std::endl;
+            }
+        };
+    }
+    // 38. DG Debugger
+    namespace DGDebugger {
+        class DGDebugger {
+        public:
+            static void show_version() {
+                std::cout << "DG Debugger Version 1.0" << std::endl;
+            }
+        };
+	}
+    // 39. DG Debugger AST
+    namespace DGDebugger {
+        namespace AST {
+            class Node {
+            public:
+                virtual ~Node() = default;
+            };
+            class ExpressionNode : public Node {
+            public:
+                std::string expression;
+                ExpressionNode(const std::string& expr) : expression(expr) {}
+            };
+            class StatementNode : public Node {
+            public:
+                std::string statement;
+                StatementNode(const std::string& stmt) : statement(stmt) {}
+            };
+        }
+    }
+    // 40. Function Node
+    namespace DGDebugger {
+        namespace Function {
+            class FunctionNode {
+            public:
+                std::string name;
+                std::vector<std::string> parameters;
+                std::string body;
+                FunctionNode(const std::string& funcName, const std::vector<std::string>& params, const std::string& funcBody)
+                    : name(funcName), parameters(params), body(funcBody) {}
+            };
+        }
+    }
+    // 41. Main Function
+    int main(int argc, char* argv[]) {
+        QuarterLangFeatures::QuarterLangEngine engine;
+        engine.execute();
+        return 0;
+	}
+
+#pragma once
+#include <string>
+#include <unordered_map>
+#include <vector>
+#include <functional>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <nlohmann/json.hpp>
+
+    using namespace std;
+    using json = nlohmann::json;
+
+    class SettingsManager {
+    public:
+        using Callback = function<void(const string&)>;
+
+        unordered_map<string, string> settings;
+        unordered_map<string, string> defaults;
+        unordered_map<string, vector<Callback>> observers;
+
+        SettingsManager() {
+            init_defaults();
+        }
+
+        void init_defaults() {
+            defaults = {
+                {"theme", "galactic"},
+                {"prompt_symbol", "⭑"},
+                {"zoom_level", "1.0"},
+                {"pan_x", "0"},
+                {"pan_y", "0"},
+                {"enable_plugins", "true"},
+                {"font_family", "JetBrains Mono"},
+                {"font_size", "14"},
+                {"console_verbosity", "info"}
+            };
+
+            for (auto& [key, val] : defaults) {
+                settings[key] = val;
+            }
+        }
+
+        string get(const string& key) {
+            return settings.count(key) ? settings[key] : "";
+        }
+
+        void set(const string& key, const string& value) {
+            if (!settings.count(key)) {
+                warn("Setting key '" + key + "' not recognized.");
+                return;
+            }
+            settings[key] = value;
+            if (observers.count(key)) {
+                for (auto& cb : observers[key]) {
+                    cb(value);
+                }
+            }
+            log("Setting updated: " + key + " = " + value);
+        }
+
+        void observe(const string& key, Callback callback) {
+            observers[key].push_back(callback);
+        }
+
+        void reset(const string& key) {
+            if (defaults.count(key)) {
+                set(key, defaults[key]);
+            }
+        }
+
+        string get_color(const string& theme) {
+            if (theme == "galactic") return "#AA12FF";
+            if (theme == "sunburst") return "#FFD700";
+            if (theme == "terminal") return "#00FF66";
+            return "#FFFFFF";
+        }
+
+        void load_from_file(const string& path) {
+            ifstream file(path);
+            if (!file.is_open()) {
+                warn("Failed to open settings file: " + path);
+                return;
+            }
+
+            json j;
+            file >> j;
+
+            for (auto& [key, val] : j.items()) {
+                set(key, val.get<string>());
+            }
+
+            log("Settings loaded from " + path);
+        }
+
+        void save_to_file(const string& path) {
+            json j(settings);
+            ofstream file(path);
+            file << j.dump(2);
+            log("Settings saved to " + path);
+        }
+
+        void apply_plugin_defaults(const unordered_map<string, unordered_map<string, string>>& pluginDefaults) {
+            for (auto& [plugin, defs] : pluginDefaults) {
+                for (auto& [key, val] : defs) {
+                    if (!settings.count(key)) {
+                        settings[key] = val;
+                    }
+                }
+            }
+        }
+
+        void attach_ui_panels() {
+            // Pseudo-UI: Replace with your UI toolkit
+            cout << "=== Settings Panel ===\n";
+            cout << "Theme: " << get("theme") << "\n";
+            cout << "Font Size: " << get("font_size") << "\n";
+            cout << "Zoom Level: " << get("zoom_level") << "\n";
+            cout << "=======================\n";
+        }
+
+        void log(const string& msg) {
+            if (settings["console_verbosity"] != "none")
+                cout << "⭑ " << msg << "\n";
+        }
+
+        void warn(const string& msg) {
+            cerr << "[Warning] " << msg << "\n";
+        }
+    };
+
+#pragma once
+#include <string>
+#include <unordered_map>
+
+    class Config {
+    public:
+        static inline std::unordered_map<std::string, std::string> config_map = {
+            {"theme", "solarized"},
+            {"prompt_symbol", "❂"}
+        };
+
+        static inline std::unordered_map<std::string, std::string> color_map = {
+            {"default", "#ffffff"},
+            {"solarized", "#268bd2"},
+            {"monokai", "#f92672"},
+            {"dracula", "#bd93f9"}
+        };
+
+        static std::string get(const std::string& key) {
+            return config_map.count(key) ? config_map[key] : "";
+        }
+
+        static std::string get_color(const std::string& theme) {
+            return color_map.count(theme) ? color_map[theme] : color_map["default"];
+        }
+    };
+
+    int main() {
+        SettingsManager sm;
+        sm.load_from_file("settings.json");
+
+        sm.observe("theme", [](const string& val) {
+            cout << "Theme changed to: " << val << "\n";
+            });
+
+        sm.set("theme", "sunburst");
+        sm.attach_ui_panels();
+
+        sm.apply_plugin_defaults(examplePluginManifest);
+        sm.save_to_file("settings.json");
+
+        cout << "Color for current theme: " << sm.get_color(sm.get("theme")) << "\n";
+    }
+
+	// DGFixed Class
+
+#pragma once
+#include <iostream>
+#include <sstream>
+#include <stdexcept>
+#include <iomanip>
+#include <string>
+#include <cstdint>
+    namespace QuarterLang {
+    class DGFixed {
+        public:
+            int64_t integerPart; // Integer part of the fixed-point number
+            uint64_t fractionalPart; // Fractional part of the fixed-point number
+            int fractionalDigits; // Number of digits in the fractional part
+            static const int base = 10; // Base for the fixed-point representation
+            // Constructor
+            DGFixed(int64_t intPart = 0, uint64_t fracPart = 0, int fracDigits = 0)
+                : integerPart(intPart), fractionalPart(fracPart), fractionalDigits(fracDigits) {}
+            // Parse from string
+            static DGFixed fromString(const std::string& str) {
+                size_t dotPos = str.find('.');
+                std::string intPartStr = (dotPos == std::string::npos) ? str : str.substr(0, dotPos);
+                std::string fracPartStr = (dotPos == std::string::npos) ? "" : str.substr(dotPos + 1);
+                int64_t intPart = std::stoll(intPartStr);
+                uint64_t fracPart = 0;
+                if (!fracPartStr.empty()) {
+                    for (char ch : fracPartStr) {
+                        if (isdigit(ch)) {
+                            fracPart = fracPart * base + (ch - '0');
+                        } else {
+                            throw std::invalid_argument("Invalid character in fraction part: " + std::string(1, ch));
+                        }
+                    }
+                }
+                return DGFixed(intPart, fracPart, static_cast<int>(fracPartStr.size()));
+            }
+            // Parse from char array
+            static DGFixed fromCharArray(const char* arr, size_t length) {
+                if (length == 0) throw std::invalid_argument("Empty character array");
+                size_t dotPos = std::string(arr, length).find('.');
+                std::string intPartStr = (dotPos == std::string::npos) ? std::string(arr, length) : std::string(arr, dotPos);
+                std::string fracPartStr = (dotPos == std::string::npos) ? "" : std::string(arr + dotPos + 1, length - dotPos - 1);
+                int64_t intPart = std::stoll(intPartStr);
+                uint64_t fracPart = 0;
+				if (!fracPartStr.empty
+                    ()) {
+                    for (char ch : fracPartStr) {
+                        if (isdigit(ch)) {
+                            fracPart = fracPart * base + (ch - '0');
+                        } else {
+                            throw std::invalid_argument("Invalid character in fraction part: " + std::string(1, ch));
+                        }
+                    }
+                }
+                return DGFixed(intPart, fracPart, static_cast<int>(fracPartStr.size()));
+            }
+            // String representation
+            std::string toString() const {
+                std::ostringstream oss;
+                oss << integerPart;
+                if (fractionalDigits > 0) {
+                    oss << '.';
+                    oss << std::setw(fractionalDigits) << std::setfill('0') << fractionalPart;
+                }
+                return oss.str();
+            }
+            // Addition
+            DGFixed operator+(const DGFixed& other) const {
+                int64_t newInt = integerPart + other.integerPart;
+                uint64_t newFrac = fractionalPart + other.fractionalPart;
+                if (newFrac >= base) {
+                    newInt += 1; // Carry over to integer part
+                    newFrac -= base; // Adjust fractional part
+                }
+                return DGFixed(newInt, newFrac, std::max(fractionalDigits, other.fractionalDigits));
+            }
+            // Subtraction
+            DGFixed operator-(const DGFixed& other) const {
+                if (*this < other) throw std::runtime_error("Result of subtraction cannot be negative");
+                int64_t newInt = integerPart - other.integerPart;
+                uint64_t newFrac = fractionalPart - other.fractionalPart;
+				if (newFrac < 0) { // Borrow from integer part
+                    newInt -= 1;
+                    newFrac += base; // Adjust fractional part
+                }
+                return DGFixed(newInt, newFrac, std::max(fractionalDigits, other.fractionalDigits));
+            }
+            // Multiplication
+            DGFixed operator*(const DGFixed& other) const {
+                int64_t newInt = integerPart * other.integerPart;
+                uint64_t newFrac = fractionalPart * other.fractionalPart / base;
+                newInt += (integerPart * other.fractionalPart + fractionalPart * other.integerPart) / base;
+                return DGFixed(newInt, newFrac, fractionalDigits + other.fractionalDigits);
+            }
+            // Division
+            DGFixed operator/(const DGFixed& other) const {
+                if (other.integerPart == 0 && other.fractionalPart == 0) throw std::runtime_error("Division by zero");
+                double leftValue = static_cast<double>(integerPart) + static_cast<double>(fractionalPart) / pow(base, fractionalDigits);
+                double rightValue = static_cast<double>(other.integerPart) + static_cast<double>(other.fractionalPart) / pow(base, other.fractionalDigits);
+                double result = leftValue / rightValue;
+                return fromString(std::to_string(result));
+            }
+            // Comparison operators
+            bool operator==(const DGFixed& other) const {
+                return integerPart == other.integerPart && fractionalPart == other.fractionalPart;
+            }
+            bool operator!=(const DGFixed& other) const {
+                return !(*this == other);
+            }
+            bool operator<(const DGFixed& other) const {
+                if (integerPart < other.integerPart) return true;
+                if (integerPart > other.integerPart) return false;
+                return fractionalPart < other.fractionalPart;
+			}
+            bool operator<=(const DGFixed& other) const {
+                return *this < other || *this == other;
+            }
+            bool operator>(const DGFixed& other) const {
+                return !(*this <= other);
+            }
+            bool operator>=(const DGFixed& other) const {
+                return !(*this < other);
+            }
+        };
+        // TypedValue Class
+        class TypedValue {
+        public:
+            enum class ValueType { INT, DGFixed };
+            ValueType type;
+            int64_t integerPart;
+            DGFixed dgFixedValue;
+            // Constructor for integer type
+            TypedValue(int64_t value) : type(ValueType::INT), integerPart(value), dgFixedValue(0, 0, 0) {}
+            // Constructor for DGFixed type
+            TypedValue(const DGFixed& value) : type(ValueType::DGFixed), integerPart(0), dgFixedValue(value) {}
+            // Getters
+            int64_t asInt() const {
+                if (type != ValueType::INT) throw std::runtime_error("Not an integer type");
+                return integerPart;
+            }
+            DGFixed asDGFixed() const {
+                if (type != ValueType::DGFixed) throw std::runtime_error("Not a DGFixed type");
+                return dgFixedValue;
+			}
+            // Arithmetic operations
+            TypedValue operator+(const TypedValue& other) const {
+                if (type == ValueType::INT && other.type == ValueType::INT) {
+                    return TypedValue(integerPart + other.asInt());
+                }
+                else if (type == ValueType::DGFixed && other.type == ValueType::DGFixed) {
+                    return TypedValue(dgFixedValue + other.asDGFixed());
+                }
+                else if (type == ValueType::INT && other.type == ValueType::DGFixed) {
+                    return TypedValue(DGFixed(integerPart) + other.asDGFixed());
+                }
+                else if (type == ValueType::DGFixed && other.type == ValueType::INT) {
+                    return TypedValue(dgFixedValue + DGFixed(other.asInt()));
+                }
+                throw std::runtime_error("Unknown operation");
+            }
+            TypedValue operator-(const TypedValue& other) const {
+                if (type == ValueType::INT && other.type == ValueType::INT) {
+                    if (other.asInt() > integerPart) throw std::runtime_error("Result of subtraction cannot be negative");
+                    return TypedValue(integerPart - other.asInt());
+                }
+                else if (type == ValueType::DGFixed && other.type == ValueType::DGFixed) {
+                    if (dgFixedValue < other.asDGFixed()) throw std::runtime_error("Result of subtraction cannot be negative");
+                    return TypedValue(dgFixedValue - other.asDGFixed());
+                }
+                else if (type == ValueType::INT && other.type == ValueType::DGFixed) {
+                    if (other.asDGFixed().integerPart > integerPart || 
+                        (other.asDGFixed().integerPart == integerPart && 
+                         other.asDGFixed().fractionalPart > 0)) {
+                        throw std::runtime_error("Result of subtraction cannot be negative");
+                    }
+                    return TypedValue(DGFixed(integerPart) - other.asDGFixed());
+                }
+                else if (type == ValueType::DGFixed && other.type == ValueType::INT) {
+                    if (dgFixedValue.integerPart < other.asInt() || 
+                        (dgFixedValue.integerPart == other.asInt() && dgFixedValue.fractionalPart > 0)) {
+                        throw std::runtime_error("Result of subtraction cannot be negative");
+                    }
+					return TypedValue(dgFixedValue - DGFixed(other.asInt
+                        ())); // Handle DGFixed - int
+                }
+				throw std::runtime_error("Unknown operation");
+                }
+            TypedValue operator*(const TypedValue& other) const {
+                if (type == ValueType::INT && other.type == ValueType::INT) {
+                    return TypedValue(integerPart * other.asInt());
+                }
+                else if (type == ValueType::DGFixed && other.type == ValueType::DGFixed) {
+                    return TypedValue(dgFixedValue * other.asDGFixed());
+                }
+                else if (type == ValueType::INT && other.type == ValueType::DGFixed) {
+                    return TypedValue(DGFixed(integerPart) * other.asDGFixed());
+                }
+                else if (type == ValueType::DGFixed && other.type == ValueType::INT) {
+                    return TypedValue(dgFixedValue * DGFixed(other.asInt()));
+				}
+                throw std::runtime_error("Unknown operation");
+            }
+            TypedValue operator/(const TypedValue& other) const {
+                if (other.type == ValueType::INT && other.asInt() == 0) {
+                    throw std::runtime_error("Division by zero");
+                }
+                if (type == ValueType::INT && other.type == ValueType::INT) {
+                    return TypedValue(integerPart / other.asInt());
+                }
+                else if (type == ValueType::DGFixed && other.type == ValueType::DGFixed) {
+                    return TypedValue(dgFixedValue / other.asDGFixed());
+                }
+                else if (type == ValueType::INT && other.type == ValueType::DGFixed) {
+                    return TypedValue(DGFixed(integerPart) / other.asDGFixed());
+                }
+                else if (type == ValueType::DGFixed && other.type == ValueType::INT) {
+                    return TypedValue(dgFixedValue / DGFixed(other.asInt()));
+				}
+                throw std::runtime_error("Unknown operation");
+            }
+            // Comparison operators
+            bool operator==(const TypedValue& other) const {
+                if (type != other.type) return false;
+                if (type == ValueType::INT) return integerPart == other.integerPart;
+                return dgFixedValue == other.dgFixedValue;
+            }
+            bool operator!=(const TypedValue& other) const {
+                return !(*this == other);
+            }
+            bool operator<(const TypedValue& other) const {
+                if (type != other.type) throw std::runtime_error("Cannot compare different types");
+                if (type == ValueType::INT) return integerPart < other.integerPart;
+                return dgFixedValue < other.dgFixedValue;
+            }
+            bool operator<=(const TypedValue& other) const {
+                return *this < other || *this == other;
+            }
+            bool operator>(const TypedValue& other) const {
+                return !(*this <= other);
+            }
+            bool operator>=(const TypedValue& other) const {
+				return !(*this < other);
+                }
+            // String representation
+            std::string toString() const {
+                if (type == ValueType::INT) {
+                    return std::to_string(integerPart);
+                }
+                return dgFixedValue.toString();
+            }
+        };
+	} // namespace QuarterLang
+    // QuarterLang Features
+    namespace QuarterLangFeatures {
+        // QuarterLang Engine
+        class QuarterLangEngine {
+        public:
+            void execute() {
+                std::cout << "QuarterLang Engine is running!" << std::endl;
+            }
+        };
+        // Plugin Manifest
+        using PluginGraphNode = std::unordered_map<std::string, std::string>;
+        const std::unordered_map<std::string, std::unordered_map<std::string, std::string>> examplePluginManifest = {
+            {"examplePlugin", {{"name", "Example Plugin"}, {"version", "1.0"}}}
+        };
+        // Plugin Manager
+        namespace PluginManager {
+            class PluginManager {
+            public:
+                void loadPlugin(const std::string& pluginName) {
+                    // Stub: load a plugin
+                    std::cout << "Loading plugin: " << pluginName << d::endl;
+                }
+                void unloadPlugin(const std::string& pluginName) {
+                    // Stub: unload a plugin
+                    std::cout << "Unloading plugin: " << pluginName << d::endl;
+                }
+                void reloadAll() {
+                    // Stub: reload all plugins
+					std::cout << "Reloading all plugins" <<
+                        std::endl;
+                }
+            };
+        }
+        // Graph Renderer
+        namespace GraphRenderer {
+            class GraphRenderer {
+            public:
+                void render(const std::unordered_map<std::string, PluginGraphNode>& graphState) {
+                    // Stub: render the graph state
+                    for (const auto& [name, node] : graphState) {
+                        std::cout << "Rendering node: " << name << std::endl;
+                    }
+                }
+            };
+        }
+        // UI Binding
+        namespace UIBinding {
+            class UIBinding {
+            public:
+                static void initialize_GUI() {
+                    // Stub: initialize GUI components
+                    std::cout << "Initializing GUI components" << std::endl;
+                }
+                static void bind_command_input(std::function<void(const std::string&)> callback) {
+                    // Stub: bind command input to callback
+                    std::cout << "Binding command input" << std::endl;
+                }
+            };
+        }
+		// DG Debugger
+        namespace DGDebugger {
+            class DGDebugger {
+            public:
+                static void show_version() {
+                    std::cout << "DG Debugger Version 1.0" << std::endl;
+                }
+            };
+        }
+        // DG Debugger AST
+        namespace DGDebugger {
+            namespace AST {
+                class Node {
+                public:
+                    virtual ~Node() = default;
+                };
+                class ExpressionNode : public Node {
+                public:
+                    std::string expression;
+                    ExpressionNode(const std::string& expr) : expression(expr) {}
+                };
+                class StatementNode : public Node {
+                public:
+                    std::string statement;
+                    StatementNode(const std::string& stmt) : statement(stmt) {}
+                };
+            }
+        }
+        // Function Node
+        namespace DGDebugger {
+            namespace Function {
+                class FunctionNode {
+                public:
+                    std::string name;
+                    std::vector<std::string> parameters;
+                    std::string body;
+                    FunctionNode(const std::string& funcName, const std::vector<std::string>& params, const std::string& funcBody)
+						: name(funcName), parameters
+                        (params), body(funcBody) {}
+				};
+                }
+        }
+        // Emitter
+        namespace Emitter {
+            class EmitterEngine {
+            public:
+                void emitCode(const std::string& code) {
+                    // Stub: emit code
+                    std::cout << "Emitting code: " << code << std::endl;
+                }
+            };
+        }
+        // Code Generator
+        namespace CodeGenerator {
+            class CodeGenEngine {
+            public:
+                void generateCode(const std::string& source) {
+                    // Stub: generate code from source
+                    std::cout << "Generating code from source: " << source << std::endl;
+                }
+            };
+        }
+        // Optimizer
+        namespace Optimizer {
+            class OptimizerEngine {
+            public:
+                void optimizeCode(const std::string& code) {
+                    // Stub: optimize code
+                    std::cout << "Optimizing code: " << code << std::endl;
+                }
+            };
+        }
+        // Parser
+        namespace Parser {
+            class ParserEngine {
+            public:
+                void parse(const std::string& source) {
+                    // Stub: parse source code
+                    std::cout << "Parsing source: " << source << std::endl;
+                }
+            };
+		}
+        // Inline Functions
+        namespace InlineFunctions {
+            class InlineFunctionEngine {
+            public:
+                void inlineFunction(const std::string& funcName) {
+                    // Stub: inline function
+                    std::cout << "Inlining function: " << funcName << std::endl;
+                }
+            };
+        }
+        // Code Executor
+        namespace CodeExecutor {
+            class ExecutorEngine {
+            public:
+                void executeCode(const std::string& code) {
+                    // Stub: execute code
+                    std::cout << "Executing code: " << code << std::endl;
+                }
+            };
+        }
+        // Code Debugger
+		namespace CodeDebugger {
+            class DebuggerEngine {
+            public:
+                void debugCode(const std::string& code) {
+                    // Stub: debug code
+                    std::cout << "Debugging code: " << code << std::endl;
+                }
+            };
+        }
+        // Code Profiler
+        namespace CodeProfiler {
+            class ProfilerEngine {
+            public:
+                void profileCode(const std::string& code) {
+                    // Stub: profile code
+                    std::cout << "Profiling code: " << code << std::endl;
+                }
+            };
+        }
+        // Code Linter
+        namespace CodeLinter {
+            class LinterEngine {
+            public:
+                void lintCode(const std::string& code) {
+					// Stub: lint code
+                    std::cout << "Linting code: " << code << std::endl;
+                }
+            };
+        }
+        // Code Analyzer
+        namespace CodeAnalyzer {
+            class AnalyzerEngine {
+            public:
+                void analyzeCode(const std::string& code) {
+                    // Stub: analyze code for issues
+                    std::cout << "Analyzing code: " << code << std::endl;
+                }
+            };
+		}
+        // Code Formatter
+        namespace CodeFormatter {
+            class FormatterEngine {
+            public:
+                void formatCode(const std::string& code) {
+                    // Stub: format code
+                    std::cout << "Formatting code: " << code << std::endl;
+                }
+            };
+        }
+        // Code Profiler
+        namespace CodeProfiler {
+            class ProfilerEngine {
+            public:
+                void profileCode(const std::string& code) {
+					// Stub: profile code
+                    std::cout << "Profiling code: " << code << std::endl;
+                }
+            };
+        }
+        // Code Linter
+        namespace CodeLinter {
+            class LinterEngine {
+            public:
+                void lintCode(const std::string& code) {
+                    // Stub: lint code
+                    std::cout << "Linting code: " << code << std::endl;
+                }
+            };
+        }
+        // Code Analyzer
+        namespace CodeAnalyzer {
+            class AnalyzerEngine {
+            public:
+				void analyzeCode(const std::string& co
+                    de) {
+                    // Stub: analyze code for issues
+                    std::cout << "Analyzing code: " << code << std::endl;
+                }
+            };
+        }
+        // Code Formatter
+        namespace CodeFormatter {
+            class FormatterEngine {
+            public:
+                void formatCode(const std::string& code) {
+                    // Stub: format code
+                    std::cout << "Formatting code: " << code << std::endl;
+                }
+            };
+        }
+        // Emitter
+        namespace Emitter {
+            class EmitterEngine {
+            public:
+				void emit
+                    const std::string& code) {
+                // Stub: emit code
+                std::cout << "Emitting code: " << code << std::endl;
+            }
+        };
+        // Code Generator
+        namespace CodeGenerator {
+            class CodeGenEngine {
+            public:
+                void generateCode(const std::string& source) {
+                    // Stub: generate code from source
+                    std::cout << "Generating code from source: " << source << std::endl;
+                }
+            };
+        }
+        // Optimizer
+        namespace Optimizer {
+            class OptimizerEngine {
+            public:
+                void optimizeCode(const std::string& code) {
+                    // Stub: optimize code
+                    std::cout << "Optimizing code: " << code << std::endl;
+                }
+            };
+        }
+        // Inline Functions
+        namespace InlineFunctions {
+            class InlineFunctionEngine {
+            public:
+                void inlineFunction(const std::string& funcName) {
+                    // Stub: inline function
+                    std::cout << "Inlining function: " << funcName << std::endl;
+                }
+            };
+        }
+        // Code Executor
+        namespace CodeExecutor {
+            class ExecutorEngine {
+            public:
+                void executeCode(const std::string& code) {
+                    // Stub: execute code
+                    std::cout << "Executing code: " << code << std::endl;
+                }
+            };
+        }
+        // Code Debugger
+        namespace CodeDebugger {
+            class DebuggerEngine {
+            public:
+                void debugCode(const std::string& code) {
+                    // Stub: debug code
+                    std::cout << "Debugging code: " << code << std::endl;
+                }
+            };
+        }
+		} // namespace QuarterLangFeatures
+        // Emitter
+        namespace Emitter {
+            class EmitterEngine {
+            public:
+                void emitCode(const std::string& code) {
+                    // Stub: emit code
+                    std::cout << "Emitting code: " << code << std::endl;
+                }
+            };
+        }
+        // Code Generator
+        namespace CodeGenerator {
+            class CodeGenEngine {
+            public:
+                void generateCode(const std::string& source) {
+                    // Stub: generate code from source
+                    std::cout << "Generating code from source: " << source << std::endl;
+                }
+            };
+        }
+        // Optimizer
+        namespace Optimizer {
+            class OptimizerEngine {
+            public:
+                void optimizeCode(const std::string& code) {
+                    // Stub: optimize code
+                    std::cout << "Optimizing code: " << code << std::endl;
+                }
+            };
+        }
+        // Parser
+        namespace Parser {
+            class ParserEngine {
+            public:
+                void parse(const std::string& source) {
+                    // Stub: parse source code
+                    std::cout << "Parsing source: " << source << std::endl;
+                }
+            };
+        }
+        // Inline Functions
+        namespace InlineFunctions {
+            class InlineFunctionEngine {
+            public:
+                void inlineFunction(const std::string& funcName) {
+                    // Stub: inline function
+                    std::cout << "Inlining function: " << funcName << std::endl;
+                }
+            };
+        }
+        // Code Executor
+        namespace CodeExecutor {
+            class ExecutorEngine {
+            public:
+                void executeCode(const std::string& code) {
+                    // Stub: execute code
+                    std::cout << "Executing code: " << code << std::endl;
+				}
+                };
+        }
+        // Code Debugger
+        namespace CodeDebugger {
+            class DebuggerEngine {
+            public:
+                void debugCode(const std::string& code) {
+                    // Stub: debug code
+                    std::cout << "Debugging code: " << code << std::endl;
+                }
+            };
+        }
+        // Code Profiler
+        namespace CodeProfiler {
+            class ProfilerEngine {
+            public:
+                void profileCode(const std::string& code) {
+                    // Stub: profile code
+                    std::cout << "Profiling code: " << code << std::endl;
+                }
+            };
+        }
+        // Code Linter
+        namespace CodeLinter {
+            class LinterEngine {
+            public:
+                void lintCode(const std::string& code) {
+                    // Stub: lint code
+                    std::cout << "Linting code: " << code << std::endl;
+                }
+            };
+        }
+        // Code Analyzer
+        namespace CodeAnalyzer {
+            class AnalyzerEngine {
+            public:
+                void analyzeCode(const std::string& code) {
+                    // Stub: analyze code for issues
+                    std::cout << "Analyzing code: " << code << std::endl;
+                }
+            };
+        }
+	} // namespace QuarterLangFeatures
+
+#include <iostream>
+#include <queue>
+#include <unordered_map>
+#include <string>
+#include <functional>
+#include <thread>
+#include <chrono>
+
+// === Module Includes ===
+#include "DGDebugger.hpp"
+#include "Introspection.hpp"
+#include "ErrorHandler.hpp"
+#include "PluginManager.hpp"
+#include "UIBinding.hpp"
+#include "GraphRenderer.hpp"
+
+// === Globals ===
+    std::queue<std::string> command_queue;
+    std::unordered_map<std::string, std::string> plugin_graph_state;  // Simplified state container
+
+    // === Route Command ===
+    void route(const std::string& cmd) {
+        if (cmd == "exit") {
+            std::exit(0);
+        }
+        else if (cmd == "version") {
+            DGDebugger::show_version();
+        }
+        else if (cmd == "ast") {
+            Introspection::parse_ast();
+        }
+        else if (cmd == "highlight") {
+            Introspection::highlight_source();
+        }
+        else if (cmd == "reload_plugins") {
+            PluginManager::reload_all();
+        }
+        else if (cmd == "show_graph") {
+            GraphRenderer::render(plugin_graph_state);
+        }
+        else {
+            ErrorHandler::warn("Unknown command: " + cmd);
+        }
+    }
+
+    // === Enqueue Command ===
+    void enqueue(const std::string& cmd) {
+        command_queue.push(cmd);
+    }
+
+    // === Dispatch Loop ===
+    void dispatch_loop() {
+        while (true) {
+            if (command_queue.empty()) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                continue;
+            }
+
+            std::string cmd = command_queue.front();
+            command_queue.pop();
+            route(cmd);
+        }
+    }
+
+#pragma once
+    namespace DGDebugger {
+        void show_version();
+    }
+
+#include <iostream>
+    void DGDebugger::show_version() {
+        std::cout << "QuarterLang DevGUI v1.0-DG\n";
+    }
+
+#pragma once
+    namespace Introspection {
+        void parse_ast();
+        void highlight_source();
+    }
+
+#include <iostream>
+    void Introspection::parse_ast() {
+        std::cout << "[AST] Parsing active module...\n";
+    }
+    void Introspection::highlight_source() {
+        std::cout << "[Syntax] Highlighting source view...\n";
+    }
+
+#pragma once
+#include <string>
+    namespace ErrorHandler {
+        void warn(const std::string& msg);
+    }
+
+#include <iostream>
+    void ErrorHandler::warn(const std::string& msg) {
+        std::cerr << "[Warning] " << msg << "\n";
+    }
+
+#pragma once
+    namespace PluginManager {
+        void reload_all();
+    }
+
+#include <iostream>
+    void PluginManager::reload_all() {
+        std::cout << "[Plugin] Reloading all plugins...\n";
+    }
+
+#pragma once
+#include <unordered_map>
+#include <string>
+
+    namespace GraphRenderer {
+        void render(const std::unordered_map<std::string, std::string>& state);
+    }
+
+#include <iostream>
+    void GraphRenderer::render(const std::unordered_map<std::string, std::string>& state) {
+        std::cout << "[Graph] Rendering plugin dependency graph...\n";
+    }
+
+#include <iostream>
+#include <string>
+#include <map>
+#include <functional>
+#include <vector>
+#include <algorithm>
+
+    // ==== Dependency Modules ====
+#include "DGDebugger.hpp"
+#include "Introspection.hpp"
+#include "ErrorHandler.hpp"
+#include "PluginSystem.hpp"
+#include "Profiler.hpp"
+
+// ==== Command Registration ====
+    struct CommandMeta {
+        std::string desc;
+        std::function<void(const std::vector<std::string>&)> exec;
+    };
+
+    std::map<std::string, CommandMeta> registered_commands = {
+        { "exit",      { "Exit the runtime", [](const std::vector<std::string>&) { std::exit(0); } }},
+        { "version",   { "Show debugger version", [](const std::vector<std::string>&) { DGDebugger::show_version(); } }},
+        { "ast",       { "Parse and display AST", [](const std::vector<std::string>&) { Introspection::parse_ast(); } }},
+        { "highlight", { "Highlight source code", [](const std::vector<std::string>&) { Introspection::highlight_source(); } }},
+        { "profile",   { "Profile execution", [](const std::vector<std::string>&) { Profiler::run_all(); } }},
+    };
+
+    // ==== Fuzzy Suggestion ====
+    std::string suggest_nearest(const std::string& input) {
+        std::vector<std::string> keys;
+        for (const auto& pair : registered_commands) keys.push_back(pair.first);
+        return ErrorHandler::fuzzy_match(input, keys);
+    }
+
+    // ==== Plugin Command Fallback ====
+    bool load_command_from_plugins(const std::string& cmd) {
+        if (PluginSystem::command_exists(cmd)) {
+            PluginSystem::execute_command(cmd);
+            return true;
+        }
+        return false;
+    }
+
+    // ==== Describe All Commands ====
+    void describe_commands() {
+        std::cout << "\nAvailable Commands:\n";
+        for (const auto& [cmd, meta] : registered_commands) {
+            std::cout << "* " << std::left << std::setw(12) << cmd << " - " << meta.desc << "\n";
+        }
+        for (const auto& plugin_cmd : PluginSystem::list_plugin_commands()) {
+            std::cout << "* " << std::left << std::setw(12) << plugin_cmd << " - [plugin]\n";
+        }
+    }
+
+    // ==== Main Route ====
+    void route(const std::string& cmd, const std::vector<std::string>& args = {}) {
+        Profiler::mark("route.begin");
+
+        if (cmd == "help") {
+            describe_commands();
+            return;
+        }
+
+        auto it = registered_commands.find(cmd);
+        if (it != registered_commands.end()) {
+            try {
+                it->second.exec(args);
+            }
+            catch (const std::exception& e) {
+                ErrorHandler::critical("Execution failed for '" + cmd + "': " + e.what());
+            }
+        }
+        else if (load_command_from_plugins(cmd)) {
+            std::cout << "[PluginSystem] Command '" << cmd << "' executed from plugin.\n";
+        }
+        else {
+            ErrorHandler::warn("Unknown command: '" + cmd + "'");
+            std::string suggestion = suggest_nearest(cmd);
+            if (!suggestion.empty()) {
+                ErrorHandler::note("Did you mean: '" + suggestion + "'?");
+            }
+        }
+
+        Profiler::mark("route.end");
+    }
+
+#pragma once
+    namespace DGDebugger {
+        void show_version();
+    }
+
+#pragma once
+    namespace Introspection {
+        void parse_ast();
+        void highlight_source();
+    }
+
+#pragma once
+#include <string>
+#include <vector>
+
+    namespace ErrorHandler {
+        void warn(const std::string&);
+        void note(const std::string&);
+        void critical(const std::string&);
+        std::string fuzzy_match(const std::string&, const std::vector<std::string>&);
+    }
+
+#pragma once
+#include <string>
+#include <vector>
+
+    namespace PluginSystem {
+        bool command_exists(const std::string&);
+        void execute_command(const std::string&);
+        std::vector<std::string> list_plugin_commands();
+    }
+
+#pragma once
+#include <string>
+
+    namespace Profiler {
+        void mark(const std::string&);
+        void run_all();
+    }
+
+#include <iostream>
+#include <string>
+#include <map>
+#include <functional>
+#include <vector>
+#include <algorithm>
+
+    // ==== Dependency Modules ====
+#include "DGDebugger.hpp"
+#include "Introspection.hpp"
+#include "ErrorHandler.hpp"
+#include "PluginSystem.hpp"
+#include "Profiler.hpp"
+
+// ==== Command Registration ====
+    struct CommandMeta {
+        std::string desc;
+        std::function<void(const std::vector<std::string>&)> exec;
+    };
+
+    std::map<std::string, CommandMeta> registered_commands = {
+        { "exit",      { "Exit the runtime", [](const std::vector<std::string>&) { std::exit(0); } }},
+        { "version",   { "Show debugger version", [](const std::vector<std::string>&) { DGDebugger::show_version(); } }},
+        { "ast",       { "Parse and display AST", [](const std::vector<std::string>&) { Introspection::parse_ast(); } }},
+        { "highlight", { "Highlight source code", [](const std::vector<std::string>&) { Introspection::highlight_source(); } }},
+        { "profile",   { "Profile execution", [](const std::vector<std::string>&) { Profiler::run_all(); } }},
+    };
+
+    // ==== Fuzzy Suggestion ====
+    std::string suggest_nearest(const std::string& input) {
+        std::vector<std::string> keys;
+        for (const auto& pair : registered_commands) keys.push_back(pair.first);
+        return ErrorHandler::fuzzy_match(input, keys);
+    }
+
+    // ==== Plugin Command Fallback ====
+    bool load_command_from_plugins(const std::string& cmd) {
+        if (PluginSystem::command_exists(cmd)) {
+            PluginSystem::execute_command(cmd);
+            return true;
+        }
+        return false;
+    }
+
+    // ==== Describe All Commands ====
+    void describe_commands() {
+        std::cout << "\nAvailable Commands:\n";
+        for (const auto& [cmd, meta] : registered_commands) {
+            std::cout << "* " << std::left << std::setw(12) << cmd << " - " << meta.desc << "\n";
+        }
+        for (const auto& plugin_cmd : PluginSystem::list_plugin_commands()) {
+            std::cout << "* " << std::left << std::setw(12) << plugin_cmd << " - [plugin]\n";
+        }
+    }
+
+    // ==== Main Route ====
+    void route(const std::string& cmd, const std::vector<std::string>& args = {}) {
+        Profiler::mark("route.begin");
+
+        if (cmd == "help") {
+            describe_commands();
+            return;
+        }
+
+        auto it = registered_commands.find(cmd);
+        if (it != registered_commands.end()) {
+            try {
+                it->second.exec(args);
+            }
+            catch (const std::exception& e) {
+                ErrorHandler::critical("Execution failed for '" + cmd + "': " + e.what());
+            }
+        }
+        else if (load_command_from_plugins(cmd)) {
+            std::cout << "[PluginSystem] Command '" << cmd << "' executed from plugin.\n";
+        }
+        else {
+            ErrorHandler::warn("Unknown command: '" + cmd + "'");
+            std::string suggestion = suggest_nearest(cmd);
+            if (!suggestion.empty()) {
+                ErrorHandler::note("Did you mean: '" + suggestion + "'?");
+            }
+        }
+
+        Profiler::mark("route.end");
+    }
+
+#pragma once
+    namespace DGDebugger {
+        void show_version();
+    }
+
+#pragma once
+    namespace Introspection {
+        void parse_ast();
+        void highlight_source();
+    }
+
+#pragma once
+#include <string>
+#include <vector>
+
+    namespace ErrorHandler {
+        void warn(const std::string&);
+        void note(const std::string&);
+        void critical(const std::string&);
+        std::string fuzzy_match(const std::string&, const std::vector<std::string>&);
+    }
+
+#pragma once
+#include <string>
+#include <vector>
+
+    namespace PluginSystem {
+        bool command_exists(const std::string&);
+        void execute_command(const std::string&);
+        std::vector<std::string> list_plugin_commands();
+    }
+
+#pragma once
+#include <string>
+
+    namespace Profiler {
+        void mark(const std::string&);
+        void run_all();
+    }
+
+    // CommandRouter.hpp
+#pragma once
+#include <string>
+#include <queue>
+#include <unordered_map>
+#include <functional>
+#include <nlohmann/json.hpp>
+
+    class CommandRouter {
+    public:
+        void loadCommandsFromJSON(const std::string& filepath);
+        void enqueue(const std::string& cmd);
+        void dispatchLoop();
+        void route(const std::string& cmd);
+
+    private:
+        std::queue<std::string> command_queue;
+        std::unordered_map<std::string, std::function<void()>> command_table;
+        void handlePipedCommands(const std::string& line);
+    };
+
+#include "CommandRouter.hpp"
+#include "DGDebugger.hpp"
+#include "Introspection.hpp"
+#include "ErrorHandler.hpp"
+#include "PluginManager.hpp"
+#include "GraphRenderer.hpp"
+
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <thread>
+
+    using json = nlohmann::json;
+
+    void CommandRouter::loadCommandsFromJSON(const std::string& filepath) {
+        std::ifstream in(filepath);
+        if (!in.is_open()) return;
+
+        json j;
+        in >> j;
+
+        for (auto& [key, val] : j.items()) {
+            std::string action = val.get<std::string>();
+            if (action == "version") {
+                command_table[key] = DGDebugger::showVersion;
+            }
+            else if (action == "ast") {
+                command_table[key] = Introspection::parseAST;
+            }
+            else if (action == "highlight") {
+                command_table[key] = Introspection::highlightSource;
+            }
+            else if (action == "reload_plugins") {
+                command_table[key] = PluginManager::reloadAll;
+            }
+            else if (action == "show_graph") {
+                command_table[key] = []() { GraphRenderer::render(); };
+            }
+            else {
+                command_table[key] = [key]() { ErrorHandler::warn("Unknown mapped action: " + key); };
+            }
+        }
+    }
+
+    void CommandRouter::enqueue(const std::string& cmd) {
+        command_queue.push(cmd);
+    }
+
+    void CommandRouter::dispatchLoop() {
+        while (!command_queue.empty()) {
+            std::string cmd = command_queue.front();
+            command_queue.pop();
+
+            // Support for piped commands
+            if (cmd.find('|') != std::string::npos) {
+                handlePipedCommands(cmd);
+            }
+            else {
+                route(cmd);
+            }
+        }
+    }
+
+    void CommandRouter::handlePipedCommands(const std::string& line) {
+        std::istringstream ss(line);
+        std::string part;
+        while (std::getline(ss, part, '|')) {
+            route(part);
+        }
+    }
+
+    void CommandRouter::route(const std::string& cmd) {
+        std::string trimmed = cmd;
+        trimmed.erase(trimmed.find_last_not_of(" \n\r\t") + 1);
+
+        if (command_table.find(trimmed) != command_table.end()) {
+            std::thread(command_table[trimmed]).detach();  // Async
+        }
+        else {
+            ErrorHandler::warn("Unknown command: " + trimmed);
+        }
+    }
+
+#include "CommandRouter.hpp"
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+#include <GLFW/glfw3.h>
+
+    CommandRouter router;
+
+    void RenderUI() {
+        static char commandInput[256] = "";
+
+        ImGui::Begin("QuarterLang DevConsole");
+        ImGui::InputText("Command", commandInput, IM_ARRAYSIZE(commandInput));
+
+        if (ImGui::Button("Execute")) {
+            router.enqueue(std::string(commandInput));
+            commandInput[0] = '\0';
+        }
+
+        ImGui::End();
+    }
+
+    int main() {
+        // Setup GUI
+        if (!glfwInit()) return -1;
+        GLFWwindow* window = glfwCreateWindow(1280, 720, "QuarterLang DevGUI", NULL, NULL);
+        glfwMakeContextCurrent(window);
+        ImGui::CreateContext();
+
+        ImGui_ImplGlfw_InitForOpenGL(window, true);
+        ImGui_ImplOpenGL3_Init("#version 130");
+
+        router.loadCommandsFromJSON("command_table.json");
+
+        while (!glfwWindowShouldClose(window)) {
+            glfwPollEvents();
+            ImGui_ImplOpenGL3_NewFrame();
+            ImGui_ImplGlfw_NewFrame();
+            ImGui::NewFrame();
+
+            RenderUI();
+            router.dispatchLoop(); // Async safe
+
+            ImGui::Render();
+            int display_w, display_h;
+            glfwGetFramebufferSize(window, &display_w, &display_h);
+            glViewport(0, 0, display_w, display_h);
+            glClear(GL_COLOR_BUFFER_BIT);
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+            glfwSwapBuffers(window);
+        }
+
+        ImGui_ImplOpenGL3_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
+        ImGui::DestroyContext();
+        glfwTerminate();
+    }
+
+    // DGDebugger.hpp
+#pragma once
+    namespace DGDebugger {
+        void showVersion() {
+            printf("DG Version 0.9.1-dev\n");
+        }
+    }
+
+#pragma once
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <nlohmann/json.hpp>
+
+    struct DGManifest {
+        std::string current_version;
+        std::unordered_map<std::string, std::string> channels;
+        std::unordered_set<std::string> enabled_flags;
+
+        static DGManifest LoadFromFile(const std::string& filepath);
+        bool IsFlagEnabled(const std::string& flag) const;
+        std::string GetChannelVersion(const std::string& channel) const;
+    };
+
+#include "dg_manifest.hpp"
+#include <fstream>
+#include <stdexcept>
+
+    using json = nlohmann::json;
+
+    DGManifest DGManifest::LoadFromFile(const std::string& filepath) {
+        std::ifstream in(filepath);
+        if (!in) throw std::runtime_error("Failed to open: " + filepath);
+
+        json j;
+        in >> j;
+
+        DGManifest manifest;
+        manifest.current_version = j.value("current", "");
+
+        // Parse channels
+        if (j.contains("channels")) {
+            for (auto& [key, val] : j["channels"].items()) {
+                manifest.channels[key] = val.get<std::string>();
+            }
+        }
+
+        // Parse flags
+        if (j.contains("flags")) {
+            for (auto& [key, val] : j["flags"].items()) {
+                if (val.get<bool>()) {
+                    manifest.enabled_flags.insert(key);
+                }
+            }
+        }
+
+        return manifest;
+    }
+
+    bool DGManifest::IsFlagEnabled(const std::string& flag) const {
+        return enabled_flags.count(flag) > 0;
+    }
+
+    std::string DGManifest::GetChannelVersion(const std::string& channel) const {
+        auto it = channels.find(channel);
+        return it != channels.end() ? it->second : "";
+    }
+
+#include <string>
+#include <sstream>
+#include <iomanip>
+#include <iostream>
+#include <stdexcept>
+
+    namespace ANSI {
+        // Basic ANSI color codes
+        std::string white() {
+            return "\u001b[37m";
+        }
+
+        std::string blue() {
+            return "\u001b[34m";
+        }
+
+        std::string reset() {
+            return "\u001b[0m";
+        }
+
+        // Convert hex (#rrggbb) to ANSI 24-bit escape code
+        std::string hex_to_ansi(const std::string& hex) {
+            if (hex.size() != 7 || hex[0] != '#')
+                throw std::invalid_argument("Invalid hex format: expected '#rrggbb'");
+
+            auto hex_to_int = [](const std::string& sub) -> int {
+                int value;
+                std::stringstream ss;
+                ss << std::hex << sub;
+                ss >> value;
+                return value;
+                };
+
+            int r = hex_to_int(hex.substr(1, 2));
+            int g = hex_to_int(hex.substr(3, 2));
+            int b = hex_to_int(hex.substr(5, 2));
+
+            std::ostringstream ansi;
+            ansi << "\u001b[38;2;" << r << ";" << g << ";" << b << "m";
+            return ansi.str();
+        }
+    }
+
+    // Example usage
+    int main() {
+        std::string hexColor = "#FF8800";
+        try {
+            std::cout << ANSI::hex_to_ansi(hexColor) << "This is colored text" << ANSI::reset() << std::endl;
+        }
+        catch (const std::exception& ex) {
+            std::cerr << "Error: " << ex.what() << std::endl;
+        }
+
+        return 0;
+    }
+
+    // Node
+        namespace DGDebugger {
+            namespace Node {
+                class Node {
+                public:
+                    virtual ~Node() = default;
+                };
+            }
+        }
+        // Expression and Statement Nodes
+        namespace DGDebugger {
+			namespace Expression {
+                class ExpressionNode : public Node {
+                public:
+                    std::string expression;
+                    ExpressionNode(const std::string& expr) : expression(expr) {}
+                };
+                class StatementNode : public Node {
+                public:
+					std::string statement;
+                    StatementNode(const std::string& stmt) : statement(stmt) {}
+				};
+                }
+            namespace Statement {
+                class StatementNode : public Node {
+                public:
+                    std::string statement;
+                    StatementNode(const std::string& stmt) : statement(stmt) {}
+                };
+            }
+        }
+        // Function Node
+        namespace DGDebugger {
+			namespace Function {
+                class FunctionNode : public Node {
+                public:
+                    std::string functionName;
+                    std::vector<Expression::ExpressionNode> parameters;
+                    FunctionNode(const std::string& name, const std::vector<Expression::ExpressionNode>& params)
+                        : functionName(name), parameters(params) {}
+                };
+            }
+        }
+        // Variable Node
+		namespace DGDebugger {
+            namespace Variable {
+                class VariableNode : public Node {
+                public:
+                    std::string variableName;
+                    std::string variableType;
+                    VariableNode(const std::string& name, const std::string& type)
+                        : variableName(name), variableType(type) {}
+                };
+            }
+        }
+        // Control Flow Node
+        namespace DGDebugger {
+            namespace ControlFlow {
+                class ControlFlowNode : public Node {
+                public:
+                    std::string condition;
+                    ControlFlowNode(const std::string& cond) : condition(cond) {}
+                };
+            }
+        }
+        // Emitter
+        namespace Emitter {
+            class EmitterEngine {
+            public:
+                void emitCode(const std::string& code) {
+                    // Stub: emit code
+                    std::cout << "Emitting code: " << code << std::endl;
+                }
+            };
+        }
+        // Code Generator
+        namespace CodeGenerator {
+            class CodeGenEngine {
+            public:
+                void generateCode(const std::string& source) {
+					// Stub: generate code from source
+                    std::cout << "Generating code from source: " << source << std::endl;
+                }
+            };
+        }
+        // Optimizer
+        namespace Optimizer {
+            class OptimizerEngine {
+            public:
+                void optimizeCode(const std::string& code) {
+                    // Stub: optimize code
+                    std::cout << "Optimizing code: " << code << std::endl;
+                }
+            };
+        }
+        // Inline Functions
+        namespace InlineFunctions {
+            class InlineFunctionEngine {
+            public:
+                void inlineFunction(const std::string& funcName) {
+                    // Stub: inline function
+                    std::cout << "Inlining function: " << funcName << std::endl;
+                }
+            };
+        }
+        // Code Executor
+        namespace CodeExecutor {
+            class ExecutorEngine {
+            public:
+				void executeCode(const std::string& code) {
+                    // Stub: execute code
+                    std::cout << "Executing code: " << code << std::endl;
+                }
+            };
+        }
+        // Code Debugger
+        namespace CodeDebugger {
+            class DebuggerEngine {
+            public:
+                void debugCode(const std::string& code) {
+                    // Stub: debug code
+                    std::cout << "Debugging code: " << code << std::endl;
+                }
+            };
+        }
+        // Code Profiler
+        namespace CodeProfiler {
+            class ProfilerEngine {
+            public:
+                void profileCode(const std::string& code) {
+                    // Stub: profile code
+                    std::cout << "Profiling code: " << code << std::endl;
+                }
+            };
+        }
+        // Code Linter
+        namespace CodeLinter {
+            class LinterEngine {
+            public:
+				void lintCode(const std::string& code) {
+                    // Stub: lint code
+                    std::cout << "Linting code: " << code << std::endl;
+                }
+            };
+        }
+        // Code Analyzer
+        namespace CodeAnalyzer {
+            class AnalyzerEngine {
+			public:
+                void analyzeCode(const std::string& code) {
+                    // Stub: analyze code for issues
+                    std::cout << "Analyzing code: " << code << std::endl;
+                }
+            };
+		}
+        // QuarterLang Features
+        namespace QuarterLangFeatures {
+            // Code Analyzer
+            namespace CodeAnalyzer {
+                class AnalyzerEngine {
+                public:
+                    void analyzeCode(const std::string& code) {
+                        // Stub: analyze code for issues
+                        std::cout << "Analyzing code: " << code << std::endl;
+                    }
+                };
+            }
+            // Code Formatter
+            namespace CodeFormatter {
+                class FormatterEngine {
+                public:
+                    void formatCode(const std::string& code) {
+                        // Stub: format code
+                        std::cout << "Formatting code: " << code << std::endl;
+                    }
+				};
+                };
+            // Code Linter
+            namespace CodeLinter {
+                class LinterEngine {
+                public:
+                    void lintCode(const std::string& code) {
+                        // Stub: lint code
+                        std::cout << "Linting code: " << code << std::endl;
+                    }
+                };
+            };
+            // Emitter
+            class EmitterEngine {
+			public:
+                void emitCode(const std::string& code) {
+                    // Stub: emit code
+                    std::cout << "Emitting code: " << code << std::endl;
+                }
+            };
+            // Code Generator
+            class CodeGenEngine {
+            public:
+                void generateCode(const std::string& source) {
+                    // Stub: generate code from source
+                    std::cout << "Generating code from source: " << source << std::endl;
+                }
+            };
+            // Optimizer
+            class OptimizerEngine {
+            public:
+                void optimizeCode(const std::string& code) {
+                    // Stub: optimize code
+                    std::cout << "Optimizing code: " << code << std::endl;
+                }
+            };
+            // Inline Functions
+            class InlineFunctionEngine {
+            public:
+                void inlineFunction(const std::string& funcName) {
+                    // Stub: inline function
+                    std::cout << "Inlining function: " << funcName << std::endl;
+                }
+            };
+            // Code Executor
+            class ExecutorEngine {
+            public:
+                void executeCode(const std::string& code) {
+                    // Stub: execute code
+                    std::cout << "Executing code: " << code << std::endl;
+                }
+            };
+            // Code Debugger
+            class DebuggerEngine {
+            public:
+                void debugCode(const std::string& code) {
+                    // Stub: debug code
+                    std::cout << "Debugging code: " << code << std::endl;
+				}
+                };
+            // Code Profiler
+            class ProfilerEngine {
+            public:
+                void profileCode(const std::string& code) {
+                    // Stub: profile code
+                    std::cout << "Profiling code: " << code << std::endl;
+                }
+            };
+            // Code Linter
+            class LinterEngine {
+            public:
+                void lintCode(const std::string& code) {
+					// Stub: lint code
+                    std::cout << "Linting code: " << code << std::endl;
+                }
+            };
+            // Code Analyzer
+            class AnalyzerEngine {
+            public:
+                void analyzeCode(const std::string& code) {
+                    // Stub: analyze code for issues
+                    std::cout << "Analyzing code: " << code << std::endl;
+				}
+                };
+        }
+        // Parser Engine
+		namespace ParserEngine {
+            class ParserEngine {
+            public:
+				void parseSource(const std::string& source) {
+                    // Stub: parse source code
+                    std::cout << "Parsing source: " << source << std::endl;
+                }
+                void parseExpression(const std::string& expression) {
+                    // Stub: parse expression
+                    std::cout << "Parsing expression: " << expression << std::endl;
+                }
+                void parseStatement(const std::string& statement) {
+                    // Stub: parse statement
+                    std::cout << "Parsing statement: " << statement << std::endl;
+                }
+                void parseFunction(const std::string& function) {
+                    // Stub: parse function
+                    std::cout << "Parsing function: " << function << std::endl;
+                }
+                void parseVariable(const std::string& variable) {
+                    // Stub: parse variable
+                    std::cout << "Parsing variable: " << variable << std::endl;
+                }
+                void parseControlFlow(const std::string& controlFlow) {
+                    // Stub: parse control flow
+					std::cout << "Parsing control flow: " << controlFlow << std::endl;
+                    }
+            };
+        }
+        // Emitter
+        namespace Emitter {
+            class EmitterEngine {
+            public:
+                void emitCode(const std::string& code) {
+                    // Stub: emit code
+                    std::cout << "Emitting code: " << code << std::endl;
+                }
+            };
+        }
+        // Code Generator
+        namespace CodeGenerator {
+            class CodeGenEngine {
+            public:
+                void generateCode(const std::string& source) {
+                    // Stub: generate code from source
+                    std::cout << "Generating code from source: " << source << std::endl;
+                }
+            };
+        }
+        // Optimizer
+        namespace Optimizer {
+            class OptimizerEngine {
+            public:
+                void optimizeCode(const std::string& code) {
+                    // Stub: optimize code
+                    std::cout << "Optimizing code: " << code << std::endl;
+                }
+            };
+        }
+        // Inline Functions
+        namespace InlineFunctions {
+            class InlineFunctionEngine {
+            public:
+                void inlineFunction(const std::string& funcName) {
+                    // Stub: inline function
+                    std::cout << "Inlining function: " << funcName << std::endl;
+                }
+            };
+        }
+        // Code Executor
+        namespace CodeExecutor {
+            class ExecutorEngine {
+			public:
+                void executeCode(const std::string& code) {
+                    // Stub: execute code
+                    std::cout << "Executing code: " << code << std::endl;
+                }
+            };
+        }
+        // Code Debugger
+        namespace CodeDebugger {
+            class DebuggerEngine {
+            public:
+                void debugCode(const std::string& code) {
+                    // Stub: debug code
+                    std::cout << "Debugging code: " << code << std::endl;
+                }
+            };
+        }
+        // Code Profiler
+        namespace CodeProfiler {
+            class ProfilerEngine {
+            public:
+                void profileCode(const std::string& code) {
+                    // Stub: profile code
+                    std::cout << "Profiling code: " << code << std::endl;
+                }
+            };
+        }
+        // Code Linter
+        namespace CodeLinter {
+            class LinterEngine {
+            public:
+                void lintCode(const std::string& code) {
+                    // Stub: lint code
+                    std::cout << "Linting code: " << code << std::endl;
+                }
+            };
+		}
+        // Code Analyzer
+        namespace CodeAnalyzer {
+            class AnalyzerEngine {
+            public:
+                void analyzeCode(const std::string& code) {
+                    // Stub: analyze code for issues
+                    std::cout << "Analyzing code: " << code << std::endl;
+                }
+            };
+		}
+
+#include <iostream>
+#include <string>
+#include <unordered_map>
+#include <functional>
+#include <vector>
+#include <sstream>
+
+        // === Plugin Interface ===
+        struct Plugin {
+            std::string name;
+            std::string version;
+            std::string description;
+            std::function<void(const std::string&)> on_input;
+            std::unordered_map<std::string, std::string> settings;
+        };
+
+        // === Plugin Registry ===
+        std::unordered_map<std::string, Plugin> plugin_registry;
+
+        void plugin_register(const std::string& name, const Plugin& plugin) {
+            plugin_registry[name] = plugin;
+            std::cout << "[+] Registered plugin: " << name << "\n";
+        }
+
+        Plugin* plugin_load(const std::string& name) {
+            if (plugin_registry.find(name) != plugin_registry.end()) {
+                return &plugin_registry[name];
+            }
+            std::cerr << "[-] Plugin not found: " << name << "\n";
+            return nullptr;
+        }
+
+        void plugin_reload(const std::string& name) {
+            std::cout << "[*] Reloading plugin: " << name << "...\n";
+            // Here, simply reload from registry. You can add dynamic code reload later.
+        }
+
+        void plugin_set_setting(const std::string& pluginName, const std::string& key, const std::string& value) {
+            if (auto* plugin = plugin_load(pluginName)) {
+                plugin->settings[key] = value;
+                std::cout << "[~] Set setting [" << key << "] = " << value << " in plugin " << pluginName << "\n";
+            }
+        }
+
+        void plugin_describe(const std::string& pluginName) {
+            if (auto* plugin = plugin_load(pluginName)) {
+                std::cout << "📦 Plugin: " << plugin->name << "\n";
+                std::cout << "   Version: " << plugin->version << "\n";
+                std::cout << "   Description: " << plugin->description << "\n";
+            }
+        }
+
+        void plugin_dashboard_render() {
+            std::cout << "\n=== 🔧 Plugin Dashboard ===\n";
+            for (const auto& [name, plugin] : plugin_registry) {
+                std::cout << "• " << name << " (" << plugin.version << ") — " << plugin.description << "\n";
+            }
+            std::cout << "===========================\n";
+        }
+
+        // === Utility ===
+        std::vector<std::string> split(const std::string& str, char delimiter = ' ') {
+            std::vector<std::string> parts;
+            std::stringstream ss(str);
+            std::string token;
+            while (std::getline(ss, token, delimiter)) {
+                parts.push_back(token);
+            }
+            return parts;
+        }
+
+        // === EchoPlugin Implementation ===
+        Plugin EchoPlugin = {
+            "EchoPlugin",
+            "1.0.0",
+            "Repeats back what you type",
+            [](const std::string& input) {
+                std::cout << "[EchoPlugin] You said: " << input << "\n";
+            }
+        };
+
+        // === Main Loop ===
+        int main() {
+            plugin_register("EchoPlugin", EchoPlugin);
+            plugin_load("EchoPlugin");  // Initial load
+
+            while (true) {
+                std::cout << "Plugin> ";
+                std::string line;
+                std::getline(std::cin, line);
+
+                if (line == ":dash") {
+                    plugin_dashboard_render();
+                }
+                else if (line == ":reload EchoPlugin") {
+                    plugin_reload("EchoPlugin");
+                }
+                else if (line.rfind(":set ", 0) == 0) {
+                    auto parts = split(line);
+                    if (parts.size() == 4) {
+                        plugin_set_setting(parts[1], parts[2], parts[3]);
+                    }
+                    else {
+                        std::cerr << "Usage: :set PluginName Key Value\n";
+                    }
+                }
+                else if (line.rfind(":describe ", 0) == 0) {
+                    auto parts = split(line);
+                    if (parts.size() == 2) {
+                        plugin_describe(parts[1]);
+                    }
+                }
+                else if (line == ":exit") {
+                    break;
+                }
+                else {
+                    auto* plugin = plugin_load("EchoPlugin");
+                    if (plugin && plugin->on_input) {
+                        plugin->on_input(line);
+                    }
+                }
+            }
+
+            return 0;
+        }
+
+#pragma once
+#include <string>
+        #include <vector>
+    namespace ErrorHandler {
+        void warn(const std::string&);
+        void note(const std::string&);
+        void critical(const std::string&);
+		std::string fuzzy_match(const std::string&,
+
+            const std::vector<std::string>&);
+    }
+    namespace PluginSystem {
+        bool command_exists(const std::string&);
+		void execute_command(const std::string&);
+        std::vector<std::string> list_plugin_commands();
+    }
+    namespace Profiler {
+		void mark(const std::string&);
+        void run_all();
+    }
+    namespace DGDebugger {
+        void show_version();
+    }
+    namespace Introspection {
+        void parse_ast();
+        void highlight_source();
+	}
+
+#include <iostream>
+#include <thread>
+
+    // === Mock Plugin Inspectors ===
+
+    void run_inspector() {
+        std::cout << "[SDL Inspector] Running SDL Inspector...\n";
+        // Simulated SDL logic
+        for (int i = 0; i < 5; ++i) {
+            std::cout << "[SDL Inspector] Tick " << i << std::endl;
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        }
+        std::cout << "[SDL Inspector] Shutdown.\n";
+    }
+
+    void run_web_inspector() {
+        std::cout << "[Web Inspector] Running Web Inspector...\n";
+        // Simulated Web logic
+        for (int i = 0; i < 5; ++i) {
+            std::cout << "[Web Inspector] Ping " << i << std::endl;
+            std::this_thread::sleep_for(std::chrono::milliseconds(400));
+        }
+        std::cout << "[Web Inspector] Shutdown.\n";
+    }
+
+    // === Main Entrypoint ===
+
+    int main() {
+        std::cout << "[System] Spawning Inspectors...\n";
+
+        std::thread sdlThread(run_inspector);
+        std::thread webThread(run_web_inspector);
+
+        sdlThread.join();
+        webThread.join();
+
+        std::cout << "[System] All inspectors completed.\n";
+        return 0;
+    }
+
+#include <iostream>
+#include <vector>
+#include <string>
+#include <memory>
+
+    // Mock UI system
+    namespace UIElements {
+        struct Slider {
+            std::string label;
+            float value;
+            float min, max;
+        };
+
+        struct Toggle {
+            std::string label;
+            bool state;
+        };
+
+        class Panel {
+        public:
+            std::string name;
+            std::vector<Slider> sliders;
+            std::vector<Toggle> toggles;
+
+            explicit Panel(const std::string& name) : name(name) {}
+
+            void add_slider(const std::string& label, float value, float min, float max) {
+                sliders.push_back({ label, value, min, max });
+            }
+
+            void add_toggle(const std::string& label, bool state) {
+                toggles.push_back({ label, state });
+            }
+
+            void display() const {
+                std::cout << "=== PANEL: " << name << " ===\n";
+                for (const auto& slider : sliders)
+                    std::cout << "[Slider] " << slider.label << ": " << slider.value << " (" << slider.min << "-" << slider.max << ")\n";
+                for (const auto& toggle : toggles)
+                    std::cout << "[Toggle] " << toggle.label << ": " << (toggle.state ? "ON" : "OFF") << "\n";
+            }
+        };
+
+        std::unique_ptr<Panel> create_panel(const std::string& name) {
+            return std::make_unique<Panel>(name);
+        }
+
+        void display(const std::unique_ptr<Panel>& panel) {
+            panel->display();
+        }
+
+        void display_scroll_log(const std::vector<std::string>& logs) {
+            std::cout << "--- Debug Console ---\n";
+            for (const auto& log : logs)
+                std::cout << log << "\n";
+        }
+    }
+
+    // Plugin representation
+    struct Plugin {
+        std::string name;
+        float memory_use;
+        float max_memory;
+        bool loaded;
+    };
+
+    // Plugin manager mock
+    namespace PluginManager {
+        std::vector<Plugin> list_all() {
+            return {
+                {"EchoPlugin", 32.5f, 100.0f, true},
+                {"RenderPlugin", 12.0f, 100.0f, false},
+                {"AudioSync", 65.0f, 100.0f, true}
+            };
+        }
+    }
+
+    // Debug logger mock
+    namespace DGDebugger {
+        std::vector<std::string> get_recent_logs() {
+            return {
+                "Loaded EchoPlugin successfully.",
+                "Warning: AudioSync memory spike.",
+                "Inspector initialized."
+            };
+        }
+    }
+
+    // Core functions
+    void show_inspector() {
+        auto panel = UIElements::create_panel("Inspector");
+        for (const auto& plugin : PluginManager::list_all()) {
+            panel->add_slider(plugin.name, plugin.memory_use, 0.0f, plugin.max_memory);
+            panel->add_toggle(plugin.name, plugin.loaded);
+        }
+        UIElements::display(panel);
+    }
+
+    void toggle_console() {
+        auto logs = DGDebugger::get_recent_logs();
+        UIElements::display_scroll_log(logs);
+    }
+
+    // Main entry
+    int main() {
+        show_inspector();
+        std::cout << "\n";
+        toggle_console();
+        return 0;
+    }
+
+#include "CommandRouter.hpp"
+#include "PluginManager.hpp"
+#include "DGDebugger.hpp"
+#include "Introspection.hpp"
+#include "ErrorHandler.hpp"
+#include "GraphRenderer.hpp"
+#include <fstream>
+#include <nlohmann/json.hpp>
+#include <thread>
+    #include <sstream>
+    using json = nlohmann::json;
+	void CommandRouter::loadCom
+        mandsFromJSON(const std::string& filepath) {
+		std::ifstream in(filepath);
+        if (!in) {
+            ErrorHandler::critical("Failed to open command table JSON: " + filepath);
+            return;
+        }
+        json j;
+        in >> j;
+        // Clear existing commands
+        command_table.clear();
+        // Load commands from JSON
+		for (
+            auto& [key, action] : j.items()) {
+            if (action == "show_version") {
+                command_table[key] = DGDebugger::showVersion;
+            }
+            else if (action == "list_plugins") {
+                command_table[key] = PluginManager::listAllPlugins;
+            }
+            else if (action == "parse_ast") {
+                command_table[key] = Introspection::parseAST;
+            }
+            else if (action == "highlight_source") {
+                command_table[key] = Introspection::highlightSource;
+            }
+            else if (action == "run_profiler") {
+                command_table[key] = Profiler::runAll;
+            }
+            else if (action == "parse_ast") {
+				command_table[key] = Introspection::parseAST;
+                }
+            else if (action == "highlight_source") {
+                command_table[key] = Introspection::highlightSource;
+            }
+            else {
+                ErrorHandler::warn("Unknown command in JSON: " + key);
+            }
+        }
+        ErrorHandler::note("Loaded " + std::to_string(command_table.size()) + " commands from JSON.");
+	}
+    void CommandRouter::enqueue(const std::string& command) {
+        std::lock_guard<std::mutex> lock(queue_mutex);
+        command_queue.push_back(command);
+    }
+    void CommandRouter::dispatchLoop() {
+        std::lock_guard<std::mutex> lock(queue_mutex);
+        for (const auto& cmd : command_queue) {
+            processCommand(cmd);
+        }
+        command_queue.clear();
+    }
+    void CommandRouter::processCommand(const std::string& cmd) {
+        if (cmd.empty()) return;
+        if (cmd.find('|') != std::string::npos) {
+            processBatch(cmd);
+        } else {
+            route(cmd);
+        }
+    }
+	void CommandRouter::processBatch(const std::string& bat
+        ch) {
+        std::istringstream stream(batch);
+        std::string command;
+        while (std::getline(stream, command, '|')) {
+            route(command);
+        }
+    }
+    void CommandRouter::route(const std::string& cmd) {
+        auto it = command_table.find(cmd);
+        if (it != command_table.end()) {
+            it->second(); // Call the associated function
+        } else {
+            ErrorHandler::warn("Unknown command: " + cmd);
+        }
+    }
+	// Main application code
+#include <GLFW/glfw3.h>
+
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
+#include <GL/gl3w.h> // Initialize with gl3wInit()
+#include "CommandRouter.hpp"
+#include "PluginManager.hpp"
+#include "DGDebugger.hpp"
+#include "Introspection.hpp"
+#include "ErrorHandler.hpp"
+    #include "GraphRenderer.hpp"
+    void RenderUI() {
+        ImGui::Begin("DG Debugger");
+        if (ImGui::Button("Show Version")) {
+            DGDebugger::showVersion();
+        }
+        if (ImGui::Button("List Plugins")) {
+            PluginManager::listAllPlugins();
+        }
+        if (ImGui::Button("Parse AST")) {
+            Introspection::parseAST();
+        }
+        if (ImGui::Button("Highlight Source")) {
+            Introspection::highlightSource();
+        }
+        if (ImGui::Button("Run Profiler")) {
+            Profiler::runAll();
+        }
+        ImGui::End();
+    }
+    int main() {
+        // Initialize GLFW
+        if (!glfwInit()) return -1;
+        GLFWwindow* window = glfwCreateWindow(1280, 720, "DG Debugger", nullptr, nullptr);
+        if (!window) {
+            glfwTerminate();
+            return -1;
+        }
+        glfwMakeContextCurrent(window);
+        gl3wInit();
+        // Setup Dear ImGui context
+        IMGUI_CHECKVERSION();
+        ImGui::CreateContext();
+        ImGuiIO& io = ImGui::GetIO(); (void)io;
+        ImGui_ImplGlfw_InitForOpenGL(window, true);
+        ImGui_ImplOpenGL3_Init("#version 130");
+        // Load command table from JSON
+        CommandRouter router;
+		router.loadCommandsFromJSON("command_tab
+            le.json");
+        // Main loop
+        while (!glfwWindowShouldClose(window)) {
+            glfwPollEvents();
+            ImGui_ImplOpenGL3_NewFrame();
+            ImGui_ImplGlfw_NewFrame();
+            ImGui::NewFrame();
+            RenderUI();
+            ImGui::Render();
+            glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
+            glClear(GL_COLOR_BUFFER_BIT);
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+            glfwSwapBuffers(window);
+        }
+        // Cleanup
+        ImGui_ImplOpenGL3_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
+        ImGui::DestroyContext();
+        glfwDestroyWindow(window);
+        glfwTerminate();
+        return 0;
+	}
+#include "DGManifest.hpp"
+#include <nlohmann/json.hpp>
+    DGManifest DGManifest::FromJSON(const std::string& json_str) {
+        nlohmann::json j = nlohmann::json::parse(json_str);
+        DGManifest manifest;
+        // Parse name and version
+        if (j.contains("name")) {
+            manifest.name = j["name"].get<std::string>();
+        }
+        if (j.contains("version")) {
+            manifest.version = j["version"].get<std::string>();
+        }
+        // Parse channels
+        if (j.contains("channels")) {
+            for (auto& [key, val] : j["channels"].items()) {
+                manifest.channels[key] = val.get<std::string>();
+			}
+            }
+        // Parse plugins
+        if (j.contains("plugins")) {
+            for (auto& plugin : j["plugins"]) {
+                Plugin p;
+                p.name = plugin["name"].get<std::string>();
+                p.version = plugin["version"].get<std::string>();
+                p.description = plugin["description"].get<std::string>();
+                manifest.plugins.push_back(p);
+            }
+        }
+        return manifest;
+    }
+    std::string DGManifest::ToJSON() const {
+        nlohmann::json j;
+        j["name"] = name;
+        j["version"] = version;
+        for (const auto& [key, val] : channels) {
+            j["channels"][key] = val;
+        }
+        for (const auto& plugin : plugins) {
+            nlohmann::json p;
+            p["name"] = plugin.name;
+            p["version"] = plugin.version;
+            p["description"] = plugin.description;
+            j["plugins"].push_back(p);
+        }
+        return j.dump(4); // Pretty print with 4 spaces
+    }
+    std::string DGManifest::ToString() const {
+        return "DGManifest: " + name + " v" + version + ", Plugins: " + std::to_string(plugins.size());
+    }
+    std::ostream& operator<<(std::ostream& os, const DGManifest& manifest) {
+        os << manifest.ToString();
+        return os;
+	}
+
+    // Pure C++ translation of QuarterLang-style plugin system
+#include <iostream>
+#include <unordered_map>
+#include <vector>
+#include <string>
+#include <memory>
+#include <stdexcept>
+#include <set>
+
+    struct PluginMetadata {
+        std::string name;
+        std::string version;
+        std::string author;
+        std::string description;
+        std::vector<std::string> dependencies;
+        std::string entry;  // optional hook
+    };
+
+    class Module {
+    public:
+        std::string api_version;
+        std::unordered_map<std::string, std::function<void()>> hooks;
+
+        void call(const std::string& hook_name) {
+            if (hooks.count(hook_name)) hooks[hook_name]();
+        }
+
+        std::shared_ptr<void> init() {
+            return nullptr;
+        }
+
+        std::shared_ptr<void> resume(std::shared_ptr<void> old_state) {
+            return old_state;
+        }
+
+        bool has(const std::string& fn) const {
+            return hooks.count(fn) > 0;
+        }
+    };
+
+    namespace LibrarySystem {
+        static std::unordered_map<std::string, std::shared_ptr<Module>> registry;
+
+        void register_module(const std::string& name, std::shared_ptr<Module> mod) {
+            registry[name] = mod;
+        }
+
+        std::shared_ptr<Module> get(const std::string& name) {
+            return registry[name];
+        }
+
+        std::shared_ptr<Module> reload(const std::string& name) {
+            return get(name);
+        }
+
+        std::shared_ptr<Module> rollback(const std::string& name, const std::string& version) {
+            return get(name); // stub
+        }
+    }
+
+    class PluginSystem {
+        std::unordered_map<std::string, PluginMetadata> plugin_meta;
+        std::unordered_map<std::string, std::shared_ptr<void>> plugin_state;
+        std::unordered_map<std::string, std::string> plugin_versions;
+        std::unordered_map<std::string, std::vector<std::string>> plugin_dependencies;
+
+    public:
+        void register_plugin(const std::string& name, std::shared_ptr<Module> mod, const PluginMetadata& meta) {
+            if (has_circular_dependency(name, meta.dependencies)) {
+                std::cerr << "Circular dependency for: " << name << "\n";
+                return;
+            }
+
+            LibrarySystem::register_module(name, mod);
+            plugin_meta[name] = meta;
+            plugin_versions[name] = meta.version;
+            plugin_dependencies[name] = meta.dependencies;
+        }
+
+        bool has_circular_dependency(const std::string& name, const std::vector<std::string>& deps) {
+            std::set<std::string> visited;
+            return depends_on(name, name, visited);
+        }
+
+        bool depends_on(const std::string& plugin, const std::string& target, std::set<std::string>& visited) {
+            if (plugin == target && !visited.empty()) return true;
+            if (!plugin_dependencies.count(plugin)) return false;
+
+            visited.insert(plugin);
+            for (const auto& dep : plugin_dependencies[plugin]) {
+                if (visited.count(dep)) continue;
+                if (depends_on(dep, target, visited)) return true;
+            }
+            return false;
+        }
+
+        std::shared_ptr<Module> load_plugin(const std::string& name) {
+            if (!plugin_meta.count(name)) throw std::runtime_error("Plugin not registered: " + name);
+            for (const auto& dep : plugin_dependencies[name]) {
+                if (!plugin_meta.count(dep)) throw std::runtime_error("Missing dependency: " + dep);
+            }
+
+            auto mod = LibrarySystem::get(name);
+            plugin_state[name] = mod->init();
+            if (!plugin_meta[name].entry.empty() && mod->has(plugin_meta[name].entry))
+                mod->call(plugin_meta[name].entry);
+            return mod;
+        }
+
+        void reload_plugin(const std::string& name) {
+            auto old_state = plugin_state[name];
+            auto mod = LibrarySystem::reload(name);
+            if (mod->has("resume")) plugin_state[name] = mod->resume(old_state);
+            else plugin_state[name] = mod->init();
+        }
+
+        void rollback_plugin(const std::string& name, const std::string& to_version) {
+            auto mod = LibrarySystem::rollback(name, to_version);
+            plugin_versions[name] = to_version;
+            plugin_state[name] = mod->init();
+        }
+
+        void describe_plugin(const std::string& name) {
+            if (!plugin_meta.count(name)) {
+                std::cout << "[Plugin " << name << "]: Metadata not found\n";
+                return;
+            }
+            const auto& m = plugin_meta[name];
+            std::cout << "[Plugin " << name << "] v" << m.version << " - " << m.description << "\n";
+        }
+    };
+
+    // QuarterLang Features
+        namespace QuarterLangFeatures {
+            // Code Analyzer
+            namespace CodeAnalyzer {
+                class AnalyzerEngine {
+                public:
+                    void analyzeCode(const std::string& code) {
+                        // Stub: analyze code for issues
+                        std::cout << "Analyzing code: " << code << std::endl;
+                    }
+                };
+            }
+            // Code Formatter
+            namespace CodeFormatter {
+                class FormatterEngine {
+                public:
+                    void formatCode(const std::string& code) {
+                        // Stub: format code
+                        std::cout << "Formatting code: " << code << std::endl;
+                    }
+				};
+                };
+            // Code Linter
+            namespace CodeLinter {
+                class LinterEngine {
+                public:
+                    void lintCode(const std::string& code) {
+                        // Stub: lint code
+                        std::cout << "Linting code: " << code << std::endl;
+                    }
+				};
+                };
+            // Code Analyzer
+            namespace CodeAnalyzer {
+                class AnalyzerEngine {
+                public:
+                    void analyzeCode(const std::string& code) {
+						// Stub: analyze code for issues
+                        std::cout << "Analyzing code: " << code << std::endl;
+					}
+                    };
+            };
+            // Code Formatter
+            namespace CodeFormatter {
+                class FormatterEngine {
+                public:
+                    void formatCode(const std::string& code) {
+						// Stub: format code
+                        std::cout << "Formatting code: " << code << std::endl;
+                    }
+                };
+            };
+            // Code Linter
+            namespace CodeLinter {
+				class LinterEngine {
+                    public:
+                    void lintCode(const std::string& code) {
+                        // Stub: lint code
+                        std::cout << "Linting code: " << code << std::endl;
+					}
+                    };
+            };
+            // Code Emitter
+            class EmitterEngine {
+            public:
+                void emitCode(const std::string& code) {
+					// Stub: emit code
+                    std::cout << "Emitting code: " << code << std::endl;
+                }
+            };
+            // Code Generator
+            class CodeGenEngine {
+            public:
+				void generate
+                    Code(const std::string& source) {
+                    // Stub: generate code from source
+                    std::cout << "Generating code from source: " << source << std::endl;
+                }
+            };
+            // Optimizer
+            class OptimizerEngine {
+            public:
+                void optimizeCode(const std::string& code) {
+                    // Stub: optimize code
+                    std::cout << "Optimizing code: " << code << std::endl;
+                }
+            };
+            // Inline Functions
+            class InlineFunctionEngine {
+            public:
+                void inlineFunction(const std::string& funcName) {
+                    // Stub: inline function
+                    std::cout << "Inlining function: " << funcName << std::endl;
+                }
+            };
+            // Code Executor
+            class ExecutorEngine {
+            public:
+                void executeCode(const std::string& code) {
+                    // Stub: execute code
+                    std::cout << "Executing code: " << code << std::endl;
+                }
+            };
+            // Code Debugger
+            class DebuggerEngine {
+            public:
+                void debugCode(const std::string& code) {
+                    // Stub: debug code
+                    std::cout << "Debugging code: " << code << std::endl;
+				}
+                };
+            // Code Profiler
+            class ProfilerEngine {
+            public:
+                void profileCode(const std::string& code) {
+					// Stub: profile code
+                    std::cout << "Profiling code: " << code << std::endl;
+                }
+            };
+            // Code Linter
+            class LinterEngine {
+            public:
+				void lintC
+                    ode(const std::string& code) {
+                    // Stub: lint code
+                    std::cout << "Linting code: " << code << std::endl;
+                }
+            };
+            // Code Analyzer
+            class AnalyzerEngine {
+            public:
+                void analyzeCode(const std::string& code) {
+                    // Stub: analyze code for issues
+                    std::cout << "Analyzing code: " << code << std::endl;
+                }
+            };
+        }
+        // Code Analyzer
+		namespace CodeAnalyzer {
+            class AnalyzerEngine {
+            public:
+                void analyzeCode(const std::string& code) {
+                    // Stub: analyze code for issues
+                    std::cout << "Analyzing code: " << code << std::endl;
+                }
+            };
+        }
+        // Code Formatter
+        namespace CodeFormatter {
+            class FormatterEngine {
+            public:
+                void formatCode(const std::string& code) {
+                    // Stub: format code
+                    std::cout << "Formatting code: " << code << std::endl;
+                }
+            };
+        }
+        // Code Linter
+        namespace CodeLinter {
+            class LinterEngine {
+            public:
+                void lintCode(const std::string& code) {
+                    // Stub: lint code
+                    std::cout << "Linting code: " << code << std::endl;
+                }
+            };
+        }
+        // Parser
+        namespace Parser {
+            class ParserEngine {
+			public:
+                void parseCode(const std::string& code) {
+                    // Stub: parse code
+					std::cout << "Parsing code: " << code << std::endl;
+                    }
+            };
+        }
+        // Emitter
+        namespace Emitter {
+            class EmitterEngine {
+			public:
+                void emitCode(const std::string& code) {
+                    // Stub: emit code
+					std::cout << "Emitting code: " <<
+                        code << std::endl;
+                }
+            };
+        }
+        // Code Generator
+        namespace CodeGenerator {
+			class CodeGenEngine {
+                public:
+                void generateCode(const std::string& source) {
+					// Stub: generate code from source
+                    std::cout << "Generating code from source: " << source << std::endl;
+                }
+            };
+        }
+		// Optimizer
+        namespace Optimizer {
+            class OptimizerEngine {
+            public:
+				void optimizeCode(const std::string
+                    &code) {
+                    // Stub: optimize code
+					std::cout << "Optimizing code: " << code << std::endl;
+                    }
+            };
+        }
+        // Inline Functions
+        namespace InlineFunctions {
+			class In
+                lineFunctionEngine {
+            public:
+                void inlineFunction(const std::string& funcName) {
+					// Stub: inline function
+                    std::cout << "Inlining function: " << funcName << std::endl;
+                }
+            };
+        }
+        // Code Executor
+        namespace CodeExecutor {
+			class ExecutorEngine {
+                public:
+                void executeCode(const std::string& code) {
+					// Stub: execute code
+                    std::cout << "Executing code: " << code << std::endl;
+				}
+                };
+        }
+        // Code Debugger
+        namespace CodeDebugger {
+			class DebuggerEngine {
+                public:
+                void debugCode(const std::string& code) {
+					// Stub: debug code
+					std::cout << "Debugging code: " << code << std::endl;
+                    }
+            };
+        }
+        // Code Profiler
+        namespace CodeProfiler {
+            class ProfilerEngine {
+            public:
+                void profileCode(const std::string& code) {
+                    // Stub: profile code
+                    std::cout << "Profiling code: " << code << std::endl;
+                }
+            };
+        }
+        // Code Linter
+        namespace CodeLinter {
+            class LinterEngine {
+            public:
+                void lintCode(const std::string& code) {
+                    // Stub: lint code
+                    std::cout << "Linting code: " << code << std::endl;
+                }
+			};
+            }
+        // Code Analyzer
+		namespace CodeAnalyzer {
+            class AnalyzerEngine {
+            public:
+                void analyzeCode(const std::string& code) {
+                    // Stub: analyze code for issues
+                    std::cout << "Analyzing code: " << code << std::endl;
+                }
+            };
+        }
+        // Code Formatter
+        namespace CodeFormatter {
+            class FormatterEngine {
+            public:
+                void formatCode(const std::string& code) {
+                    // Stub: format code
+                    std::cout << "Formatting code: " << code << std::endl;
+                }
+            };
+        }
+        // Code Linter
+        namespace CodeLinter {
+            class LinterEngine {
+            public:
+                void lintCode(const std::string& code) {
+                    // Stub: lint code
+                    std::cout << "Linting code: " << code << std::endl;
+                }
+            };
+        }
+        // Code Analyzer
+        namespace CodeAnalyzer {
+            class AnalyzerEngine {
+			public:
+                void analyzeCode(const std::string& code) {
+                    // Stub: analyze code for issues
+                    std::cout << "Analyzing code: " << code << std::endl;
+                }
+            };
+        }
+    }
+    // === Plugin System ===
+    #include <iostream>
+    #include <unordered_map>
+    #include <vector>
+    #include <string>
+    #include <functional>
+    struct Plugin {
+        std::string name;
+        std::string version;
+        std::string description;
+        std::unordered_map<std::string, std::string> settings;
+        std::function<void(const std::string&)> on_input;
+    };
+    static std::unordered_map<std::string, Plugin> plugin_registry;
+    namespace PluginSystem {
+        void plugin_register(const std::string& name, const Plugin& plugin) {
+            plugin_registry[name] = plugin;
+            std::cout << "[+] Registered plugin: " << name << "\n";
+        }
+        Plugin* plugin_load(const std::string& name) {
+			if (auto it = plugin_registry.find(name); it !=
+                plugin_registry.end()) {
+                std::cout << "[+] Loaded plugin: " << name << "\n";
+                return &it->second;
+            }
+            std::cerr << "[-] Plugin not found: " << name << "\n";
+            return nullptr;
+        }
+        void plugin_reload(const std::string& name) {
+            auto* plugin = plugin_load(name);
+            if (plugin) {
+                std::cout << "[+] Reloaded plugin: " << name << "\n";
+            }
+        }
+        void plugin_set_setting(const std::string& name, const std::string& key, const std::string& value) {
+            auto* plugin = plugin_load(name);
+            if (plugin) {
+                plugin->settings[key] = value;
+                std::cout << "[+] Set setting for " << name << ": " << key << " = " << value << "\n";
+            }
+        }
+        void plugin_describe(const std::string& name) {
+            auto* plugin = plugin_load(name);
+            if (plugin) {
+				std::cout << "[Plugin " << name << "] Version: " << plugin->version << "\n";
+                std::cout << "Description: " << plugin->description << "\n";
+                std::cout << "Settings:\n";
+                for (const auto& [key, value] : plugin->settings) {
+                    std::cout << "  " << key << ": " << value << "\n";
+                }
+            }
+        }
+        void plugin_dashboard_render() {
+            std::cout << "[Plugin Dashboard]\n";
+            for (const auto& [name, plugin] : plugin_registry) {
+                std::cout << "- " << name << " (v" << plugin.version << "): " << plugin.description << "\n";
+            }
+        }
+	}
+    std::vector<std::string> split(const std::string& str) {
+            std::vector<std::string> parts;
+            std::istringstream stream(str);
+            std::string part;
+            while (std::getline(stream, part, ' ')) {
+                if (!part.empty()) {
+                    parts.push_back(part);
+                }
+            }
+            return parts;
+        }
+        int main() {
+            // Register a sample plugin
+            Plugin echoPlugin = {
+                "EchoPlugin",
+                "1.0.0",
+                "A simple echo plugin",
+                {{"setting1", "default_value"}},
+                [](const std::string& input) { std::cout << "Echo: " << input << "\n"; }
+            };
+            plugin_register("EchoPlugin", echoPlugin);
+            // Main loop
+            std::string line;
+            while (true) {
+                std::cout << "> ";
+                std::getline(std::cin, line);
+                if (line == ":dashboard") {
+                    plugin_dashboard_render();
+                }
+				else if (line == ":reload") {
+                    plugin_reload("EchoPlugin");
+                }
+                else if (line == ":describe EchoPlugin") {
+                    plugin_describe("EchoPlugin");
+                }
+                else if (line.find(":set EchoPlugin ") == 0) {
+                    auto parts = split(line.substr(17));
+                    if (parts.size() == 2) {
+                        plugin_set_setting("EchoPlugin", parts[0], parts[1]);
+                    } else {
+                        std::cerr << "Usage: :set EchoPlugin <key> <value>\n";
+                    }
+                } else if (line == ":exit") {
+                    break;
+                } else {
+                    auto* plugin = plugin_load("EchoPlugin");
+                    if (plugin && plugin->on_input) {
+                        plugin->on_input(line);
+                    } else {
+                        std::cerr << "No input handler for this command.\n";
+                    }
+                }
+            }
+            return 0;
+		}
+
+#include <iostream>
+#include <string>
+#include <vector>
+#include <stdexcept>
+#include <nlohmann/json.hpp> // JSON library: https://github.com/nlohmann/json
+
+        // Replace this with a real HTTP library (e.g., libcurl or cpr)
+        std::string http_get(const std::string& url) {
+            // Dummy placeholder for HTTP GET.
+            // In real use, replace this with an actual HTTP GET request.
+            std::cout << "[MockFetch] GET: " << url << std::endl;
+
+            // Simulated JSON manifest
+            return R"([
+        { "name": "Visualizer", "url": "https://quarterlang.org/plugins/visualizer.qtr" },
+        { "name": "SynthCore",  "url": "https://quarterlang.org/plugins/synthcore.qtr" }
+    ])";
+        }
+
+        // Parses the JSON and returns a list of plugin URLs
+        std::vector<std::string> fetch_manifest(const std::string& url) {
+            std::string json_str = http_get(url);
+            std::vector<std::string> plugin_urls;
+
+            try {
+                auto manifest = nlohmann::json::parse(json_str);
+                for (const auto& plugin : manifest) {
+                    if (plugin.contains("url")) {
+                        plugin_urls.push_back(plugin["url"]);
+                    }
+                }
+            }
+            catch (const std::exception& e) {
+                std::cerr << "[Error] Failed to parse manifest: " << e.what() << std::endl;
+            }
+
+            return plugin_urls;
+        }
+
+        // Mock function for loading a plugin by URL
+        void load_plugin(const std::string& url) {
+            std::cout << "[LoadPlugin] Fetching & loading plugin from: " << url << std::endl;
+            // Simulate network download + dynamic script execution here
+        }
+
+        // Syncs plugins using the manifest
+        void sync_plugins() {
+            const std::string manifest_url = "https://quarterlang.org/plugins/manifest.json";
+            std::vector<std::string> plugins = fetch_manifest(manifest_url);
+
+            for (const auto& url : plugins) {
+                load_plugin(url);
+            }
+        }
+
+        int main() {
+            std::cout << "=== PluginStoreFetcher Sync ===\n";
+            sync_plugins();
+            return 0;
+        }
+
+#include <iostream>
+#include <string>
+#include <vector>
+#include <stdexcept>
+#include <nlohmann/json.hpp> // JSON library: https://github.com/nlohmann/json
+
+        // Replace this with a real HTTP library (e.g., libcurl or cpr)
+        std::string http_get(const std::string& url) {
+            // Dummy placeholder for HTTP GET.
+            // In real use, replace this with an actual HTTP GET request.
+            std::cout << "[MockFetch] GET: " << url << std::endl;
+
+            // Simulated JSON manifest
+            return R"([
+        { "name": "Visualizer", "url": "https://quarterlang.org/plugins/visualizer.qtr" },
+        { "name": "SynthCore",  "url": "https://quarterlang.org/plugins/synthcore.qtr" }
+    ])";
+        }
+
+        // Parses the JSON and returns a list of plugin URLs
+        std::vector<std::string> fetch_manifest(const std::string& url) {
+            std::string json_str = http_get(url);
+            std::vector<std::string> plugin_urls;
+
+            try {
+                auto manifest = nlohmann::json::parse(json_str);
+                for (const auto& plugin : manifest) {
+                    if (plugin.contains("url")) {
+                        plugin_urls.push_back(plugin["url"]);
+                    }
+                }
+            }
+            catch (const std::exception& e) {
+                std::cerr << "[Error] Failed to parse manifest: " << e.what() << std::endl;
+            }
+
+            return plugin_urls;
+        }
+
+        // Mock function for loading a plugin by URL
+        void load_plugin(const std::string& url) {
+            std::cout << "[LoadPlugin] Fetching & loading plugin from: " << url << std::endl;
+            // Simulate network download + dynamic script execution here
+        }
+
+        // Syncs plugins using the manifest
+        void sync_plugins() {
+            const std::string manifest_url = "https://quarterlang.org/plugins/manifest.json";
+            std::vector<std::string> plugins = fetch_manifest(manifest_url);
+
+            for (const auto& url : plugins) {
+                load_plugin(url);
+            }
+        }
+
+        int main() {
+            std::cout << "=== PluginStoreFetcher Sync ===\n";
+            sync_plugins();
+            return 0;
+        }
+
+#include <iostream>
+#include <string>
+#include <unordered_map>
+#include <any>
+#include <variant>
+#include <optional>
+
+        // Type aliases for readability
+        using SettingKey = std::string;
+        using PluginName = std::string;
+        using SettingValue = std::variant<bool, std::string, int, float>; // Extendable
+        using SettingsMap = std::unordered_map<SettingKey, SettingValue>;
+        using PluginSettingsMap = std::unordered_map<PluginName, SettingsMap>;
+
+        class PluginSettings {
+        private:
+            PluginSettingsMap plugin_settings;
+
+        public:
+            SettingsMap default_for(const std::string& name) {
+                return {
+                    {"enabled", true},
+                    {"log_level", std::string("info")},
+                    {"auto_reload", false}
+                };
+            }
+
+            void set(const std::string& plugin, const std::string& key, const SettingValue& val) {
+                plugin_settings[plugin][key] = val;
+            }
+
+            std::optional<SettingValue> get(const std::string& plugin, const std::string& key) {
+                auto it = plugin_settings.find(plugin);
+                if (it != plugin_settings.end()) {
+                    auto& inner = it->second;
+                    auto vit = inner.find(key);
+                    if (vit != inner.end()) {
+                        return vit->second;
+                    }
+                }
+                return std::nullopt;
+            }
+
+            void plugin_set_setting(const std::string& name, const std::string& key, const SettingValue& value) {
+                plugin_settings[name][key] = value;
+            }
+
+            std::optional<SettingValue> plugin_get_setting(const std::string& name, const std::string& key) {
+                auto it = plugin_settings.find(name);
+                if (it != plugin_settings.end()) {
+                    auto key_it = it->second.find(key);
+                    if (key_it != it->second.end()) {
+                        return key_it->second;
+                    }
+                }
+                return std::nullopt;
+            }
+
+            void print_all_settings() {
+                for (const auto& [plugin, settings] : plugin_settings) {
+                    std::cout << "Plugin: " << plugin << "\n";
+                    for (const auto& [key, val] : settings) {
+                        std::cout << "  " << key << ": ";
+                        std::visit([](auto&& arg) { std::cout << arg << '\n'; }, val);
+                    }
+                }
+            }
+        };
+
+        // Usage example
+        /*
+        int main() {
+            PluginSettings ps;
+            ps.plugin_set_setting("MyPlugin", "enabled", true);
+            ps.plugin_set_setting("MyPlugin", "log_level", std::string("debug"));
+            ps.plugin_set_setting("MyPlugin", "auto_reload", false);
+
+            auto val = ps.plugin_get_setting("MyPlugin", "log_level");
+            if (val.has_value()) {
+                std::visit([](auto&& v) { std::cout << "log_level: " << v << '\n'; }, val.value());
+            }
+
+            ps.print_all_settings();
+        }
+        */
+
+#include <iostream>
+#include <string>
+#include <map>
+#include <vector>
+
+        // Type aliases for readability
+        using String = std::string;
+        using PluginMeta = std::map<String, std::string>;
+        using PluginManifest = std::map<String, PluginMeta>;
+
+        // Mock LibrarySystem to simulate fetch behavior
+        struct LibrarySystem {
+            static std::string fetch(const std::string& name) {
+                // Simulated fetch
+                return "LibraryData<" + name + ">";
+            }
+        };
+
+        // Simulate plugin_register
+        void plugin_register(const std::string& name, const std::string& libData, const PluginMeta& meta) {
+            std::cout << "Registering plugin: " << name << "\n";
+            std::cout << "  Data: " << libData << "\n";
+            std::cout << "  Version: " << meta.at("version") << "\n";
+            std::cout << "  Description: " << meta.at("description") << "\n";
+        }
+
+        // Simulated pull from remote
+        PluginManifest plugin_pull_manifest(const std::string& repo_url) {
+            std::cout << "Syncing manifest from " << repo_url << " ...\n";
+
+            PluginMeta pluginA{
+                {"version", "1.2.3"},
+                {"description", "A test plugin"},
+                {"dependencies", ""} // Empty for now
+            };
+
+            PluginManifest manifest;
+            manifest["PluginA"] = pluginA;
+
+            return manifest;
+        }
+
+        void plugin_sync_all(const std::string& repo_url) {
+            PluginManifest remote = plugin_pull_manifest(repo_url);
+
+            for (const auto& pair : remote) {
+                const std::string& name = pair.first;
+                const PluginMeta& meta = pair.second;
+
+                std::string libData = LibrarySystem::fetch(name);
+                plugin_register(name, libData, meta);
+            }
+        }
+
+        // === Example main to run the logic ===
+        int main() {
+            plugin_sync_all("https://quarterlang.org/plugins/manifest.json");
+            return 0;
+        }
+
+#include <string>
+#include <unordered_map>
+#include <vector>
+#include <any>
+
+        using Manifest = std::unordered_map<std::string, std::any>;
+
+        Manifest plugin_generate_manifest(const std::string& name,
+            const std::string& version,
+            const std::string& desc,
+            const std::vector<std::string>& deps) {
+            Manifest manifest;
+            manifest["name"] = name;
+            manifest["version"] = version;
+            manifest["description"] = desc;
+            manifest["dependencies"] = deps;
+            return manifest;
+        }
+
+#include <iostream>
+
+        int main() {
+            auto manifest = plugin_generate_manifest("PluginA", "1.0.0", "Test plugin", { "Dep1", "Dep2" });
+
+            std::cout << "Name: " << std::any_cast<std::string>(manifest["name"]) << "\n";
+            std::cout << "Version: " << std::any_cast<std::string>(manifest["version"]) << "\n";
+            std::cout << "Description: " << std::any_cast<std::string>(manifest["description"]) << "\n";
+
+            auto deps = std::any_cast<std::vector<std::string>>(manifest["dependencies"]);
+            std::cout << "Dependencies: ";
+            for (const auto& dep : deps) {
+                std::cout << dep << " ";
+            }
+            std::cout << "\n";
+
+            return 0;
+        }
+
+#include <string>
+#include <vector>
+#include <map>
+#include <any>
+
+        // Define the manifest type
+        using Manifest = std::map<std::string, std::any>;
+
+        Manifest plugin_generate_manifest(
+            const std::string& name,
+            const std::string& version,
+            const std::string& desc,
+            const std::vector<std::string>& deps
+        ) {
+            Manifest manifest;
+            manifest["name"] = name;
+            manifest["version"] = version;
+            manifest["description"] = desc;
+            manifest["dependencies"] = deps;
+            return manifest;
+        }
+
+        int main() {
+            // Example usage
+            auto manifest = plugin_generate_manifest("PluginA", "1.0.0", "Test plugin", { "Dep1", "Dep2" });
+            // Print the manifest
+            std::cout << "Name: " << std::any_cast<std::string>(manifest["name"]) << "\n";
+            std::cout << "Version: " << std::any_cast<std::string>(manifest["version"]) << "\n";
+            std::cout << "Description: " << std::any_cast<std::string>(manifest["description"]) << "\n";
+            auto deps = std::any_cast<std::vector<std::string>>(manifest["dependencies"]);
+            std::cout << "Dependencies: ";
+            for (const auto& dep : deps) {
+                std::cout << dep << " ";
+            }
+            std::cout << "\n";
+            return 0;
+		}
+
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+#include <iostream>
+#include <vector>
+#include <string>
+#include <unordered_set>
+
+        // Vertex shader source (simple passthrough)
+        const char* vertex_src = R"glsl(
+#version 330 core
+layout(location = 0) in vec2 aPos;
+uniform vec2 uOffset;
+uniform float uScale;
+void main()
+{
+    gl_Position = vec4((aPos * uScale) + uOffset, 0.0, 1.0);
+}
+)glsl";
+
+        // Fragment shader source (solid color)
+        const char* fragment_src = R"glsl(
+#version 330 core
+out vec4 FragColor;
+uniform vec3 uColor;
+void main()
+{
+    FragColor = vec4(uColor, 1.0);
+}
+)glsl";
+
+        struct Node {
+            float x, y;
+            std::string name;
+        };
+
+        std::vector<Node> nodes = {
+            { -0.5f, 0.0f, "NodeA" },
+            { 0.5f, 0.0f, "NodeB" },
+            { 0.0f, 0.5f, "NodeC" }
+        };
+
+        std::unordered_set<std::string> plugin_state = { "NodeA" }; // simulating plugin_state.contains()
+
+        GLuint compileShader(GLenum type, const char* src) {
+            GLuint shader = glCreateShader(type);
+            glShaderSource(shader, 1, &src, nullptr);
+            glCompileShader(shader);
+
+            int success;
+            glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+            if (!success) {
+                char infoLog[512];
+                glGetShaderInfoLog(shader, 512, nullptr, infoLog);
+                std::cerr << "ERROR compiling shader:\n" << infoLog << std::endl;
+            }
+            return shader;
+        }
+
+        GLuint createShaderProgram(const char* vertSrc, const char* fragSrc) {
+            GLuint vertexShader = compileShader(GL_VERTEX_SHADER, vertSrc);
+            GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, fragSrc);
+
+            GLuint program = glCreateProgram();
+            glAttachShader(program, vertexShader);
+            glAttachShader(program, fragmentShader);
+            glLinkProgram(program);
+
+            int success;
+            glGetProgramiv(program, GL_LINK_STATUS, &success);
+            if (!success) {
+                char infoLog[512];
+                glGetProgramInfoLog(program, 512, nullptr, infoLog);
+                std::cerr << "ERROR linking shader program:\n" << infoLog << std::endl;
+            }
+
+            glDeleteShader(vertexShader);
+            glDeleteShader(fragmentShader);
+
+            return program;
+        }
+
+        // Create a simple circle using triangle fan approximation
+        std::vector<float> createCircleVertices(float radius, int segments = 30) {
+            std::vector<float> vertices;
+            vertices.push_back(0.0f); // center x
+            vertices.push_back(0.0f); // center y
+
+            for (int i = 0; i <= segments; i++) {
+                float angle = 2.0f * 3.1415926f * float(i) / float(segments);
+                vertices.push_back(cos(angle) * radius);
+                vertices.push_back(sin(angle) * radius);
+            }
+            return vertices;
+        }
+
+        // Placeholder for drawing text (real text rendering requires bitmap fonts or libraries like FreeType)
+        void drawText(const std::string& text, float x, float y) {
+            // Stub: You'd integrate a text rendering library here.
+            // For demo, just print coordinates + text to console
+            std::cout << "Draw text '" << text << "' at (" << x << "," << y << ")\n";
+        }
+
+        // Draw line between nodes
+        void drawLine(float x1, float y1, float x2, float y2, GLuint shaderProgram) {
+            float lineVertices[] = {
+                x1, y1,
+                x2, y2
+            };
+
+            GLuint VAO, VBO;
+            glGenVertexArrays(1, &VAO);
+            glGenBuffers(1, &VBO);
+
+            glBindVertexArray(VAO);
+
+            glBindBuffer(GL_ARRAY_BUFFER, VBO);
+            glBufferData(GL_ARRAY_BUFFER, sizeof(lineVertices), lineVertices, GL_STATIC_DRAW);
+
+            glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+            glEnableVertexAttribArray(0);
+
+            glUseProgram(shaderProgram);
+            GLint colorLoc = glGetUniformLocation(shaderProgram, "uColor");
+            glUniform3f(colorLoc, 1.0f, 1.0f, 1.0f); // white lines
+
+            GLint offsetLoc = glGetUniformLocation(shaderProgram, "uOffset");
+            GLint scaleLoc = glGetUniformLocation(shaderProgram, "uScale");
+
+            glUniform2f(offsetLoc, 0.0f, 0.0f);
+            glUniform1f(scaleLoc, 1.0f);
+
+            glDrawArrays(GL_LINES, 0, 2);
+
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            glBindVertexArray(0);
+
+            glDeleteBuffers(1, &VBO);
+            glDeleteVertexArrays(1, &VAO);
+        }
+
+        int main() {
+            // Initialize GLFW
+            if (!glfwInit()) {
+                std::cerr << "Failed to init GLFW\n";
+                return -1;
+            }
+
+            GLFWwindow* window = glfwCreateWindow(800, 600, "Inspector", nullptr, nullptr);
+            if (!window) {
+                std::cerr << "Failed to create window\n";
+                glfwTerminate();
+                return -1;
+            }
+
+            glfwMakeContextCurrent(window);
+            glewExperimental = GL_TRUE;
+
+            if (glewInit() != GLEW_OK) {
+                std::cerr << "Failed to init GLEW\n";
+                return -1;
+            }
+
+            GLuint shaderProgram = createShaderProgram(vertex_src, fragment_src);
+
+            // Create circle vertex data once
+            std::vector<float> circleVertices = createCircleVertices(1.0f);
+
+            // Setup circle VAO/VBO
+            GLuint circleVAO, circleVBO;
+            glGenVertexArrays(1, &circleVAO);
+            glGenBuffers(1, &circleVBO);
+
+            glBindVertexArray(circleVAO);
+            glBindBuffer(GL_ARRAY_BUFFER, circleVBO);
+            glBufferData(GL_ARRAY_BUFFER, circleVertices.size() * sizeof(float), circleVertices.data(), GL_STATIC_DRAW);
+
+            glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+            glEnableVertexAttribArray(0);
+
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            glBindVertexArray(0);
+
+            // Main loop
+            while (!glfwWindowShouldClose(window)) {
+                // Clear canvas (black)
+                glClearColor(0, 0, 0, 1);
+                glClear(GL_COLOR_BUFFER_BIT);
+
+                glUseProgram(shaderProgram);
+
+                GLint offsetLoc = glGetUniformLocation(shaderProgram, "uOffset");
+                GLint scaleLoc = glGetUniformLocation(shaderProgram, "uScale");
+                GLint colorLoc = glGetUniformLocation(shaderProgram, "uColor");
+
+                // Draw edges (lines) between nodes
+                for (size_t i = 0; i < nodes.size(); ++i) {
+                    for (size_t j = i + 1; j < nodes.size(); ++j) {
+                        drawLine(nodes[i].x, nodes[i].y, nodes[j].x, nodes[j].y, shaderProgram);
+                    }
+                }
+
+                // Draw nodes as circles
+                glBindVertexArray(circleVAO);
+                for (const auto& node : nodes) {
+                    float scale = 0.1f; // circle radius scale
+
+                    // Color green if plugin_state contains node.name else gray
+                    if (plugin_state.count(node.name)) {
+                        glUniform3f(colorLoc, 0.0f, 1.0f, 0.0f);
+                    }
+                    else {
+                        glUniform3f(colorLoc, 0.4f, 0.4f, 0.4f);
+                    }
+
+                    glUniform2f(offsetLoc, node.x, node.y);
+                    glUniform1f(scaleLoc, scale);
+
+                    // Draw circle using triangle fan
+                    glDrawArrays(GL_TRIANGLE_FAN, 0, (GLsizei)(circleVertices.size() / 2));
+
+                    // Draw text above node (placeholder)
+                    drawText(node.name, node.x * 800 + 400 - 20, node.y * 600 + 300 - 40);
+                }
+                glBindVertexArray(0);
+
+                glfwSwapBuffers(window);
+                glfwPollEvents();
+            }
+
+            glDeleteProgram(shaderProgram);
+            glDeleteVertexArrays(1, &circleVAO);
+            glDeleteBuffers(1, &circleVBO);
+
+            glfwDestroyWindow(window);
+            glfwTerminate();
+            return 0;
+        }
+
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
+
+#include <cmath>
+#include <string>
+#include <vector>
+#include <unordered_map>
+#include <unordered_set>
+#include <iostream>
+#include <algorithm>
+
+        // --- Mock PluginSystem, PluginSettings, PluginStore ---
+
+        namespace PluginSystem {
+            std::unordered_set<std::string> loaded_plugins;
+
+            bool is_loaded(const std::string& name) {
+                return loaded_plugins.count(name) > 0;
+            }
+
+            void unload(const std::string& name) {
+                std::cout << "Unloading plugin: " << name << std::endl;
+                loaded_plugins.erase(name);
+            }
+
+            std::unordered_map<std::string, std::vector<std::string>> plugin_dependencies = {
+                {"Core", {}},
+                {"UI", {"Core"}},
+                {"Audio", {"Core"}},
+                {"Physics", {"Core"}},
+                {"Game", {"UI", "Audio", "Physics"}}
+            };
+
+            std::vector<std::string> libs = { "Core", "UI", "Audio", "Physics", "Game" };
+        }
+
+        namespace PluginSettings {
+            void show(const std::string& name) {
+                std::cout << "Showing settings for plugin: " << name << std::endl;
+            }
+        }
+
+        namespace PluginStore {
+            void install(const std::string& name) {
+                std::cout << "Installing plugin: " << name << std::endl;
+                PluginSystem::loaded_plugins.insert(name);
+            }
+        }
+
+        // --- Node struct ---
+
+        struct Node {
+            std::string name;
+            std::vector<std::string> deps;
+            float x, y;  // logical coordinates (not screen)
+            int radius;
+            int load_time; // ms (stub)
+
+            Node(const std::string& n, const std::vector<std::string>& d, float px, float py, int r, int lt)
+                : name(n), deps(d), x(px), y(py), radius(r), load_time(lt) {
+            }
+        };
+
+        // --- Globals ---
+
+        std::vector<Node> nodes;
+        struct Camera {
+            float x = 0;
+            float y = 0;
+            float zoom = 1.0f;
+        } camera;
+
+        bool theme_dark = true;
+        std::string selected;
+
+        SDL_Window* window = nullptr;
+        SDL_Renderer* renderer = nullptr;
+        TTF_Font* font = nullptr;
+
+        // --- Utility functions ---
+
+        void layout_graph() {
+            nodes.clear();
+            const auto& libs = PluginSystem::libs;
+            int count = (int)libs.size();
+            const float PI = 3.14159265358979323846f;
+            int idx = 0;
+            const float radius = 200.0f;
+            for (const auto& name : libs) {
+                float angle = idx * 2.0f * PI / count;
+                float px = std::cos(angle) * radius;
+                float py = std::sin(angle) * radius;
+                int load_time = 10 * idx; // stub: pretend increasing load time
+                auto deps_iter = PluginSystem::plugin_dependencies.find(name);
+                std::vector<std::string> deps;
+                if (deps_iter != PluginSystem::plugin_dependencies.end()) deps = deps_iter->second;
+                nodes.emplace_back(name, deps, px, py, 30, load_time);
+                idx++;
+            }
+        }
+
+        std::pair<int, int> screen_xy(float x, float y) {
+            int sx = static_cast<int>(x * camera.zoom + camera.x + 400); // center offset
+            int sy = static_cast<int>(y * camera.zoom + camera.y + 300);
+            return { sx, sy };
+        }
+
+        void draw_text(const std::string& text, int x, int y, SDL_Color color) {
+            if (!font) return;
+            SDL_Surface* surf = TTF_RenderText_Blended(font, text.c_str(), color);
+            if (!surf) return;
+            SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
+            SDL_Rect dst = { x, y, surf->w, surf->h };
+            SDL_FreeSurface(surf);
+            SDL_RenderCopy(renderer, tex, nullptr, &dst);
+            SDL_DestroyTexture(tex);
+        }
+
+        void draw_circle(int cx, int cy, int radius, SDL_Color color) {
+            // Midpoint circle algorithm approximation
+            SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, 255);
+            int x = radius;
+            int y = 0;
+            int err = 0;
+
+            while (x >= y) {
+                SDL_RenderDrawPoint(renderer, cx + x, cy + y);
+                SDL_RenderDrawPoint(renderer, cx + y, cy + x);
+                SDL_RenderDrawPoint(renderer, cx - y, cy + x);
+                SDL_RenderDrawPoint(renderer, cx - x, cy + y);
+                SDL_RenderDrawPoint(renderer, cx - x, cy - y);
+                SDL_RenderDrawPoint(renderer, cx - y, cy - x);
+                SDL_RenderDrawPoint(renderer, cx + y, cy - x);
+                SDL_RenderDrawPoint(renderer, cx + x, cy - y);
+
+                y += 1;
+                if (err <= 0) {
+                    err += 2 * y + 1;
+                }
+                if (err > 0) {
+                    x -= 1;
+                    err -= 2 * x + 1;
+                }
+            }
+
+            // fill circle (simple scanline fill)
+            for (int dy = -radius; dy <= radius; dy++) {
+                int dx = static_cast<int>(std::sqrt(radius * radius - dy * dy));
+                SDL_RenderDrawLine(renderer, cx - dx, cy + dy, cx + dx, cy + dy);
+            }
+        }
+
+        void draw_line(int x1, int y1, int x2, int y2, SDL_Color color) {
+            SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, 255);
+            SDL_RenderDrawLine(renderer, x1, y1, x2, y2);
+        }
+
+        void clear_theme() {
+            if (theme_dark) {
+                SDL_SetRenderDrawColor(renderer, 20, 20, 20, 255);
+            }
+            else {
+                SDL_SetRenderDrawColor(renderer, 240, 240, 240, 255);
+            }
+            SDL_RenderClear(renderer);
+        }
+
+        bool handle_events() {
+            SDL_Event e;
+            while (SDL_PollEvent(&e)) {
+                if (e.type == SDL_QUIT) return true;
+                else if (e.type == SDL_MOUSEBUTTONDOWN) {
+                    int mx = e.button.x;
+                    int my = e.button.y;
+                    for (auto& n : nodes) {
+                        auto [sx, sy] = screen_xy(n.x, n.y);
+                        float r = n.radius * camera.zoom;
+                        float dx = mx - sx;
+                        float dy = my - sy;
+                        if (dx * dx + dy * dy <= r * r) {
+                            selected = n.name;
+                            PluginSettings::show(selected);
+                            break;
+                        }
+                    }
+                }
+                else if (e.type == SDL_KEYDOWN) {
+                    switch (e.key.keysym.sym) {
+                    case SDLK_PLUS:
+                    case SDLK_EQUALS:
+                        camera.zoom *= 1.1f;
+                        break;
+                    case SDLK_MINUS:
+                        camera.zoom /= 1.1f;
+                        break;
+                    case SDLK_LEFT:
+                        camera.x += 20;
+                        break;
+                    case SDLK_RIGHT:
+                        camera.x -= 20;
+                        break;
+                    case SDLK_UP:
+                        camera.y += 20;
+                        break;
+                    case SDLK_DOWN:
+                        camera.y -= 20;
+                        break;
+                    case SDLK_t:
+                        theme_dark = !theme_dark;
+                        break;
+                    case SDLK_i:
+                        if (!selected.empty()) {
+                            PluginStore::install(selected);
+                        }
+                        break;
+                    case SDLK_u:
+                        if (!selected.empty()) {
+                            PluginSystem::unload(selected);
+                        }
+                        break;
+                    default:
+                        break;
+                    }
+                }
+            }
+            return false;
+        }
+
+        void draw() {
+            clear_theme();
+
+            // Draw edges
+            for (const auto& n : nodes) {
+                for (const auto& dep : n.deps) {
+                    auto target_it = std::find_if(nodes.begin(), nodes.end(),
+                        [&](const Node& m) { return m.name == dep; });
+                    if (target_it != nodes.end()) {
+                        auto [x1, y1] = screen_xy(n.x, n.y);
+                        auto [x2, y2] = screen_xy(target_it->x, target_it->y);
+                        draw_line(x1, y1, x2, y2, SDL_Color{ 180,180,180,255 });
+                    }
+                }
+            }
+
+            // Draw nodes
+            for (const auto& n : nodes) {
+                auto [sx, sy] = screen_xy(n.x, n.y);
+                SDL_Color color;
+                if (selected == n.name) color = SDL_Color{ 255,255,0,255 };
+                else if (PluginSystem::is_loaded(n.name)) color = SDL_Color{ 0,200,0,255 };
+                else color = SDL_Color{ 200,0,0,255 };
+
+                draw_circle(sx, sy, static_cast<int>(n.radius * camera.zoom), color);
+
+                draw_text(n.name, sx - 20, sy - 25, SDL_Color{ 255,255,255,255 });
+
+                std::string load_str = std::to_string(n.load_time) + "ms";
+                draw_text(load_str, sx - 20, sy + 5, SDL_Color{ 255,255,0,255 });
+            }
+
+            SDL_RenderPresent(renderer);
+        }
+
+        int main(int argc, char** argv) {
+            if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+                std::cerr << "SDL Init Error: " << SDL_GetError() << std::endl;
+                return 1;
+            }
+            if (TTF_Init() == -1) {
+                std::cerr << "TTF Init Error: " << TTF_GetError() << std::endl;
+                SDL_Quit();
+                return 1;
+            }
+
+            window = SDL_CreateWindow("Plugin Inspector",
+                SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+                800, 600,
+                SDL_WINDOW_SHOWN);
+            if (!window) {
+                std::cerr << "SDL CreateWindow Error: " << SDL_GetError() << std::endl;
+                TTF_Quit();
+                SDL_Quit();
+                return 1;
+            }
+
+            renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+            if (!renderer) {
+                std::cerr << "SDL CreateRenderer Error: " << SDL_GetError() << std::endl;
+                SDL_DestroyWindow(window);
+                TTF_Quit();
+                SDL_Quit();
+                return 1;
+            }
+
+            font = TTF_OpenFont("DejaVuSans.ttf", 16);
+            if (!font) {
+                std::cerr << "TTF_OpenFont Error: " << TTF_GetError() << std::endl;
+                SDL_DestroyRenderer(renderer);
+                SDL_DestroyWindow(window);
+                TTF_Quit();
+                SDL_Quit();
+                return 1;
+            }
+
+            layout_graph();
+
+            bool done = false;
+            while (!done) {
+                done = handle_events();
+                draw();
+                SDL_Delay(16);
+            }
+
+            TTF_CloseFont(font);
+            SDL_DestroyRenderer(renderer);
+            SDL_DestroyWindow(window);
+            TTF_Quit();
+            SDL_Quit();
+            return 0;
+        }
+
+#include <iostream>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+
+        // Plugin metadata struct
+        struct PluginMeta {
+            std::string version;
+            std::string description;
+        };
+
+        // Globals: plugin metadata and loaded state
+        std::unordered_map<std::string, PluginMeta> plugin_meta = {
+            {"Core", {"1.0", "Core functionality"}},
+            {"UI", {"1.2", "User interface components"}},
+            {"Audio", {"0.9", "Audio engine"}},
+            {"Physics", {"1.1", "Physics simulation"}},
+        };
+
+        std::unordered_map<std::string, std::string> plugin_state; // map name -> state info (e.g. "active")
+
+        // Stub for plugin loading logic
+        void plugin_load(const std::string& name) {
+            // Emulate loading by inserting state
+            plugin_state[name] = "active";
+        }
+
+        // Dashboard render function
+        void plugin_dashboard_render() {
+            std::cout << "=== Plugin Dashboard ===\n";
+            for (const auto& [name, meta] : plugin_meta) {
+                std::cout << name << ": v" << meta.version << " — " << meta.description << "\n";
+                auto it = plugin_state.find(name);
+                if (it != plugin_state.end()) {
+                    std::cout << " ↳ Loaded, state: " << it->second << "\n";
+                }
+                else {
+                    std::cout << " ↳ Not loaded\n";
+                }
+            }
+        }
+
+        // Toggle plugin load/unload
+        void plugin_toggle(const std::string& name) {
+            if (plugin_state.count(name)) {
+                plugin_state.erase(name);
+                std::cout << "Unloaded plugin " << name << "\n";
+            }
+            else {
+                plugin_load(name);
+                std::cout << "Loaded plugin " << name << "\n";
+            }
+        }
+
+        // Example usage
+        int main() {
+            plugin_dashboard_render();
+
+            std::cout << "\nToggling UI plugin...\n";
+            plugin_toggle("UI");
+
+            std::cout << "\nDashboard after toggle:\n";
+            plugin_dashboard_render();
+
+            std::cout << "\nToggling UI plugin again...\n";
+            plugin_toggle("UI");
+
+            std::cout << "\nFinal dashboard:\n";
+            plugin_dashboard_render();
+
+            return 0;
+        }
+
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <stdexcept>
+
+#include <curl/curl.h>
+#include <nlohmann/json.hpp>
+
+        // For convenience
+        using json = nlohmann::json;
+
+        // --- read_manifest: parse JSON manifest from file ---
+        json read_manifest(const std::string& path) {
+            std::ifstream file(path);
+            if (!file) {
+                throw std::runtime_error("Failed to open manifest file: " + path);
+            }
+            json manifest;
+            file >> manifest;  // parse JSON from file stream
+            return manifest;
+        }
+
+        // --- Helper for libcurl write callback ---
+        static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp) {
+            ((std::string*)userp)->append((char*)contents, size * nmemb);
+            return size * nmemb;
+        }
+
+        // --- download_module: HTTP GET and compile ---
+        std::string download_module(const std::string& url) {
+            CURL* curl = curl_easy_init();
+            if (!curl) {
+                throw std::runtime_error("Failed to init CURL");
+            }
+            std::string readBuffer;
+            curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+            CURLcode res = curl_easy_perform(curl);
+            curl_easy_cleanup(curl);
+
+            if (res != CURLE_OK) {
+                throw std::runtime_error("curl_easy_perform() failed: " + std::string(curl_easy_strerror(res)));
+            }
+
+            // Stub: call LibrarySystem.compile with downloaded code
+            // Here, just return the code string for demonstration
+            return readBuffer;
+        }
+
+        // --- Example usage ---
+        int main() {
+            try {
+                auto manifest = read_manifest("plugin_manifest.json");
+                std::cout << "Manifest loaded: " << manifest.dump(2) << "\n";
+
+                std::string url = "https://example.com/plugin_code.qtr";
+                std::string code = download_module(url);
+                std::cout << "Downloaded module code:\n" << code.substr(0, 200) << "...\n";
+
+                // LibrarySystem.compile(code); // your compilation logic here
+
+            }
+            catch (const std::exception& ex) {
+                std::cerr << "Error: " << ex.what() << std::endl;
+            }
+            return 0;
+        }
+
+#include <string>
+#include <vector>
+#include <nlohmann/json.hpp>
+
+        // For convenience
+        using json = nlohmann::json;
+
+        // Generates a plugin manifest as a JSON object
+        json plugin_generate_manifest(const std::string& name,
+            const std::vector<std::string>& deps,
+            const std::string& version) {
+            json manifest = {
+                {"name", name},
+                {"version", version},
+                {"dependencies", deps},
+                {"entry", name + ".qtr"}
+            };
+            return manifest;
+        }
+
+        // Example usage
+#include <iostream>
+        int main() {
+            std::vector<std::string> dependencies = { "Core", "UI", "Audio" };
+            json manifest = plugin_generate_manifest("MyPlugin", dependencies, "1.0");
+
+            // Pretty print manifest
+            std::cout << manifest.dump(2) << std::endl;
+            return 0;
+        }
+
+		// Example usage of PluginSettings
+
+#include <iostream>
+#include <string>
+#include <unordered_map>
+#include <optional>
+
+// Mock Module type (placeholder)
+        struct Module {
+            std::string code; // or whatever represents a module
+        };
+
+        // Mock LibrarySystem with basic register/get interface
+        namespace LibrarySystem {
+            static std::unordered_map<std::string, Module> registry;
+
+            void register_module(const std::string& name, const Module& mod) {
+                registry[name] = mod;
+                std::cout << "LibrarySystem: Registered module " << name << std::endl;
+            }
+
+            // Returns pointer to module if exists, else nullptr
+            Module* get(const std::string& name) {
+                auto it = registry.find(name);
+                if (it != registry.end())
+                    return &(it->second);
+                return nullptr;
+            }
+        }
+
+        // Global plugin metadata map: plugin name → metadata string
+        std::unordered_map<std::string, std::string> plugin_meta;
+
+        // Registers plugin module and metadata
+        void plugin_register(const std::string& name, const Module& mod, const std::string& metadata) {
+            LibrarySystem::register_module(name, mod);
+            plugin_meta[name] = metadata;
+        }
+
+        // Loads plugin module by name
+        Module* plugin_load(const std::string& name) {
+            return LibrarySystem::get(name);
+        }
+
+        // Prints plugin description or fallback message
+        void plugin_describe(const std::string& name) {
+            auto it = plugin_meta.find(name);
+            if (it != plugin_meta.end()) {
+                std::cout << "[Plugin " << name << "]: " << it->second << std::endl;
+            }
+            else {
+                std::cout << "[Plugin " << name << "]: Metadata not found" << std::endl;
+            }
+        }
+
+        // --- Example usage ---
+        int main() {
+            Module mod1{ "module code here" };
+            plugin_register("TestPlugin", mod1, "Version 1.0 - Test plugin for demonstration");
+
+            plugin_describe("TestPlugin");
+            plugin_describe("MissingPlugin");
+
+            Module* loaded = plugin_load("TestPlugin");
+            if (loaded) {
+                std::cout << "Loaded module code: " << loaded->code << std::endl;
+            }
+            else {
+                std::cout << "Failed to load module." << std::endl;
+            }
+
+            return 0;
+        }
+
+#include <iostream>
+
+        // Simulated Graph namespace with draw_all stub
+        namespace Graph {
+            // offsetX, offsetY = offset coordinates; zoom = zoom level
+            void draw_all(int zoom_level, int offset_x, int offset_y) {
+                std::cout << "Drawing full graph at zoom: " << zoom_level
+                    << " with offset (" << offset_x << ", " << offset_y << ")\n";
+                // Actual drawing code would go here
+            }
+        }
+
+        // Global state variables
+        int zoom_level = 1;
+        struct Offset {
+            int x = 0;
+            int y = 0;
+        } offset;
+
+        // Render the full graph with current zoom and offset
+        void render_full_graph() {
+            Graph::draw_all(zoom_level, offset.x, offset.y);
+        }
+
+        // Adjust zoom level by direction (+1 or -1), then redraw
+        void zoom(int direction) {
+            zoom_level += direction;
+            if (zoom_level < 1) zoom_level = 1; // Prevent zoom <= 0
+            render_full_graph();
+        }
+
+        // Pan graph by x, y deltas, then redraw
+        void pan(int x = 0, int y = 0) {
+            offset.x += x;
+            offset.y += y;
+            render_full_graph();
+        }
+
+        // Example usage
+        int main() {
+            render_full_graph();   // Initial draw
+            zoom(1);               // Zoom in
+            pan(10, -5);           // Pan right and up
+            zoom(-1);              // Zoom out
+            pan(-20, 10);          // Pan left and down
+            return 0;
+        }
+
+#include <iostream>
+#include <string>
+#include <unordered_map>
+
+        // Using a map<string,int> to hold state values
+        using State = std::unordered_map<std::string, int>;
+
+        // Initialize state with echo_count = 0
+        State init() {
+            State state;
+            state["echo_count"] = 0;
+            return state;
+        }
+
+        // Print echo of input line
+        void on_input(const std::string& line) {
+            std::cout << "[echo]: " << line << std::endl;
+        }
+
+        // Restore previous state and print message
+        State resume(const State& old_state) {
+            std::cout << "Restoring previous state ..." << std::endl;
+            return old_state;
+        }
+
+        // Example usage
+        int main() {
+            // Initialize
+            State state = init();
+
+            // Simulate input
+            on_input("Hello, World!");
+            on_input("Testing echo.");
+
+            // Save and restore state
+            State saved = state;
+            State restored = resume(saved);
+
+            // Show restored echo_count
+            std::cout << "Echo count in restored state: " << restored["echo_count"] << std::endl;
+
+            return 0;
+        }
+
+#include <iostream>
+#include <string>
+#include <algorithm>
+
+        // Helper: convert string to uppercase
+        std::string to_upper(const std::string& s) {
+            std::string result = s;
+            std::transform(result.begin(), result.end(), result.begin(),
+                [](unsigned char c) { return std::toupper(c); });
+            return result;
+        }
+
+        // Prints a toggled plugin message with status in uppercase
+        void plugin_toggled(const std::string& name, const std::string& status) {
+            std::cout << "Plugin " << name << " toggled " << to_upper(status) << std::endl;
+        }
+
+        // Prints the state info for a plugin (any type assumed to be printable string)
+        template<typename T>
+        void show_plugin_state(const std::string& name, const T& state) {
+            std::cout << "State for " << name << ": " << state << std::endl;
+        }
+
+        // Prints success message after hot-reload
+        void mark_reload_success(const std::string& name) {
+            std::cout << "Plugin " << name << " hot-reloaded successfully." << std::endl;
+        }
+
+        // Prints compatibility warning
+        void warn_compat(const std::string& name, const std::string& api_version) {
+            std::cout << "[WARNING] Plugin " << name << " built for outdated API v" << api_version << std::endl;
+        }
+
+        // --- Example usage ---
+        int main() {
+            plugin_toggled("Audio", "enabled");
+            show_plugin_state("Audio", "Running");
+            mark_reload_success("UI");
+            warn_compat("LegacyPlugin", "0.9");
+            return 0;
+        }
+
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+#include <iostream>
+#include <vector>
+        #include <cmath>
+        #include <string>
+        #include <unordered_map>
+        #include <unordered_set>
+        // Vertex shader source code
+        const char* vertex_src = R"(
+            #version 330 core
+            layout(location = 0) in vec2 aPos;
+            uniform vec2 uOffset;
+            uniform float uScale;
+            void main() {
+                gl_Position = vec4(aPos * uScale + uOffset, 0.0, 1.0);
+            }
+        )";
+        // Fragment shader source code
+        const char* fragment_src = R"(
+            #version 330 core
+            out vec4 FragColor;
+            uniform vec3 uColor;
+            void main() {
+                FragColor = vec4(uColor, 1.0);
+            }
+        )";
+        // Create and compile shader program
+        GLuint createShaderProgram(const char* vertexShaderSrc, const char* fragmentShaderSrc) {
+            GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+            glShaderSource(vertexShader, 1, &vertexShaderSrc, nullptr);
+            glCompileShader(vertexShader);
+            GLint success;
+            glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
+            if (!success) {
+                char infoLog[512];
+                glGetShaderInfoLog(vertexShader, 512, nullptr, infoLog);
+                std::cerr << "ERROR compiling vertex shader:\n" << infoLog << std::endl;
+            }
+            GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+            glShaderSource(fragmentShader, 1, &fragmentShaderSrc, nullptr);
+            glCompileShader(fragmentShader);
+            glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
+            if (!success) {
+                char infoLog[512];
+                glGetShaderInfoLog(fragmentShader, 512, nullptr, infoLog);
+                std::cerr << "ERROR compiling fragment shader:\n" << infoLog << std::endl;
+            }
+            GLuint program = glCreateProgram();
+            glAttachShader(program, vertexShader);
+            glAttachShader(program, fragmentShader);
+			glLinkProgram(program);
+            glGetProgramiv(program, GL_LINK_STATUS, &success);
+            if (!success) {
+                char infoLog[512];
+                glGetProgramInfoLog(program, 512, nullptr, infoLog);
+                std::cerr << "ERROR linking shader program:\n" << infoLog << std::endl;
+            }
+            glDeleteShader(vertexShader);
+            glDeleteShader(fragmentShader);
+            return program;
+        }
+        // Create circle vertex data
+        std::vector<float> createCircleVertices(float radius, int segments = 100) {
+            std::vector<float> vertices;
+            for (int i = 0; i <= segments; ++i) {
+                float angle = 2.0f * M_PI * i / segments;
+                vertices.push_back(radius * cos(angle));
+                vertices.push_back(radius * sin(angle));
+            }
+            return vertices;
+        }
+        // Draw a line between two points
+        void drawLine(float x1, float y1, float x2, float y2, GLuint shaderProgram) {
+            GLuint VAO, VBO;
+            glGenVertexArrays(1, &VAO);
+            glGenBuffers(1, &VBO);
+            glBindVertexArray(VAO);
+            glBindBuffer(GL_ARRAY_BUFFER, VBO);
+            float lineVertices[] = {
+                x1, y1,
+                x2, y2
+            };
+            glBufferData(GL_ARRAY_BUFFER, sizeof(lineVertices), lineVertices, GL_STATIC_DRAW);
+            glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+			glEnableVertexAttribArray(0);
+            glUseProgram(shaderProgram);
+            glDrawArrays(GL_LINES, 0, 2);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            glBindVertexArray(0);
+            glDeleteBuffers(1, &VBO);
+            glDeleteVertexArrays(1, &VAO);
+        }
+        // Draw text (placeholder function)
+        void drawText(const std::string& text, float x, float y) {
+            // Placeholder for actual text rendering logic
+            std::cout << "Drawing text: " << text << " at (" << x << ", " << y << ")" << std::endl;
+        }
+        // Main function
+        int main() {
+            // Initialize GLFW
+            if (!glfwInit()) {
+                std::cerr << "Failed to initialize GLFW" << std::endl;
+                return -1;
+            }
+            GLFWwindow* window = glfwCreateWindow(800, 600, "Plugin Inspector", nullptr, nullptr);
+            if (!window) {
+                std::cerr << "Failed to create GLFW window" << std::endl;
+                glfwTerminate();
+                return -1;
+            }
+            glfwMakeContextCurrent(window);
+            glewInit();
+            // Create shader program
+            GLuint shaderProgram = createShaderProgram(vertex_src, fragment_src);
+            // Create circle vertices
+			std::vector<float> circleVertices;
+            circleVertices = createCircleVertices(0.1f); // radius 0.1
+            GLuint circleVAO, circleVBO;
+            glGenVertexArrays(1, &circleVAO);
+            glGenBuffers(1, &circleVBO);
+            glBindVertexArray(circleVAO);
+            glBindBuffer(GL_ARRAY_BUFFER, circleVBO);
+            glBufferData(GL_ARRAY_BUFFER, circleVertices.size() * sizeof(float), circleVertices.data(), GL_STATIC_DRAW);
+			glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+            glEnableVertexAttribArray(0);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            glBindVertexArray(0);
+            // Uniform locations
+            GLint colorLoc = glGetUniformLocation(shaderProgram, "uColor");
+            GLint offsetLoc = glGetUniformLocation(shaderProgram, "uOffset");
+            GLint scaleLoc = glGetUniformLocation(shaderProgram, "uScale");
+            // Main loop
+            while (!glfwWindowShouldClose(window)) {
+                glClear(GL_COLOR_BUFFER_BIT);
+                glUseProgram(shaderProgram);
+                // Set camera and scale
+                float scale = 1.0f; // Placeholder for zoom level
+                for (const auto& node : nodes) {
+                    glBindVertexArray(circleVAO);
+                    if (node.name == selected) {
+                        glUniform3f(colorLoc, 1.0f, 1.0f, 0.0f); // Highlight selected node
+                    }
+					else if (PluginSystem::is_loaded(node.name)) {
+                        glUniform3f(colorLoc, 0.0f, 1.0f, 0.0f); // Loaded node
+                    }
+                    else {
+                        glUniform3f(colorLoc, 1.0f, 0.0f, 0.0f); // Unloaded node
+                    }
+                    glUniform2f(offsetLoc, node.x * scale, node.y * scale);
+                    glUniform1f(scaleLoc, scale);
+                    glDrawArrays(GL_TRIANGLE_FAN, 0, circleVertices.size() / 2);
+                    glBindVertexArray(0);
+                    drawText(node.name, node.x * scale + 0.02f, node.y * scale + 0.02f); // Draw text near the circle
+                }
+                // Draw edges
+                for (const auto& n : nodes) {
+                    for (const auto& dep : n.deps) {
+                        auto target_it = std::find_if(nodes.begin(), nodes.end(),
+                            [&](const Node& m) { return m.name == dep; });
+                        if (target_it != nodes.end()) {
+                            drawLine(n.x * scale, n.y * scale,
+                                     target_it->x * scale, target_it->y * scale,
+                                     shaderProgram);
+                        }
+                    }
+                }
+                glfwSwapBuffers(window);
+                glfwPollEvents();
+            }
+            // Cleanup
+            glDeleteVertexArrays(1, &circleVAO);
+            glDeleteBuffers(1, &circleVBO);
+            glDeleteProgram(shaderProgram);
+            glfwDestroyWindow(window);
+			glfwTerminate();
+            return 0;
+        }
+        // PluginSystem namespace with basic functionality
+        namespace PluginSystem {
+            std::unordered_set<std::string> libs = { "Core", "UI", "Audio", "Physics" };
+            std::unordered_map<std::string, std::vector<std::string>> plugin_dependencies = {
+                {"Core", {}},
+                {"UI", {"Core"}},
+                {"Audio", {"Core"}},
+                {"Physics", {"Core"}}
+            };
+            bool is_loaded(const std::string& name) {
+                return libs.find(name) != libs.end();
+            }
+            void unload(const std::string& name) {
+                libs.erase(name);
+			}
+            }
+            void show(const std::string& name) {
+                if (is_loaded(name)) {
+                    std::cout << "Plugin " << name << " is loaded." << std::endl;
+                } else {
+                    std::cout << "Plugin " << name << " is not loaded." << std::endl;
+                }
+            }
+        }
+        // PluginSettings namespace for managing plugin settings
+        namespace PluginSettings {
+            void show(const std::string& name) {
+                std::cout << "Showing settings for plugin: " << name << std::endl;
+            }
+        }
+        // PluginStore namespace for managing plugin installation
+        namespace PluginStore {
+            void install(const std::string& name) {
+                std::cout << "Installing plugin: " << name << std::endl;
+            }
+        }
+        // Node structure for graph representation
+        struct Node {
+            std::string name;
+            std::vector<std::string> deps;
+            float x, y; // position
+            float radius; // visual size
+            int load_time; // stub for load time
+            Node(const std::string& n, const std::vector<std::string>& d, float px, float py, float r, int lt)
+				: name(n), deps(d),
+                x(px), y(py), radius(r), load_time(lt) {}
+        };
+        // Global variables
+        std::vector<Node> nodes;
+        std::string selected;
+        SDL_Window* window = nullptr;
+        SDL_Renderer* renderer = nullptr;
+        TTF_Font* font = nullptr;
+        bool theme_dark = true;
+        // Camera state
+        struct Camera {
+            float x = 0, y = 0, zoom = 1.0f;
+        } camera;
+        void layout_graph() {
+            // Example layout: arrange nodes in a circle
+            float angle_step = 2 * M_PI / nodes.size();
+            for (size_t i = 0; i < nodes.size(); ++i) {
+                float angle = i * angle_step;
+                nodes[i].x = 300 * cos(angle);
+                nodes[i].y = 300 * sin(angle);
+            }
+        }
+        std::pair<int, int> screen_xy(float x, float y) {
+			int sx = static_cast<int>(x * camera.zoom + camera.x + 400); // center offset
+			int sy = static_cast<int>(y * camera.zoom + camera.y + 300); // center offset
+            return { sx, sy };
+        }
+        void draw_text(const std::string& text, int x, int y, SDL_Color color) {
+            SDL_Surface* surface = TTF_RenderText_Solid(font, text.c_str(), color);
+            if (!surface) {
+                std::cerr << "TTF_RenderText_Solid Error: " << TTF_GetError() << std::endl;
+                return;
+            }
+            SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+            if (!texture) {
+                std::cerr << "SDL_CreateTextureFromSurface Error: " << SDL_GetError() << std::endl;
+                SDL_FreeSurface(surface);
+                return;
+            }
+            SDL_Rect dstrect = { x, y, surface->w, surface->h };
+            SDL_RenderCopy(renderer, texture, nullptr, &dstrect);
+            SDL_DestroyTexture(texture);
+            SDL_FreeSurface(surface);
+        }
+        void draw_circle(int cx, int cy, int radius, SDL_Color color) {
+            // Draw circle outline using midpoint circle algorithm
+            SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, 255);
+            int x = radius;
+            int y = 0;
+            int err = 0;
+            while (x >= y) {
+				// 8-way symmetry
+                SDL_RenderDrawPoint(renderer, cx + x, cy + y);
+                SDL_RenderDrawPoint(renderer, cx + y, cy + x);
+                SDL_RenderDrawPoint(renderer, cx - y, cy + x);
+                SDL_RenderDrawPoint(renderer, cx - x, cy + y);
+                SDL_RenderDrawPoint(renderer, cx - x, cy - y);
+                SDL_RenderDrawPoint(renderer, cx - y, cy - x);
+                SDL_RenderDrawPoint(renderer, cx + y, cy - x);
+                SDL_RenderDrawPoint(renderer, cx + x, cy - y);
+                if (err <= 0) {
+                    y++;
+                    err += 2 * y + 1;
+                }
+                if (err > 0) {
+                    x--;
+                    err -= 2 * x + 1;
+                }
+            }
+        }
+        void draw_line(int x1, int y1, int x2, int y2, SDL_Color color) {
+            SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
+            SDL_RenderDrawLine(renderer, x1, y1, x2, y2);
+        }
+		void clear
+            _theme() {
+            if (theme_dark) {
+                SDL_SetRenderDrawColor(renderer, 30, 30, 30, 255);
+            } else {
+                SDL_SetRenderDrawColor(renderer, 240, 240, 240, 255);
+            }
+            SDL_RenderClear(renderer);
+        }
+        bool handle_events() {
+            SDL_Event e;
+            while (SDL_PollEvent(&e)) {
+                if (e.type == SDL_QUIT) {
+                    return true;
+                }
+                else if (e.type == SDL_MOUSEBUTTONDOWN) {
+                    if (e.button.button == SDL_BUTTON_LEFT) {
+                        int x = e.button.x;
+                        int y = e.button.y;
+                        // Check if clicked on a node
+                        for (const auto& n : nodes) {
+                            auto [sx, sy] = screen_xy(n.x, n.y);
+                            if (std::hypot(sx - x, sy - y) < n.radius * camera.zoom) {
+								selected = n.name;
+                                std::cout << "Selected node: " << selected << std::endl;
+                                PluginSystem::show(selected);
+                                PluginSettings::show(selected);
+                                break;
+                            }
+                        }
+                    }
+                }
+                else if (e.type == SDL_KEYDOWN) {
+                    switch (e.key.keysym.sym) {
+                    case SDLK_ESCAPE:
+                        return true; // Exit on Escape
+                    case SDLK_r:
+                        layout_graph(); // Re-layout graph
+                        break;
+                    case SDLK_d:
+						theme_dark = !theme_dark; // Toggle theme
+                        clear_theme();
+                        break;
+                    case SDLK_PLUS:
+                    case SDLK_EQUALS:
+                        camera.zoom *= 1.1f; // Zoom in
+                        break;
+                    case SDLK_MINUS:
+                        camera.zoom /= 1.1f; // Zoom out
+                        break;
+                    case SDLK_LEFT:
+                        camera.x -= 10; // Pan left
+                        break;
+                    case SDLK_RIGHT:
+                        camera.x += 10; // Pan right
+                        break;
+                    case SDLK_UP:
+                        camera.y -= 10; // Pan up
+                        break;
+                    case SDLK_DOWN:
+                        camera.y += 10; // Pan down
+                        break;
+                    }
+                }
+            }
+            return false;
+        }
+        void draw() {
+            clear_theme();
+            // Draw edges
+            for (const auto& n : nodes) {
+				for (const auto&
+                    dep : n.deps) {
+                    auto target_it = std::find_if(nodes.begin(), nodes.end(),
+                        [&](const Node& m) { return m.name == dep; });
+                    if (target_it != nodes.end()) {
+                        auto [sx1, sy1] = screen_xy(n.x, n.y);
+                        auto [sx2, sy2] = screen_xy(target_it->x, target_it->y);
+                        draw_line(sx1, sy1, sx2, sy2, SDL_Color{ 200, 200, 200, 255 });
+                    }
+				}
+                }
+            // Draw nodes
+            for (const auto& n : nodes) {
+                auto [sx, sy] = screen_xy(n.x, n.y);
+                SDL_Color color = { 255, 0, 0, 255 }; // Default color
+                if (n.name == selected) {
+                    color = { 255, 255, 0, 255 }; // Highlight selected node
+                }
+                else if (PluginSystem::is_loaded(n.name)) {
+                    color = { 0, 255, 0, 255 }; // Loaded node
+                }
+                draw_circle(sx, sy, static_cast<int>(n.radius * camera.zoom), color);
+                draw_text(n.name, sx + 5, sy + 5); // Draw name near the circle
+            }
+            SDL_RenderPresent(renderer);
+        }
+        int main(int argc, char* argv[]) {
+            if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+                std::cerr << "SDL Init Error: " << SDL_GetError() << std::endl;
+                return 1;
+            }
+            if (TTF_Init() < 0) {
+				std::cerr << "TTF Init E
+                    std::cerr << "SDL_TTF Error: " << TTF_GetError() << std::endl;
+                SDL_Quit();
+                return 1;
+            }
+            window = SDL_CreateWindow("Plugin Inspector", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, SDL_WINDOW_SHOWN);
+            if (!window) {
+                std::cerr << "SDL_CreateWindow Error: " << SDL_GetError() << std::endl;
+                TTF_Quit();
+                SDL_Quit();
+                return 1;
+            }
+            renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+            if (!renderer) {
+                std::cerr << "SDL_CreateRenderer Error: " << SDL_GetError() << std::endl;
+                SDL_DestroyWindow(window);
+                TTF_Quit();
+                SDL_Quit();
+                return 1;
+            }
+            font = TTF_OpenFont("arial.ttf", 24);
+            if (!font) {
+				std::cerr << "TTF_OpenFo
+                    nt Error: " << TTF_GetError() << std::endl;
+                SDL_DestroyRenderer(renderer);
+                SDL_DestroyWindow(window);
+                TTF_Quit();
+                SDL_Quit();
+                return 1;
+            }
+            // Initialize nodes
+            nodes.push_back(Node("Core", {}, 0, 0, 20, 100));
+            nodes.push_back(Node("UI", {"Core"}, 100, 0, 20, 50));
+            nodes.push_back(Node("Audio", {"Core"}, -100, 0, 20, 75));
+            nodes.push_back(Node("Physics", {"Core"}, 0, 100, 20, 80));
+            layout_graph(); // Initial layout
+            // Main loop
+            while (!handle_events()) {
+                draw();
+            }
+            // Cleanup
+            TTF_CloseFont(font);
+            SDL_DestroyRenderer(renderer);
+            SDL_DestroyWindow(window);
+            TTF_Quit();
+            SDL_Quit();
+            return 0;
+		}
+
