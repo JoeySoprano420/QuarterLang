@@ -27258,3 +27258,4237 @@ SECTIONS {
             REPLDebugger::start_repl();
             return 0;
         }
+
+        enum EdgeType { SEQUENTIAL, CONDITIONAL_TRUE, CONDITIONAL_FALSE, LOOP_BACK };
+
+        struct CFGEdge {
+            int from;
+            int to;
+            EdgeType type;
+        };
+
+        struct CFGBlock {
+            int id;
+            std::vector<ASTNode*> statements;
+            std::vector<CFGEdge> edges;
+        };
+
+        struct Token {
+            std::string lexeme;
+            int line;
+            int column;
+            TokenType type;
+        };
+
+        struct ASTNode {
+            std::string kind;
+            int line, column;
+            std::vector<ASTNode*> children;
+        };
+
+        enum OpCode : uint8_t {
+            OP_NOOP = 0x00,
+            OP_LOAD_CONST = 0x01,
+            OP_CALL = 0x02,
+            OP_JUMP = 0x03,
+            OP_JUMP_IF_FALSE = 0x04,
+            OP_RETURN = 0x05,
+            OP_STORE_VAR = 0x06,
+            // ...
+        };
+
+        struct Instruction {
+            OpCode op;
+            std::vector<uint8_t> args;
+        };
+
+        struct Capsule {
+            std::string name;
+            std::function<void()> on_load;
+            std::function<void()> on_unload;
+            std::function<void(const std::string&)> on_input;
+            std::map<std::string, std::any> state;
+        };
+
+        class CapsuleRegistry {
+        public:
+            void register_capsule(const Capsule& capsule);
+            Capsule* get(const std::string& name);
+            void list_capsules();
+        };
+
+        std::vector<uint8_t> encode_capsule_meta(const CapsuleMeta& meta);
+        CapsuleMeta decode_capsule_meta(const std::vector<uint8_t>& bytes);
+
+        {
+            "name": "echo",
+                "version" : "1.2.3",
+                "entry" : "on_input",
+                "hash" : "0x8fea7d"
+        }
+
+        SECTIONS{
+  .capsule_meta : {
+    KEEP(*(.capsule_meta))
+  } > META
+        }
+
+            struct SymbolicValue {
+            std::string expression;
+            std::set<std::string> dependencies;
+        };
+
+        class SymbolicSimulator {
+        public:
+            void feed(ASTNode* root);
+            void trace_symbol(const std::string& var);
+        };
+
+        void plugin_toggled(const std::string& plugin, const std::string& state) {
+            std::cout << "[PLUGIN TOGGLED] " << plugin << " is now " << state << std::endl;
+		}
+
+        void mark_reload_success(const std::string& plugin) {
+            std::cout << "[RELOAD SUCCESS] " << plugin << " reloaded successfully." << std::endl;
+        }
+        void warn_compat(const std::string& plugin, const std::string& version) {
+            std::cout << "[WARNING] Plugin " << plugin << " is compatible with version " << version << "." << std::endl;
+        }
+        int main() {
+            plugin_toggled("Audio", "Enabled");
+			plugin_toggled("UI", "Enabled");
+            mark_reload_success("Physics");
+            warn_compat("Core", "1.0.0");
+            return 0;
+        }
+        // OpenGL rendering code
+        #include <GL/glew.h>
+        #include <GLFW/glfw3.h>
+        #include <iostream>
+        #include <vector>
+        #include <cmath>
+        #include <unordered_set>
+        #include <unordered_map>
+        #include <algorithm>
+        // Vertex shader source code
+        const char* vertex_src = R"(
+            #version 330 core
+            layout(location = 0) in vec2 aPos;
+            uniform vec2 uOffset;
+            uniform float uScale;
+            void main() {
+                gl_Position = vec4(aPos * uScale + uOffset, 0.0, 1.0);
+            }
+        )";
+
+		// Fragment shader source code
+        const char* fragment_src = R"(
+            #version 330 core
+            out vec4 FragColor;
+            uniform vec3 uColor;
+            void main() {
+                FragColor = vec4(uColor, 1.0);
+            }
+        )";
+        // Create shader program
+        GLuint createShaderProgram(const char* vertexShaderSrc, const char* fragmentShaderSrc) {
+            GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+			glShaderSource(vertexShader, 1, &vertexShaderSrc, nullptr);
+            glCompileShader(vertexShader);
+            GLint success;
+            glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
+            if (!success) {
+                char infoLog[512];
+                glGetShaderInfoLog(vertexShader, 512, nullptr, infoLog);
+                std::cerr << "ERROR compiling vertex shader:\n" << infoLog << std::endl;
+            }
+            GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+			glShaderSource(fragmentShader, 1, &fragmentShader
+                capsule->state["debug"] = true;
+            vm.patch_bytecode("echo", offset, new_instr);
+
+			glCompileShader(fragmentShader);
+            glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
+			if (!success) {
+                char infoLog[512];
+                glGetShaderInfoLog(fragmentShader, 512, nullptr, infoLog);
+                std::cerr << "ERROR compiling fragment shader:\n" << infoLog << std::endl;
+            }
+            GLuint program = glCreateProgram();
+            glAttachShader(program, vertexShader);
+            glAttachShader(program, fragmentShader);
+            glLinkProgram(program);
+            glGetProgramiv(program, GL_LINK_STATUS, &success);
+            if (!success) {
+                char infoLog[512];
+                glGetProgramInfoLog(program, 512, nullptr, infoLog);
+                glDeleteShader(vertexShader);
+				glDeleteShader(fragmentShader);
+                std::cerr << "ERROR linking shader program:\n" << infoLog << std::endl;
+            }
+            glDeleteShader(vertexShader);
+            glDeleteShader(fragmentShader);
+            return program;
+        }
+        // Create circle vertices
+        std::vector<float> createCircleVertices(float radius, int segments = 100) {
+            std::vector<float> vertices;
+            for (int i = 0; i <= segments; ++i) {
+                float angle = 2.0f * M_PI * i / segments;
+                vertices.push_back(radius * cos(angle));
+                vertices.push_back(radius * sin(angle));
+            }
+            return vertices;
+		}
+        // Draw line between two points
+        void drawLine(float x1, float y1, float x2, float y2, GLuint shaderProgram) {
+            GLuint VAO, VBO;
+            glGenVertexArrays(1, &VAO);
+            glGenBuffers(1, &VBO);
+            glBindVertexArray(VAO);
+            glBindBuffer(GL_ARRAY_BUFFER, VBO);
+            std::vector<float> vertices = { x1, y1, x2, y2 };
+            glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+            glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+            glEnableVertexAttribArray(0);
+			glUseProgram(shaderProgram);
+            glDrawArrays(GL_LINES, 0, 2);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            glBindVertexArray(0);
+            glDeleteBuffers(1, &VBO);
+            glDeleteVertexArrays(1, &VAO);
+        }
+        // Draw text using a simple bitmap font (stub)
+        void drawText(const std::string& text, float x, float y) {
+            // Placeholder for text rendering logic
+            std::cout << "Drawing text: " << text << " at (" << x << ", " << y << ")" << std::endl;
+        }
+        // Main function
+        int main() {
+            // Initialize GLFW and GLEW
+            if (!glfwInit()) {
+				std::cerr <<
+                    "Failed to initialize GLFW" << std::endl;
+                return -1;
+            }
+            GLFWwindow* window = glfwCreateWindow(800, 600, "Plugin Inspector", nullptr, nullptr);
+            if (!window) {
+                std::cerr << "Failed to create GLFW window" << std::endl;
+                glfwTerminate();
+                return -1;
+            }
+            glfwMakeContextCurrent(window);
+            glewInit();
+            // Create shader program
+            GLuint shaderProgram = createShaderProgram(vertex_src, fragment_src);
+            // Create circle vertices
+			std::vector<float> circleVertices;
+            circleVertices = createCircleVertices(0.05f); // radius 0.05
+            GLuint circleVAO, circleVBO;
+            glGenVertexArrays(1, &circleVAO);
+            glGenBuffers(1, &circleVBO);
+            glBindVertexArray(circleVAO);
+            glBindBuffer(GL_ARRAY_BUFFER, circleVBO);
+            glBufferData(GL_ARRAY_BUFFER, circleVertices.size() * sizeof(float), circleVertices.data(), GL_STATIC_DRAW);
+            glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+            glEnableVertexAttribArray(0);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            glBindVertexArray(0);
+			// Uniform locations
+            GLint colorLoc = glGetUniformLocation(shaderProgram, "uColor");
+            GLint offsetLoc = glGetUniformLocation(shaderProgram, "uOffset");
+            GLint scaleLoc = glGetUniformLocation(shaderProgram, "uScale");
+            // Main loop
+            while (!glfwWindowShouldClose(window)) {
+                glClear(GL_COLOR_BUFFER_BIT);
+                glUseProgram(shaderProgram);
+                float scale = 1.0f; // Scale factor for zoom
+                // Draw nodes
+                for (const auto& node : nodes) {
+                    glBindVertexArray(circleVAO);
+					if (node.name == selected) {
+                        glUniform3f(colorLoc, 1.0f, 1.0f, 0.0f); // Highlight selected node
+                    } else if (PluginSystem::is_loaded(node.name)) {
+                        glUniform3f(colorLoc, 0.0f, 1.0f, 0.0f); // Loaded node color
+                    } else {
+                        glUniform3f(colorLoc, 1.0f, 0.0f, 0.0f); // Default color
+                    }
+                    glUniform2f(offsetLoc, node.x * scale, node.y * scale);
+                    glUniform1f(scaleLoc, node.radius * scale);
+					glDrawArrays(GL_LINE_LOOP, 0, circleVertices.size() / 2);
+                    drawText(node.name, node.x * scale + 0.02f, node.y * scale + 0.02f); // Draw name
+                    // Draw edges
+                    for (const auto& dep : node.deps) {
+                        auto target_it = std::find_if(nodes.begin(), nodes.end(),
+                            [&](const Node& m) { return m.name == dep; });
+                        if (target_it != nodes.end()) {
+							drawLine(node.x * scale, node.y * scale,
+                                target_it->x * scale, target_it->y * scale, shaderProgram);
+                        }
+                    }
+                }
+                glBindVertexArray(0);
+                glfwSwapBuffers(window);
+                glfwPollEvents();
+            }
+            // Cleanup
+            glDeleteVertexArrays(1, &circleVAO);
+            glDeleteBuffers(1, &circleVBO);
+            glDeleteProgram(shaderProgram);
+			glfwDestroyWindow(window);
+            glfwTerminate();
+            return 0;
+        }
+        // PluginSystem namespace for managing plugins
+        namespace PluginSystem {
+            std::map<std::string, std::string> libs = {
+                {"Core", "Core"},
+                {"UI", "UI"},
+                {"Audio", "Audio"},
+                {"Physics", "Physics"},
+                {"Network", "Network"},
+                {"Graphics", "Graphics"},
+				{"Database", "Database"},
+                {"AI", "AI"},
+                {"Security", "Security"},
+                {"Analytics", "Analytics"}
+            };
+            bool is_loaded(const std::string& name) {
+                return libs.find(name) != libs.end();
+            }
+            void show(const std::string& name) {
+                if (is_loaded(name)) {
+                    std::cout << "Plugin " << name << " is loaded." << std::endl;
+				}
+				else {
+                    std::cout << "Plugin " << name << " is not loaded." << std::endl;
+                }
+            }
+        }
+        // PluginSettings namespace for managing plugin settings
+        namespace PluginSettings {
+            void show(const std::string& name) {
+                std::cout << "Showing settings for plugin: " << name << std::endl;
+            }
+        }
+		// PluginStore namespace for installing plugins
+        namespace PluginStore {
+            void install(const std::string& name) {
+                std::cout << "Installing plugin: " << name << std::endl;
+                // Simulate installation logic
+                PluginSystem::show(name);
+            }
+        }
+        // Graphical Inspector for visualizing plugins and dependencies
+        #include <SDL2/SDL.h>
+        #include <SDL2/SDL_ttf.h>
+        #include <cmath>
+        #include <iostream>
+        #include <vector>
+        #include <string>
+        #include <algorithm>
+        struct Node {
+            std::string name;
+            std::vector<std::string> deps;
+            float x, y; // Position in graph
+            float radius; // Visual size
+            int load_time; // Load time in ms
+			// Constructor for easy initialization, using a
+            Node(const std::string& n, const std::vector<std::string>& d, float posX, float posY, float r, int lt)
+				: name(n), deps(d),
+                x(posX), y(posY), radius(r), load_time(lt) {}
+        };
+        struct Camera {
+            float x, y; // Camera position
+            float zoom; // Zoom level
+            Camera() : x(0), y(0), zoom(1.0f) {}
+        };
+        std::vector<Node> nodes;
+        Camera camera;
+        SDL_Window* window = nullptr;
+        SDL_Renderer* renderer = nullptr;
+        TTF_Font* font = nullptr;
+        bool theme_dark = true; // Dark theme by default
+        std::string selected; // Selected node name
+        void layout_graph() {
+            // Simple radial layout for demonstration
+            float angle_step = 2 * M_PI / nodes.size();
+            for (size_t i = 0; i < nodes.size(); ++i) {
+                nodes[i].x = 200 * cos(i * angle_step);
+                nodes[i].y = 200 * sin(i * angle_step);
+            }
+		}
+        std::pair<int, int> screen_xy(float x, float y) {
+            // Convert graph coordinates to screen coordinates
+            int sx = static_cast<int>((x - camera.x) * camera.zoom + 400); // Centered on screen
+            int sy = static_cast<int>((y - camera.y) * camera.zoom + 300);
+            return { sx, sy };
+        }
+        void draw_text(const std::string& text, int x, int y) {
+            SDL_Color color = theme_dark ? SDL_Color{ 255, 255, 255, 255 } : SDL_Color{ 0, 0, 0, 255 };
+            SDL_Surface* surface = TTF_RenderText_Solid(font, text.c_str(), color);
+            if (!surface) {
+                std::cerr << "TTF_RenderText Error: " << TTF_GetError() << std::endl;
+                return;
+            }
+            SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+            if (!texture) {
+                std::cerr << "SDL_CreateTexture Error: " << SDL_GetError() << std::endl;
+                SDL_FreeSurface(surface);
+				return;
+                }
+            SDL_Rect dstrect = { x, y, surface->w, surface->h };
+            SDL_RenderCopy(renderer, texture, nullptr, &dstrect);
+            SDL_DestroyTexture(texture);
+            SDL_FreeSurface(surface);
+        }
+        void draw_circle(int cx, int cy, int radius, SDL_Color color) {
+            SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
+            int x = radius;
+            int y = 0;
+            int err = 0;
+            while (x >= y) {
+                SDL_RenderDrawPoint(renderer, cx + x, cy + y);
+                SDL_RenderDrawPoint(renderer, cx + y, cy + x);
+                SDL_RenderDrawPoint(renderer, cx - y, cy + x);
+                SDL_RenderDrawPoint(renderer, cx - x, cy + y);
+                SDL_RenderDrawPoint(renderer, cx - x, cy - y);
+                SDL_RenderDrawPoint(renderer, cx - y, cy - x);
+				SDL_RenderDrawPoint(renderer, cx + y, cy - x);
+                SDL_RenderDrawPoint(renderer, cx + x, cy - y);
+                y++;
+                if (err <= 0) {
+                    err += 2 * y + 1;
+                }
+                if (err > 0) {
+                    x--;
+                    err -= 2 * x;
+                }
+            }
+        }
+        void clear_theme() {
+            SDL_SetRenderDrawColor(renderer, theme_dark ? 30 : 240, theme_dark ? 30 : 240, theme_dark ? 30 : 240, 255);
+            SDL_RenderClear(renderer);
+        }
+        bool handle_events() {
+            SDL_Event e;
+			while (SDL_PollEvent(&e)) {
+                if (e.type == SDL_QUIT) {
+                    return true; // Exit on quit event
+                }
+                else if (e.type == SDL_MOUSEBUTTONDOWN) {
+                    if (e.button.button == SDL_BUTTON_LEFT) {
+                        int mx, my;
+                        SDL_GetMouseState(&mx, &my);
+                        for (const auto& n : nodes) {
+                            auto [sx, sy] = screen_xy(n.x, n.y);
+                            if (std::hypot(mx - sx, my - sy) <= n.radius * camera.zoom) {
+								selected = n.name;
+                                std::cout << "Selected node: " << selected << std::endl;
+                                break; // Stop after selecting the first matching node
+                            }
+                        }
+                    }
+                }
+                else if (e.type == SDL_KEYDOWN) {
+                    switch (e.key.keysym.sym) {
+                    case SDLK_ESCAPE:
+                        return true; // Exit on Escape key
+                    case SDLK_s:
+                        PluginSettings::show(selected); // Show settings for selected plugin
+                        break;
+                    case SDLK_i:
+                        PluginSystem::show(selected); // Show info for selected plugin
+                        break;
+                    case SDLK_l:
+                        PluginStore::install(selected); // Install selected plugin
+						break;
+                        case SDLK_LEFT:
+                        camera.x -= 10; // Pan left
+                        break;
+                    case SDLK_RIGHT:
+                        camera.x += 10; // Pan right
+                        break;
+                    case SDLK_UP:
+						camera.y -= 10; // Pan up
+                        break;
+                    case SDLK_DOWN:
+                        camera.y += 10; // Pan down
+                        break;
+                    case SDLK_PLUS:
+                    case SDLK_EQUALS:
+                        camera.zoom *= 1.1f; // Zoom in
+                        break;
+                    case SDLK_MINUS:
+                        camera.zoom /= 1.1f; // Zoom out
+                        break;
+                    case SDLK_t:
+                        theme_dark = !theme_dark; // Toggle theme
+                        clear_theme();
+                        break;
+                    }
+                }
+            }
+            return false; // Continue running
+        }
+        void draw() {
+            clear_theme();
+            // Draw edges
+			for
+                (const auto& n : nodes) {
+                for (const auto& dep : n.deps) {
+                    auto target_it = std::find_if(nodes.begin(), nodes.end(),
+                        [&](const Node& m) { return m.name == dep; });
+                    if (target_it != nodes.end()) {
+                        auto [sx1, sy1] = screen_xy(n.x, n.y);
+                        auto [sx2, sy2] = screen_xy(target_it->x, target_it->y);
+                        SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255); // Edge color
+                        SDL_RenderDrawLine(renderer, sx1, sy1, sx2, sy2);
+                    }
+                }
+            }
+            // Draw nodes
+            for (const auto& n : nodes) {
+                auto [sx, sy] = screen_xy(n.x, n.y);
+                SDL_Color color = theme_dark ? SDL_Color{ 255, 255, 255, 255 } : SDL_Color{ 0, 0, 0, 255 };
+				if (n.name == selected) {
+                    color = SDL_Color{ 255, 255, 0, 255 }; // Highlight selected node
+                } else if (PluginSystem::is_loaded(n.name)) {
+                    color = SDL_Color{ 0, 255, 0, 255 }; // Loaded node color
+                } else {
+                    color = SDL_Color{ 255, 0, 0, 255 }; // Default color
+                }
+                draw_circle(sx, sy, n.radius * camera.zoom, color);
+                draw_text(n.name, sx + n.radius * camera.zoom + 5, sy - n.radius * camera.zoom / 2); // Draw name
+            }
+            SDL_RenderPresent(renderer);
+        }
+        int main(int argc, char* argv[]) {
+            // Initialize SDL and TTF
+			if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+                std::cerr << "SDL_Init Error: " << SDL_GetError() << std::endl;
+                return 1;
+            }
+            if (TTF_Init() == -1) {
+                std::cerr << "TTF_Init Error: " << TTF_GetError() << std::endl;
+                SDL_Quit();
+                return 1;
+            }
+            window = SDL_CreateWindow("Plugin Inspector", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, SDL_WINDOW_SHOWN);
+            if (!window) {
+                std::cerr << "SDL_CreateWindow Error: " << SDL_GetError() << std::endl;
+                TTF_Quit();
+                SDL_Quit();
+                return 1;
+            }
+            renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+            if (!renderer) {
+                std::cerr << "SDL_CreateRenderer Error: " << SDL_GetError() << std::endl;
+                SDL_DestroyWindow(window);
+                TTF_Quit();
+                SDL_Quit();
+                return 1;
+            }
+			font = TTF_OpenFont("arial.ttf", 16);
+            if (!font) {
+                std::cerr << "TTF_OpenFont Error: " << TTF_GetError() << std::endl;
+                SDL_DestroyRenderer(renderer);
+                SDL_DestroyWindow(window);
+                TTF_Quit();
+                SDL_Quit();
+                return 1;
+            }
+            // Initialize nodes
+            nodes.push_back(Node("Core", {}, 0, 0, 20, 100));
+            nodes.push_back(Node("UI", { "Core" }, 100, 0, 20, 50));
+            nodes.push_back(Node("Audio", { "Core" }, -100, 0, 20, 70));
+			nodes.push_back(Node("Physics", { "Core" }, 0, 100, 20, 80));
+            nodes.push_back(Node("Network", { "Core" }, 0, -100, 20, 60));
+            layout_graph();
+            clear_theme();
+            // Main loop
+            while (true) {
+                if (handle_events()) break; // Exit on quit event
+                draw();
+            }
+            // Cleanup
+            TTF_CloseFont(font);
+            SDL_DestroyRenderer(renderer);
+            SDL_DestroyWindow(window);
+            TTF_Quit();
+            SDL_Quit();
+            return 0;
+        }
+		// === Capsule Validation and Diagnostics ===
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <string>
+#include <openssl/sha.h>
+#include <openssl/evp.h>
+#include <openssl/pem.h>
+#include <openssl/x509.h>
+#include <openssl/err.h>
+		std::string sha256(const std::vector<uint8_t>& data) { unsigned char hash[SHA256_DIGEST_LENGTH]; SHA256(data.data(), data.size(), hash); std::stringstream ss; for (int i = 0; i < SHA256_DIGEST_LENGTH; ++i) ss << std::hex << std::setw(2) << std::setfill('0') << (int)hash[i]; return ss.str(); } bool verify_signature(const std::vector<uint8_t>& data, const std::string& signature, const std::string& pubkey_path) {
+			EVP_PKEY* pubKey = nullptr; EVP_MD_CTX* ctx = EVP_MD_CTX_new(); FILE* pubKeyFile = fopen(pubkey_path.c_str(), "r"); if (!pubKeyFile) { std::cerr << "[ERROR] Unable to open public key file: " << pubkey_path << std::endl; return false; } pubKey = PEM_read_PUBKEY(pubKeyFile, nullptr, nullptr, nullptr); fclose(pubKeyFile); if (!pubKey) { std::cerr << "[ERROR] Failed to read public key." << std::endl; return false; } if (EVP_DigestVerifyInit(ctx, nullptr, EVP_sha256(), nullptr, pubKey) <= 0) { EVP_PKEY_free(pubKey); EVP_MD_CTX_free(ctx); return false; } if (EVP_DigestVerifyUpdate(ctx, data.data(), data.size()) <= 0) { EVP_PKEY_free(pubKey); EVP_MD_CTX_free(ctx); return false; } bool valid = EVP_DigestVerifyFinal(ctx, reinterpret_cast<const unsigned char*>(signature.data()), signature.size()) == 1; EVP_MD_CTX_free(ctx);
+			EVP_PKEY_free(pubKey); return valid;
+		} struct Capsule { std::vector<uint8_t> bytecode; std::string signature; struct Metadata { std::string source_hash; std::string version; std::string build_time; std::string debug_flags; std::string capsule_id; } metadata; struct Footer { std::string signature; } footer; }; void log_startup_diagnostics(const Capsule& capsule) { std::cout << "[INFO] Capsule Metadata:\n"; std::cout << "  Source Hash: " << capsule.metadata.source_hash << "\n"; std::cout << "  Version: " << capsule.metadata.version << "\n"; std::cout << "  Build Time: " << capsule.metadata.build_time << "\n"; std::cout << "  Debug Flags: " << capsule.metadata.debug_flags << "\n"; std::cout << "  Capsule ID: " << capsule.metadata.capsule_id << "\n"; } bool validate_capsule(const Capsule& capsule, const std::string& pubkey_path) {
+			if (capsule.bytecode.empty()) { std::cerr << "[ERROR] Capsule bytecode is empty!" << std::endl; return false; } if (capsule.footer.signature.empty()) { std::cerr << "[ERROR] Capsule footer signature is missing!" << std::endl; return false; } if (!verify_signature
+                (capsule.bytecode, capsule.footer.signature, pubkey_path)) {
+				std::cerr << "[ERROR] Capsule signature verification failed!" << std::endl; return false;
+			} log_startup_diagnostics(capsule); return true;
+		} int main() {
+			Capsule capsule; // Load capsule data (bytecode, metadata, footer) // For demonstration, we will use dummy data capsule.bytecode = { 0x01, 0x02, 0x03 }; capsule.metadata.source_hash = "dummyhash"; capsule.metadata.version = "1.0.0"; capsule.metadata.build_time = "2024-07-01"; capsule.metadata.debug_flags = "TRACE"; capsule.metadata.capsule_id = "QTRCAP01"; capsule.footer.signature = "dummy_signature"; std::string pubkey_path = "public_key.pem"; if (validate_capsule(capsule, pubkey_path)) { std::cout << "[INFO] Capsule validation successful." << std::endl; } else { std::cerr << "[ERROR] Capsule validation failed." << std::endl; } return 0; }
+#include <chrono>
+            int main() {
+    auto start = std::chrono::high_resolution_clock::now();
+    // Simulate boot time
+    std::this_thread::sleep_for(std::chrono::microseconds(100));
+    auto end = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double, std::micro> duration = end - start;
+    std::cout << "[BOOT TIME] " << duration.count() << " microseconds" << std::endl;
+	return 0;
+			}
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <openssl/sha.h>
+#include <iomanip>
+#include <sstream>
+#include <openssl/pem.h>
+#include <openssl/evp.h>
+#include <openssl/x509.h>
+            namespace Symbolic {
+            struct TraceStep {
+				std::string uicl_token;
+                std::map<std::string, std::string> memory_snapshot;
+			};
+            std::vector<TraceStep> trace_log;
+			void simulate_
+                path(const std::vector<std::string>& tokens) {
+				trace_log.clear();
+                for (const auto& tok : tokens) {
+					TraceStep step;
+                    step.uicl_token = tok;
+                    // Simulate memory snapshot
+                    step.memory_snapshot["var1"] = "value1";
+                    step.memory_snapshot["var2"] = "value2";
+                    // Simulate a trace effect
+                    if (tok == "load") step.memory_snapshot["load_effect"] = "ok";
+                    else if (tok == "invoke") step.memory_snapshot["invoke_effect"] = "ok";
+                    else if (tok == "yield") step.memory_snapshot["yield_effect"] = "ok";
+					else if (tok == "exit") step.memory_snapshot["exit_effect
+                        "] = "ok";
+                    trace_log.push_back(step);
+                }
+            }
+            void dump_trace() {
+                std::cout << "[TRACE LOG]\n";
+                for (const auto& step : trace_log) {
+                    std::cout << "UICL Token: " << step.uicl_token << "\n";
+                    std::cout << "Memory Snapshot:\n";
+                    for (const auto& kv : step.memory_snapshot) {
+                        std::cout << "  " << kv.first << ": " << kv.second << "\n";
+                    }
+                }
+            }
+        }
+        // === REPL Debugger ===
+        namespace REPLDebugger {
+			void start_repl() {
+                std::string input;
+                std::cout << "[REPL] Enter commands (type 'exit' to quit):\n";
+                while (true) {
+                    std::cout << "> ";
+                    std::getline(std::cin, input);
+                    if (input == "exit") break;
+                    // Simulate command execution
+                    std::cout << "[REPL] Executing: " << input << "\n";
+                    // Here you would parse and execute the command
+                }
+            }
+        }
+        // === Plugin System ===
+        namespace PluginSystem {
+            struct PluginInfo {
+                std::string name;
+                std::string version;
+                std::string hash;
+            };
+			std::map<std::string, PluginInfo> regis
+                tered_plugins;
+            void register_plugin(const std::string& name, const std::string& version, const std::string& code) {
+                PluginInfo info = { name, version, "sha256hash..." };
+                registered_plugins[name] = info;
+                std::cout << "[PLUGIN REGISTERED] " << name << " v" << version << "\n";
+            }
+            void list_plugins() {
+                std::cout << "[PLUGINS]\n";
+                for (const auto& [name, info] : registered_plugins) {
+                    std::cout << "  " << name << " v" << info.version << " (" << info.hash << ")\n";
+                }
+            }
+        }
+        // === Metadata Encoder ===
+        namespace MetaEncoder {
+			void encode_metadata(const std::string& capsule_path) {
+                std::cout << "[ENCODE] Encoding metadata for capsule: " << capsule_path << "\n";
+                // Placeholder: simulate encoding
+                std::cout << "[ENCODED] Metadata encoded successfully.\n";
+            }
+        }
+        // === Inspector Patch and Reload ===
+        namespace Inspector {
+			void patch_and_reload(const std::string& capsule_bin) {
+                std::cout << "[PATCH] Patching and reloading capsule: " << capsule_bin << "\n";
+                // Placeholder: simulate patching
+                std::cout << "[RELOADED] Capsule reloaded successfully.\n";
+            }
+        }
+        // === Main Function ===
+        int main() {
+            Symbolic::simulate_path({"load", "invoke", "yield", "exit"});
+			Symbolic::dump_trace();
+            REPLDebugger::start_repl();
+            PluginSystem::register_plugin("Core", "1.0.0", "core_code");
+            PluginSystem::list_plugins();
+            MetaEncoder::encode_metadata("capsule.qtr");
+            Inspector::patch_and_reload("capsule.bin");
+            return 0;
+		}
+#include <iostream>
+#include <vector>
+#include <string>
+#include <map>
+#include <functional>
+#include <any>
+        struct CapsuleMeta {
+            std::string name;
+            std::string version;
+            std::string entry;
+            std::string hash;
+        };
+		struct ASTNode {
+            std::string type; // e.g., "function", "variable", "expression"
+            std::string value; // e.g., function name, variable name, expression string
+            std::vector<ASTNode> children; // Child nodes for nested structures
+        };
+        enum OpCode {
+			OP_LOAD_CONST = 0x01,
+			OP_CALL_FUNCTION = 0x02,
+			OP_RETURN_VALUE = 0x03,
+			OP_JUMP_IF_FALSE = 0x04,
+			OP_JUMP = 0x05,
+			OP_LOAD_GLOBAL = 0x06,
+			OP_STORE_GLOBAL = 0x07,
+			OP_LOAD_FAST = 0x08,
+			OP_STORE_FAST = 0x09,
+			OP_LOAD_ATTR = 0x0A,
+			OP_STORE_ATTR = 0x0B,
+			OP_LOAD_METHOD = 0x0C,
+			OP_CALL_METHOD = 0x0D,
+			OP_YIELD_VALUE = 0x0E,
+			OP_LOAD_CLOSURE = 0x0F,
+			OP_STORE_CLOSURE = 0x10,
+			OP_LOAD_CLASS = 0x11,
+			OP_CALL_CLASS = 0x12,
+			OP_LOAD_MODULE = 0x13,
+			OP_IMPORT_MODULE = 0x14,
+			OP_LOAD_BUILTIN = 0x15,
+			OP_CALL_BUILTIN = 0x16,
+			OP_LOAD_ITER = 0x17,
+			OP_ITER_NEXT = 0x18,
+			OP_ITER_END = 0x19,
+			OP_LOAD_EXCEPTION = 0x1A,
+			OP_RAISE_EXCEPTION = 0x1B,
+			OP_LOAD_CONTEXT = 0x1C,
+			OP_STORE_CONTEXT = 0x1D,
+			OP_LOAD_GLOBALS = 0x1E,
+			OP_STORE_GLOBALS = 0x1F,
+			OP_LOAD_LOCALS = 0x20,
+			OP_STORE_LOCALS = 0x21,
+			OP_LOAD_NAME = 0x22,
+			OP_STORE_NAME = 0x23,
+			OP_LOAD_ATTR_NAME = 0x24,
+			OP_STORE_ATTR_NAME = 0x25,
+			OP_LOAD_METHOD_NAME = 0x26,
+			OP_STORE_METHOD_NAME = 0x27,
+			OP_LOAD_CLASS_NAME = 0x28,
+			OP_STORE_CLASS_NAME = 0x29,
+			OP_LOAD_MODULE_NAME = 0x2A,
+			OP_STORE_MODULE_NAME = 0x2B,
+			OP_LOAD_BUILTIN_NAME = 0x2C,
+			OP_STORE_BUILTIN_NAME = 0x2D,
+			OP_LOAD_ITER_NAME = 0x2E,
+			OP_STORE_ITER_NAME = 0x2F,
+			OP_LOAD_EXCEPTION_NAME = 0x30,
+			OP_STORE_EXCEPTION_NAME = 0x31,
+			OP_LOAD_CONTEXT_NAME = 0x32,
+			OP_STORE_CONTEXT_NAME = 0x33,
+			OP_LOAD_GLOBALS_NAME = 0x34,
+			OP_STORE_GLOBALS_NAME = 0x35,
+			OP_LOAD_LOCALS_NAME = 0x36,
+			OP_STORE_LOCALS_NAME = 0x37,
+			OP_LOAD_NAME_NAME = 0x38,
+			OP_STORE_NAME_NAME = 0x39,
+			OP_LOAD_ATTR_NAME_NAME = 0x3A,
+			OP_STORE_ATTR_NAME_NAME = 0x3B,
+			OP_LOAD_METHOD_NAME_NAME = 0x3C,
+			OP_STORE_METHOD_NAME_NAME = 0x3D,
+			OP_LOAD_CLASS_NAME_NAME = 0x3E,
+			OP_STORE_CLASS_NAME_NAME = 0x3F,
+			OP_LOAD_MODULE_NAME_NAME = 0x40,
+			OP_STORE_MODULE_NAME_NAME = 0x41,
+			OP_LOAD_BUILTIN_NAME_NAME = 0x42,
+			OP_STORE_BUILTIN_NAME_NAME = 0x43,
+			OP_LOAD_ITER_NAME_NAME = 0x44,
+			OP_STORE_ITER_NAME_NAME = 0x45,
+			OP_LOAD_EXCEPTION_NAME_NAME = 0x46,
+			OP_STORE_EXCEPTION_NAME_NAME = 0x47,
+			OP_LOAD_CONTEXT_NAME_NAME = 0x48,
+			OP_STORE_CONTEXT_NAME_NAME = 0x49,
+			OP_LOAD_GLOBALS_NAME_NAME = 0x4A,
+			OP_STORE_GLOBALS_NAME_NAME = 0x4B,
+			OP_LOAD_LOCALS_NAME_NAME = 0x4C,
+			OP_STORE_LOCALS_NAME_NAME = 0x4D,
+			OP_LOAD_NAME_NAME_NAME = 0x4E,
+			OP_STORE_NAME_NAME_NAME = 0x4F,
+			OP_LOAD_ATTR_NAME_NAME_NAME = 0x50,
+			OP_STORE_ATTR_NAME_NAME_NAME = 0x51,
+			OP_LOAD_METHOD_NAME_NAME_NAME = 0x52,
+			OP_STORE_METHOD_NAME_NAME_NAME = 0x53,
+			OP_LOAD_CLASS_NAME_NAME_NAME = 0x54,
+			OP_STORE_CLASS_NAME_NAME_NAME = 0x55,
+			OP_LOAD_MODULE_NAME_NAME_NAME = 0x56,
+			OP_STORE_MODULE_NAME_NAME_NAME = 0x57,
+			OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x58,
+			OP_STORE_BUILTIN_NAME_NAME_NAME = 0x59,
+			OP_LOAD_ITER_NAME_NAME_NAME = 0x5A,
+			OP_STORE_ITER_NAME_NAME_NAME = 0x5B,
+			OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x5C,
+			OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x5D,
+			OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x5E,
+			OP_STORE_CONTEXT_NAME_NAME_NAME = 0x5F,
+			OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x60,
+			OP_STORE_GLOBALS_NAME_NAME_NAME = 0x61,
+			OP_LOAD_LOCALS_NAME_NAME_NAME = 0x62,
+			OP_STORE_LOCALS_NAME_NAME_NAME = 0x63,
+			OP_LOAD_NAME_NAME_NAME_NAME = 0x64,
+			OP_STORE_NAME_NAME_NAME_NAME = 0x65,
+			OP_LOAD_ATTR_NAME_NAME_NAME_NAME = 0x66,
+			OP_STORE_ATTR_NAME_NAME_NAME_NAME = 0x67,
+			OP_LOAD_METHOD_NAME_NAME_NAME_NAME = 0x68,
+			OP_STORE_METHOD_NAME_NAME_NAME_NAME = 0x69,
+			OP_LOAD_CLASS_NAME_NAME_NAME_NAME = 0x6A,
+			OP_STORE_CLASS_NAME_NAME_NAME_NAME = 0x6B,
+			OP_LOAD_MODULE_NAME_NAME_NAME = 0x6C,
+			OP_STORE_MODULE_NAME_NAME_NAME = 0x6D,
+			OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x6E,
+			OP_STORE_BUILTIN_NAME_NAME_NAME = 0x6F,
+			OP_LOAD_ITER_NAME_NAME_NAME = 0x70,
+			OP_STORE_ITER_NAME_NAME_NAME = 0x71,
+			OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x72,
+			OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x73,
+			OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x74,
+			OP_STORE_CONTEXT_NAME_NAME_NAME = 0x75,
+			OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x76,
+			OP_STORE_GLOBALS_NAME_NAME_NAME = 0x77,
+			OP_LOAD_LOCALS_NAME_NAME_NAME = 0x78,
+			OP_STORE_LOCALS_NAME_NAME_NAME = 0x79,
+			OP_LOAD_NAME_NAME_NAME_NAME = 0x7A,
+			OP_STORE_NAME_NAME_NAME_NAME = 0x7B,
+			OP_LOAD_ATTR_NAME_NAME_NAME_NAME = 0x7C,
+			OP_STORE_ATTR_NAME_NAME_NAME_NAME = 0x7D,
+			OP_LOAD_METHOD_NAME_NAME_NAME_NAME = 0x7E,
+			OP_STORE_METHOD_NAME_NAME_NAME_NAME = 0x7F,
+			OP_LOAD_CLASS_NAME_NAME_NAME_NAME = 0x80,
+			OP_STORE_CLASS_NAME_NAME_NAME_NAME = 0x81,
+			OP_LOAD_MODULE_NAME_NAME_NAME = 0x82,
+			OP_STORE_MODULE_NAME_NAME_NAME = 0x83,
+			OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x84,
+			OP_STORE_BUILTIN_NAME_NAME_NAME = 0x85,
+			OP_LOAD_ITER_NAME_NAME_NAME = 0x86,
+			OP_STORE_ITER_NAME_NAME_NAME = 0x87,
+			OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x88,
+			OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x89,
+			OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x8A,
+			OP_STORE_CONTEXT_NAME_NAME_NAME = 0x8B,
+			OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x8C,
+			OP_STORE_GLOBALS_NAME_NAME_NAME = 0x8D,
+			OP_LOAD_LOCALS_NAME_NAME_NAME = 0x8E,
+			OP_STORE_LOCALS_NAME_NAME_NAME = 0x8F,
+			OP_LOAD_NAME_NAME_NAME_NAME = 0x90,
+			OP_STORE_NAME_NAME_NAME_NAME = 0x91,
+			OP_LOAD_ATTR_NAME_NAME_NAME_NAME = 0x92,
+			OP_STORE_ATTR_NAME_NAME_NAME_NAME = 0x93,
+			OP_LOAD_METHOD_NAME_NAME_NAME_NAME = 0x94,
+			OP_STORE_METHOD_NAME_NAME_NAME_NAME = 0x95,
+			OP_LOAD_CLASS_NAME_NAME_NAME_NAME = 0x96,
+			OP_STORE_CLASS_NAME_NAME_NAME_NAME = 0x97,
+			OP_LOAD_MODULE_NAME_NAME_NAME = 0x98,
+			OP_STORE_MODULE_NAME_NAME_NAME = 0x99,
+			OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x9A,
+			OP_STORE_BUILTIN_NAME_NAME_NAME = 0x9B,
+			OP_LOAD_ITER_NAME_NAME_NAME = 0x9C,
+			OP_STORE_ITER_NAME_NAME_NAME = 0x9D,
+			OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x9E,
+			OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x9F,
+			OP_LOAD_CONTEXT_NAME_NAME_NAME = 0xA0,
+			OP_STORE_CONTEXT_NAME_NAME_NAME = 0xA1,
+			OP_LOAD_GLOBALS_NAME_NAME_NAME = 0xA2,
+			OP_STORE_GLOBALS_NAME_NAME_NAME = 0xA3,
+			OP_LOAD_LOCALS_NAME_NAME_NAME = 0xA4,
+			OP_STORE_LOCALS_NAME_NAME_NAME = 0xA5,
+			OP_LOAD_NAME_NAME_NAME_NAME = 0xA6,
+			OP_STORE_NAME_NAME_NAME = 0xA7,
+			OP_LOAD_ATTR_NAME_NAME_NAME = 0xA8,
+			OP_STORE_ATTR_NAME_NAME_NAME = 0xA9,
+			OP_LOAD_METHOD_NAME_NAME_NAME = 0xAA,
+			OP_STORE_METHOD_NAME_NAME_NAME = 0xAB,
+			OP_LOAD_CLASS_NAME_NAME_NAME = 0xAC,
+			OP_STORE_CLASS_NAME_NAME_NAME = 0xAD,
+			OP_LOAD_MODULE_NAME_NAME_NAME = 0xAE,
+			OP_STORE_MODULE_NAME_NAME_NAME = 0xAF,
+			OP_LOAD_BUILTIN_NAME_NAME_NAME = 0xB0,
+			OP_STORE_BUILTIN_NAME_NAME_NAME = 0xB1,
+			OP_LOAD_ITER_NAME_NAME_NAME = 0xB2,
+			OP_STORE_ITER_NAME_NAME_NAME = 0xB3,
+			OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0xB4,
+			OP_STORE_EXCEPTION_NAME_NAME_NAME = 0xB5,
+			OP_LOAD_CONTEXT_NAME_NAME_NAME = 0xB6,
+			OP_STORE_CONTEXT_NAME_NAME_NAME = 0xB7,
+			OP_LOAD_GLOBALS_NAME_NAME_NAME = 0xB8,
+			OP_STORE_GLOBALS_NAME_NAME_NAME = 0xB9,
+			OP_LOAD_LOCALS_NAME_NAME_NAME = 0xBA,
+			OP_STORE_LOCALS_NAME_NAME_NAME = 0xBB,
+			OP_LOAD_NAME_NAME_NAME_NAME = 0xBC,
+			OP_STORE_NAME_NAME_NAME = 0xBD,
+			OP_LOAD_ATTR_NAME_NAME_NAME = 0xBE,
+			OP_STORE_ATTR_NAME_NAME_NAME = 0xBF,
+			OP_LOAD_METHOD_NAME_NAME_NAME = 0xC0,
+			OP_STORE_METHOD_NAME_NAME_NAME = 0xC1,
+			OP_LOAD_CLASS_NAME_NAME_NAME = 0xC2,
+			OP_STORE_CLASS_NAME_NAME_NAME = 0xC3,
+			OP_LOAD_MODULE_NAME_NAME_NAME = 0xC4,
+			OP_STORE_MODULE_NAME_NAME_NAME = 0xC5,
+			OP_LOAD_BUILTIN_NAME_NAME_NAME = 0xC6,
+			OP_STORE_BUILTIN_NAME_NAME_NAME = 0xC7,
+			OP_LOAD_ITER_NAME_NAME_NAME = 0xC8,
+			OP_STORE_ITER_NAME_NAME_NAME = 0xC9,
+			OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0xCA,
+			OP_STORE_EXCEPTION_NAME_NAME_NAME = 0xCB,
+			OP_LOAD_CONTEXT_NAME_NAME_NAME = 0xCC,
+			OP_STORE_CONTEXT_NAME_NAME_NAME = 0xCD,
+			OP_LOAD_GLOBALS_NAME_NAME_NAME = 0xCE,
+			OP_STORE_GLOBALS_NAME_NAME_NAME = 0xCF,
+			OP_LOAD_LOCALS_NAME_NAME_NAME = 0xD0,
+			OP_STORE_LOCALS_NAME_NAME_NAME = 0xD1,
+			OP_LOAD_NAME_NAME_NAME_NAME = 0xD2,
+			OP_STORE_NAME_NAME_NAME = 0xD3,
+			OP_LOAD_ATTR_NAME_NAME_NAME = 0xD4,
+			OP_STORE_ATTR_NAME_NAME_NAME = 0xD5,
+			OP_LOAD_METHOD_NAME_NAME_NAME = 0xD6,
+			OP_STORE_METHOD_NAME_NAME_NAME = 0xD7,
+			OP_LOAD_CLASS_NAME_NAME_NAME = 0xD8,
+			OP_STORE_CLASS_NAME_NAME_NAME = 0xD9,
+			OP_LOAD_MODULE_NAME_NAME_NAME = 0xDA,
+			OP_STORE_MODULE_NAME_NAME_NAME = 0xDB,
+			OP_LOAD_BUILTIN_NAME_NAME_NAME = 0xDC,
+			OP_STORE_BUILTIN_NAME_NAME_NAME = 0xDD,
+			OP_LOAD_ITER_NAME_NAME_NAME = 0xDE,
+			OP_STORE_ITER_NAME_NAME_NAME = 0xDF,
+			OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0xE0,
+			OP_STORE_EXCEPTION_NAME_NAME_NAME = 0xE1,
+			OP_LOAD_CONTEXT_NAME_NAME_NAME = 0xE2,
+			OP_STORE_CONTEXT_NAME_NAME_NAME = 0xE3,
+			OP_LOAD_GLOBALS_NAME_NAME_NAME = 0xE4,
+			OP_STORE_GLOBALS_NAME_NAME_NAME = 0xE5,
+			OP_LOAD_LOCALS_NAME_NAME_NAME = 0xE6,
+			OP_STORE_LOCALS_NAME_NAME_NAME = 0xE7,
+			OP_LOAD_NAME_NAME_NAME_NAME = 0xE8,
+			OP_STORE_NAME_NAME_NAME = 0xE9,
+			OP_LOAD_ATTR_NAME_NAME_NAME = 0xEA,
+			OP_STORE_ATTR_NAME_NAME_NAME = 0xEB,
+			OP_LOAD_METHOD_NAME_NAME_NAME = 0xEC,
+			OP_STORE_METHOD_NAME_NAME_NAME = 0xED,
+			OP_LOAD_CLASS_NAME_NAME_NAME = 0xEE,
+			OP_STORE_CLASS_NAME_NAME_NAME = 0xEF,
+			OP_LOAD_MODULE_NAME_NAME_NAME = 0xF0,
+			OP_STORE_MODULE_NAME_NAME_NAME = 0xF1,
+			OP_LOAD_BUILTIN_NAME_NAME_NAME = 0xF2,
+			OP_STORE_BUILTIN_NAME_NAME_NAME = 0xF3,
+			OP_LOAD_ITER_NAME_NAME_NAME = 0xF4,
+			OP_STORE_ITER_NAME_NAME_NAME = 0xF5,
+			OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0xF6,
+			OP_STORE_EXCEPTION_NAME_NAME_NAME = 0xF7,
+			OP_LOAD_CONTEXT_NAME_NAME_NAME = 0xF8,
+			OP_STORE_CONTEXT_NAME_NAME_NAME = 0xF9,
+			OP_LOAD_GLOBALS_NAME_NAME_NAME = 0xFA,
+			OP_STORE_GLOBALS_NAME_NAME_NAME = 0xFB,
+			OP_LOAD_LOCALS_NAME_NAME_NAME = 0xFC,
+			OP_STORE_LOCALS_NAME_NAME_NAME = 0xFD,
+			OP_LOAD_NAME_NAME_NAME_NAME = 0xFE,
+			OP_STORE_NAME_NAME_NAME = 0xFF
+            };
+        struct Capsule {
+            CapsuleMeta meta;
+            std::vector<uint8_t> bytecode;
+            std::map<std::string, std::any> globals;
+            std::map<std::string, std::any> locals;
+            std::vector<ASTNode> ast;
+        };
+        class PluginInspector {
+        public:
+            void load_capsule(const Capsule& capsule) {
+                // Load capsule metadata
+                current_capsule = capsule;
+                std::cout << "[PLUGIN INSPECTOR] Loaded capsule: " << capsule.meta.name << " v" << capsule.meta.version << "\n";
+            }
+            void inspect() {
+                // Inspect loaded capsule
+                if (current_capsule.meta.name.empty()) {
+                    std::cerr << "[ERROR] No capsule loaded.\n";
+                    return;
+                }
+                std::cout << "[PLUGIN INSPECTOR] Inspecting capsule: " << current_capsule.meta.name << "\n";
+                // Print metadata
+                std::cout << "  Version: " << current_capsule.meta.version << "\n";
+                std::cout << "  Entry: " << current_capsule.meta.entry << "\n";
+                std::cout << "  Hash: " << current_capsule.meta.hash << "\n";
+                // Print AST
+                for (const auto& node : current_capsule.ast) {
+                    print_ast(node, 0);
+                }
+            }
+        private:
+            Capsule current_capsule;
+            void print_ast(const ASTNode& node, int depth) {
+                std::string indent(depth * 2, ' ');
+                std::cout << indent << node.type << ": " << node.value << "\n";
+                for (const auto& child : node.children) {
+                    print_ast(child, depth + 1);
+                }
+            }
+        };
+	} // namespace PluginInspector
+    // === Plugin Inspector ===
+        #include <SDL2/SDL.h>
+        #include <SDL2/SDL_ttf.h>
+        #include <iostream>
+        #include <vector>
+        #include <string>
+        #include <map>
+        #include <algorithm>
+        #include <cmath>
+        struct Node {
+            std::string name;
+            std::vector<std::string> deps;
+            float x, y;
+            float radius;
+            int color; // Color index for rendering
+            Node(const std::string& n, const std::vector<std::string>& d, float x_pos, float y_pos, float r, int c)
+                : name(n), deps(d), x(x_pos), y(y_pos), radius(r), color(c) {}
+        };
+        struct Camera {
+            float x = 0, y = 0;
+            float zoom = 1.0f;
+        };
+        class PluginInspector {
+        private:
+            SDL_Window* window = nullptr;
+            SDL_Renderer* renderer = nullptr;
+            TTF_Font* font = nullptr;
+            std::vector<Node> nodes;
+            Camera camera;
+            bool theme_dark = true; // Dark theme by default
+            std::string selected; // Selected node name
+        public:
+            PluginInspector() {}
+            ~PluginInspector() {
+                if (font) TTF_CloseFont(font);
+                if (renderer) SDL_DestroyRenderer(renderer);
+                if (window) SDL_DestroyWindow(window);
+            }
+        private:
+        void layout_graph() {
+            float angle_step = 2 * M_PI / nodes.size();
+            for (size_t i = 0; i < nodes.size(); ++i) {
+                nodes[i].x = 300 * cos(i * angle_step);
+                nodes[i].y = 300 * sin(i * angle_step);
+            }
+        }
+        std::pair<int, int> screen_xy(float x, float y) {
+            return { static_cast<int>(x * camera.zoom + camera.x + 400), static_cast<int>(y * camera.zoom + camera.y + 300) };
+        }
+        void draw_text(const std::string& text, int x, int y) {
+			SDL_Color color = theme_dark ? SDL_Color{ 255, 255, 255, 255 } : SDL_Color{ 0, 0, 0,
+                255 };
+            SDL_Surface* surface = TTF_RenderText_Solid(font, text.c_str(), color);
+            if (surface) {
+                SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+                if (texture) {
+                    int w, h;
+                    SDL_QueryTexture(texture, nullptr, nullptr, &w, &h);
+                    SDL_Rect dstrect = { x, y, w, h };
+                    SDL_RenderCopy(renderer, texture, nullptr, &dstrect);
+                    SDL_DestroyTexture(texture);
+                }
+                SDL_FreeSurface(surface);
+            }
+        }
+        void clear_theme() {
+            if (theme_dark) {
+                SDL_SetRenderDrawColor(renderer, 30, 30, 30, 255); // Dark background
+            } else {
+                SDL_SetRenderDrawColor(renderer, 240, 240, 240, 255); // Light background
+            }
+            SDL_RenderClear(renderer);
+        }
+        bool handle_events() {
+            SDL_Event event;
+            while (SDL_PollEvent(&event)) {
+                if (event.type == SDL_QUIT) {
+                    return true; // Exit on quit event
+                } else if (event.type == SDL_MOUSEBUTTONDOWN) {
+                    if (event.button.button == SDL_BUTTON_LEFT) {
+                        int mx = event.button.x - 400; // Centered coordinates
+                        int my = event.button.y - 300;
+                        for (const auto& n : nodes) {
+                            auto [sx, sy] = screen_xy(n.x, n.y);
+                            float dx = mx - sx;
+                            float dy = my - sy;
+                            if (dx * dx + dy * dy <= n.radius * n.radius * camera.zoom * camera.zoom) {
+                                selected = n.name; // Select node
+                                break;
+                            }
+                        }
+                    }
+                } else if (event.type == SDL_KEYDOWN) {
+                    switch (event.key.keysym.sym) {
+                    case SDLK_ESCAPE:
+                        return true; // Exit on escape key
+                    case SDLK_LEFT:
+                        camera.x -= 10; // Pan left
+                        break;
+                    case SDLK_RIGHT:
+						camera.x += 10; // Pan right
+                        break;
+                    case SDLK_UP:
+                        camera.y -= 10; // Pan up
+                        break;
+                    case SDLK_DOWN:
+                        camera.y += 10; // Pan down
+                        break;
+                    case SDLK_PLUS:
+                    case SDLK_EQUALS:
+                        camera.zoom *= 1.1f; // Zoom in
+                        break;
+                    case SDLK_MINUS:
+                        camera.zoom /= 1.1f; // Zoom out
+                        break;
+                    case SDLK_t:
+                        theme_dark = !theme_dark; // Toggle theme
+                        clear_theme();
+                        break;
+                    }
+                }
+            }
+            return false; // Continue running
+        }
+        void draw_circle(float x, float y, float radius, int color) {
+            SDL_SetRenderDrawColor(renderer, (color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF, 255);
+            for (int w = 0; w < radius * camera.zoom * 2; w++) {
+                for (int h = 0; h < radius * camera.zoom * 2; h++) {
+                    float dx = radius * camera.zoom - w;
+                    float dy = radius * camera.zoom - h;
+                    if (dx * dx + dy * dy <= radius * radius * camera.zoom * camera.zoom) {
+                        SDL_RenderDrawPoint(renderer, static_cast<int>(x + dx), static_cast<int>(y + dy));
+                    }
+                }
+            }
+        }
+        public:
+        void draw() {
+            clear_theme();
+            for (const auto& n : nodes) {
+                auto [sx, sy] = screen_xy(n.x, n.y);
+                int color = theme_dark ? SDL_MapRGB(SDL_AllocFormat(SDL_PIXELFORMAT_RGBA8888), 100 + n.color * 20, 150 + n.color * 20, 200 + n.color * 20)
+                                       : SDL_MapRGB(SDL_AllocFormat(SDL_PIXELFORMAT_RGBA8888), n.color * 50, n.color * 50, n.color * 50);
+                if (n.name == selected) {
+                    color = theme_dark ? SDL_MapRGB(SDL_AllocFormat(SDL_PIXELFORMAT_RGBA8888), 255, 255, 0)
+						: SDL_MapRGB(SDL_AllocFormat(SDL_PIXELFORMAT_RGBA8888), 0, 0, 0);
+                    }
+                draw_circle(sx, sy, n.radius * camera.zoom, color);
+                draw_text(n.name, sx - 20, sy - 10);
+            }
+            // Draw dependencies
+            for (const auto& n : nodes) {
+                auto [sx, sy] = screen_xy(n.x, n.y);
+                for (const auto& dep : n.deps) {
+                    auto it = std::find_if(nodes.begin(), nodes.end(), [&dep](const Node& node) { return node.name == dep; });
+                    if (it != nodes.end()) {
+                        auto [dx, dy] = screen_xy(it->x, it->y);
+                        SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255);
+                        SDL_RenderDrawLine(renderer, sx, sy, dx, dy);
+                    }
+                }
+            }
+            SDL_RenderPresent(renderer);
+        }
+        };
+        int main(int argc, char* argv[]) {
+            // Initialize SDL and TTF
+            if (SDL_Init(SDL_INIT_VIDEO) < 0 || TTF_Init() < 0) {
+                std::cerr << "SDL or TTF initialization failed: " << SDL_GetError() << std::endl;
+                return -1;
+            }
+            // Create window and renderer
+            window = SDL_CreateWindow("Plugin Inspector", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, SDL_WINDOW_SHOWN);
+            if (!window) {
+                std::cerr << "Window creation failed: " << SDL_GetError() << std::endl;
+                return -1;
+            }
+            renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+            if (!renderer) {
+                std::cerr << "Renderer creation failed: " << SDL_GetError() << std::endl;
+                return -1;
+            }
+            // Load font
+            font = TTF_OpenFont("arial.ttf", 16);
+            if (!font) {
+                std::cerr << "Font loading failed: " << TTF_GetError() << std::endl;
+                return -1;
+			}
+            // Create nodes
+            std::vector<Node> nodes = {
+                Node("PluginA", { "PluginB", "PluginC" }, 0, 0, 30, 0),
+                Node("PluginB", { "PluginD" }, 100, 100, 30, 1),
+                Node("PluginC", {}, -100, -100, 30, 2),
+                Node("PluginD", {}, 200, -200, 30, 3)
+            };
+            PluginInspector inspector;
+            inspector.nodes = nodes;
+            inspector.layout_graph();
+            // Main loop
+            bool running = true;
+            while (running) {
+                running = !inspector.handle_events();
+                inspector.draw();
+            }
+            // Cleanup
+            TTF_Quit();
+            SDL_Quit();
+            return 0;
+		}
+#include <iostream>
+#include <vector>
+#include <string>
+#include <map>
+#include <fstream>
+#include <openssl/sha.h>
+#include <openssl/pem.h>
+#include <openssl/evp.h>
+#include <openssl/x509.h>
+        bool verify_signature(const std::vector<uint8_t>& data, const std::string& signature, const std::string& pubkey_path) {
+            std::ifstream pubkey_file(pubkey_path);
+            if (!pubkey_file.is_open()) { std::cerr << "[ERROR] Failed to open public key file: " << pubkey_path << std::endl; return false; }
+            std::string pubkey_str((std::istreambuf_iterator<char>(pubkey_file)), std::istreambuf_iterator<char>());
+            pubkey_file.close();
+            const unsigned char* sig = reinterpret_cast<const unsigned char*>(signature.data());
+            size_t sig_len = signature.size();
+            EVP_PKEY* pubkey = nullptr;
+            BIO* bio = BIO_new_mem_buf(pubkey_str.data(), static_cast<int>(pubkey_str.size()));
+            if (!bio) { std::cerr << "[ERROR] Failed to create BIO for public key." << std::endl; return false; }
+            pubkey = PEM_read_bio_PUBKEY(bio, nullptr, nullptr, nullptr);
+            BIO_free(bio);
+            if (!pubkey) { std::cerr << "[ERROR] Failed to read public key from PEM." << std::endl; return false; }
+            EVP_MD_CTX* ctx = EVP_MD_CTX_new();
+            if (!ctx) { EVP_PKEY_free(pubkey); std::cerr << "[ERROR] Failed to create EVP_MD_CTX." << std::endl; return false; }
+            if (EVP_DigestVerifyInit(ctx, nullptr, EVP_sha256(), nullptr, pubkey) <= 0) {
+                EVP_MD_CTX_free(ctx); EVP_PKEY_free(pubkey); std::cerr << "[ERROR] Failed to initialize digest verify." << std::endl; return false;
+            } if (EVP_DigestVerifyUpdate(ctx, data.data(), data.size()) <= 0) {
+                EVP_MD_CTX_free(ctx); EVP_PKEY_free(pubkey); std::cerr << "[ERROR] Failed to update digest verify." << std::endl; return false;
+            } int result = EVP_DigestVerifyFinal(ctx, sig, sig_len);
+            EVP_MD_CTX_free(ctx); EVP_PKEY_free(pubkey);
+            return result == 1;
+        }
+        struct CapsuleFooter {
+            std::string signature;
+        };
+        struct CapsuleMetadata {
+			std
+                ::string name;
+            std::string version;
+            std::string entry;
+            std::string hash;
+            CapsuleFooter footer;
+        };
+        CapsuleMetadata read_capsule_metadata(const std::string& capsule_path) {
+            CapsuleMetadata metadata;
+            std::ifstream capsule_file(capsule_path, std::ios::binary);
+            if (!capsule_file.is_open()) {
+                std::cerr << "[ERROR] Failed to open capsule file: " << capsule_path << std::endl;
+                return metadata;
+            }
+            // Read metadata (this is a placeholder, actual implementation may vary)
+            metadata.name = "ExampleCapsule";
+            metadata.version = "1.0.0";
+            metadata.entry = "main_function";
+            metadata.hash = "examplehash";
+            // Read footer
+            capsule_file.seekg(-sizeof(CapsuleFooter), std::ios::end);
+            capsule_file.read(reinterpret_cast<char*>(&metadata.footer), sizeof(CapsuleFooter));
+            capsule_file.close();
+            return metadata;
+        }
+		int main() {
+            std::string capsule_path = "example_capsule.qtr";
+            CapsuleMetadata metadata = read_capsule_metadata(capsule_path);
+            if (metadata.name.empty()) {
+                std::cerr << "[ERROR] Failed to read capsule metadata." << std::endl;
+                return 1;
+            }
+            std::cout << "[CAPSULE METADATA]\n";
+            std::cout << "Name: " << metadata.name << "\n";
+            std::cout << "Version: " << metadata.version << "\n";
+            std::cout << "Entry: " << metadata.entry << "\n";
+            std::cout << "Hash: " << metadata.hash << "\n";
+            // Verify signature
+            if (verify_signature({ metadata.name.begin(), metadata.name.end() }, metadata.footer.signature, "public_key.pem")) {
+                std::cout << "[SIGNATURE] Verification successful.\n";
+            } else {
+                std::cerr << "[SIGNATURE] Verification failed.\n";
+                return 1;
+            }
+            return 0;
+		}
+#include <iostream>
+#include <string>
+#include <vector>
+#include <map>
+#include <functional>
+        namespace Symbolic {
+        std::vector<std::string> trace;
+        void simulate_path(const std::vector<std::string>& path) {
+            for (const auto& step : path) {
+                trace.push_back(step);
+            }
+        }
+        void dump_trace() {
+			std::cout << "[TRACE DUMP]\n";
+            for (const auto& step : trace) {
+                std::cout << "  " << step << "\n";
+            }
+        }
+        } // namespace Symbolic
+        // === REPL Debugger ===
+		namespace REPLDebugger {
+            void start_repl() {
+                std::cout << "[REPL DEBUGGER] Starting REPL...\n";
+                std::string command;
+                while (true) {
+                    std::cout << ">>> ";
+                    std::getline(std::cin, command);
+                    if (command == "exit") {
+                        break;
+                    } else if (command == "trace") {
+                        Symbolic::dump_trace();
+                    } else {
+                        std::cout << "[REPL] Executing command: " << command << "\n";
+                        // Placeholder for command execution
+                    }
+                }
+            }
+        }
+        // === Plugin System ===
+        namespace PluginSystem {
+            struct PluginInfo {
+                std::string name;
+                std::string version;
+                std::string hash;
+            };
+			std::map<std::string, PluginInfo> registered_plugins;
+            void register_plugin(const std::string& name, const std::string& version, const std::string& code) {
+                PluginInfo info = { name, version, "examplehash" }; // Placeholder hash
+                registered_plugins[name] = info;
+                std::cout << "[PLUGIN SYSTEM] Registered plugin: " << name << " v" << version << "\n";
+            }
+            void list_plugins() {
+                std::cout << "[PLUGIN SYSTEM] Registered plugins:\n";
+                for (const auto& [name, info] : registered_plugins) {
+                    std::cout << "  " << name << " v" << info.version << " (hash: " << info.hash << ")\n";
+                }
+            }
+        }
+        // === Meta Encoder ===
+        namespace MetaEncoder {
+            void encode_metadata(const std::string& capsule_file) {
+                std::cout << "[ENCODE] Encoding metadata for capsule: " << capsule_file << "\n";
+				// Placeholder: simulate encoding
+                std::vector<std::string> metadata = {
+                    "name: ExampleCapsule",
+                    "version: 1.0.0",
+                    "entry: main_function",
+                    "hash: examplehash"
+                };
+                for (const auto& line : metadata) {
+                    std::cout << "  " << line << "\n";
+                }
+            }
+        }
+		// === Inspector ===
+        namespace PluginInspector {
+        struct CapsuleMeta {
+            std::string name;
+            std::string version;
+            std::string entry;
+            std::string hash;
+        };
+        struct ASTNode {
+			std::string type; // e.g., "function", "variable", "expression"
+			std::string value; // e.g., function name, variable name, expression value
+			std::vector<ASTNode> children; // Child nodes for nested structures
+			ASTNode(const std::string& t, const std::string& v) : type(t), value(v) {}
+            void add_child(const ASTNode& child) {
+                children.push_back(child);
+			}
+            void add_child(const std::string& t, const std::string& v) {
+                children.emplace_back(t, v);
+            }
+        };
+		enum OpCode {
+            OP_LOAD_CONST = 0x00,
+            OP_STORE_CONST = 0x01,
+            OP_LOAD_VAR = 0x02,
+            OP_STORE_VAR = 0x03,
+            OP_LOAD_ATTR = 0x04,
+            OP_STORE_ATTR = 0x05,
+            OP_LOAD_GLOBAL = 0x06,
+            OP_STORE_GLOBAL = 0x07,
+            OP_LOAD_NAME = 0x08,
+            OP_STORE_NAME = 0x09,
+            OP_LOAD_FUNCTION = 0x0A,
+			OP_CALL_FUNCTION = 0x0B,
+            OP_RETURN_VALUE = 0x0C,
+            OP_JUMP_IF_TRUE = 0x0D,
+            OP_JUMP_IF_FALSE = 0x0E,
+            OP_JUMP_ABSOLUTE = 0x0F,
+            OP_JUMP_FORWARD = 0x10,
+            OP_POP_TOP = 0x11,
+            OP_DUP_TOP = 0x12,
+            OP_BUILD_LIST = 0x13,
+            OP_BUILD_DICT = 0x14,
+			OP_BUILD_SET = 0x15,
+            OP_UNPACK_SEQUENCE = 0x16,
+            OP_UNPACK_EX = 0x17,
+            OP_LOAD_CLOSURE = 0x18,
+            OP_STORE_CLOSURE = 0x19,
+            OP_LOAD_CLASS = 0x1A,
+            OP_STORE_CLASS = 0x1B,
+            OP_LOAD_MODULE = 0x1C,
+            OP_STORE_MODULE = 0x1D,
+			OP_LOAD_BUILTIN = 0x1E,
+            OP_STORE_BUILTIN = 0x1F,
+            OP_LOAD_ITER = 0x20,
+            OP_STORE_ITER = 0x21,
+            OP_LOAD_EXCEPTION = 0x22,
+            OP_STORE_EXCEPTION = 0x23,
+            OP_LOAD_CONTEXT = 0x24,
+            OP_STORE_CONTEXT = 0x25,
+            OP_LOAD_GLOBALS = 0x26,
+			OP_STORE_GLOBALS = 0x27,
+            OP_LOAD_LOCALS = 0x28,
+            OP_STORE_LOCALS = 0x29,
+            OP_LOAD_NAME_NAME = 0x2A,
+            OP_STORE_NAME_NAME = 0x2B,
+            OP_LOAD_ATTR_NAME = 0x2C,
+            OP_STORE_ATTR_NAME = 0x2D,
+            OP_LOAD_METHOD_NAME = 0x2E,
+			OP_STORE_METHOD_NAME = 0x2F,
+            OP_LOAD_CLASS_NAME = 0x30,
+            OP_STORE_CLASS_NAME = 0x31,
+            OP_LOAD_MODULE_NAME = 0x32,
+            OP_STORE_MODULE_NAME = 0x33,
+            OP_LOAD_BUILTIN_NAME = 0x34,
+            OP_STORE_BUILTIN_NAME = 0x35,
+			OP_LOAD_ITER_NAME = 0x36,
+            OP_STORE_ITER_NAME = 0x37,
+            OP_LOAD_EXCEPTION_NAME = 0x38,
+            OP_STORE_EXCEPTION_NAME = 0x39,
+            OP_LOAD_CONTEXT_NAME = 0x3A,
+            OP_STORE_CONTEXT_NAME = 0x3B,
+			OP_LOAD_GLOBALS_NAME = 0x3C,
+            OP_STORE_GLOBALS_NAME = 0x3D,
+            OP_LOAD_LOCALS_NAME = 0x3E,
+            OP_STORE_LOCALS_NAME = 0x3F,
+            OP_LOAD_NAME_NAME = 0x40,
+            OP_STORE_NAME_NAME = 0x41,
+			OP_LOAD_ATTR_NAME_NAME = 0x42,
+            OP_STORE_ATTR_NAME_NAME = 0x43,
+            OP_LOAD_METHOD_NAME_NAME = 0x44,
+            OP_STORE_METHOD_NAME_NAME = 0x45,
+            OP_LOAD_CLASS_NAME_NAME = 0x46,
+			OP_STORE_CLASS_NAME_NAME = 0x47,
+            OP_LOAD_MODULE_NAME_NAME = 0x48,
+            OP_STORE_MODULE_NAME_NAME = 0x49,
+            OP_LOAD_BUILTIN_NAME_NAME = 0x4A,
+			OP_STORE_BUILTIN_NAME_NAME = 0x4B,
+            OP_LOAD_ITER_NAME_NAME = 0x4C,
+            OP_STORE_ITER_NAME_NAME = 0x4D,
+            OP_LOAD_EXCEPTION_NAME_NAME = 0x4E,
+			OP_STORE_EXCEPTION_NAME_NAME = 0x4F,
+            OP_LOAD_CONTEXT_NAME_NAME = 0x50,
+            OP_STORE_CONTEXT_NAME_NAME = 0x51,
+            OP_LOAD_GLOBALS_NAME_NAME = 0x52,
+			OP_STORE_GLOBALS_NAME_NAME = 0x53,
+            OP_LOAD_LOCALS_NAME_NAME = 0x54,
+            OP_STORE_LOCALS_NAME_NAME = 0x55,
+            OP_LOAD_NAME_NAME_NAME = 0x56,
+			OP_STORE_NAME_NAME_NAME = 0x57,
+            OP_LOAD_ATTR_NAME_NAME_NAME = 0x58,
+            OP_STORE_ATTR_NAME_NAME_NAME = 0x59,
+			OP_LOAD_METHOD_NAME_NAME_NAME = 0x5A,
+            OP_STORE_METHOD_NAME_NAME_NAME = 0x5B,
+            OP_LOAD_CLASS_NAME_NAME_NAME = 0x5C,
+			OP_STORE_CLASS_NAME_NAME_NAME = 0x5D,
+            OP_LOAD_MODULE_NAME_NAME_NAME = 0x5E,
+			OP_STORE_MODULE_NAME_NAME_NAME = 0x5F,
+			OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x60,
+			OP_STORE_BUILTIN_NAME_NAME_NAME = 0x61,
+			OP_LOAD_ITER_NAME_NAME_NAME = 0x62,
+			OP_STORE_ITER_NAME_NAME_NAME = 0x63,
+			OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x64,
+			OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x65,
+			OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x66,
+			OP_STORE_CONTEXT_NAME_NAME_NAME = 0x67,
+			OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x68,
+			OP_STORE_GLOBALS_NAME_NAME_NAME = 0x69,
+			OP_LOAD_LOCALS_NAME_NAME_NAME = 0x6A,
+			OP_STORE_LOCALS_NAME_NAME_NAME = 0x6B,
+			OP_LOAD_NAME_NAME_NAME = 0x6C,
+			OP_STORE_NAME_NAME_NAME = 0x6D,
+			OP_LOAD_ATTR_NAME_NAME_NAME = 0x6E,
+			OP_STORE_ATTR_NAME_NAME_NAME = 0x6F,
+			OP_LOAD_METHOD_NAME_NAME_NAME = 0x70,
+			OP_STORE_METHOD_NAME_NAME_NAME = 0x71,
+			OP_LOAD_CLASS_NAME_NAME_NAME = 0x72,
+			OP_STORE_CLASS_NAME_NAME_NAME = 0x73,
+			OP_LOAD_MODULE_NAME_NAME_NAME = 0x74,
+			OP_STORE_MODULE_NAME_NAME_NAME = 0x75,
+			OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x76,
+			OP_STORE_BUILTIN_NAME_NAME_NAME = 0x77,
+			OP_LOAD_ITER_NAME_NAME_NAME = 0x78,
+			OP_STORE_ITER_NAME_NAME_NAME = 0x79,
+			OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x7A,
+			OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x7B,
+			OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x7C,
+			OP_STORE_CONTEXT_NAME_NAME_NAME = 0x7D,
+			OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x7E,
+			OP_STORE_GLOBALS_NAME_NAME_NAME = 0x7F,
+			// Additional opcodes for extended functionality
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0x80,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0x81,
+				OP_LOAD_NAME_NAME_NAME = 0x82,
+				OP_STORE_NAME_NAME_NAME = 0x83,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0x84,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0x85,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0x86,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0x87,
+				OP_LOAD_CLASS_NAME_NAME_NAME = 0x88,
+				OP_STORE_CLASS_NAME_NAME_NAME = 0x89,
+				OP_LOAD_MODULE_NAME_NAME_NAME = 0x8A,
+				OP_STORE_MODULE_NAME_NAME_NAME = 0x8B,
+				OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x8C,
+				OP_STORE_BUILTIN_NAME_NAME_NAME = 0x8D,
+				OP_LOAD_ITER_NAME_NAME_NAME = 0x8E,
+				OP_STORE_ITER_NAME_NAME_NAME = 0x8F,
+				OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x90,
+				OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x91,
+				OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x92,
+				OP_STORE_CONTEXT_NAME_NAME_NAME = 0x93,
+				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x94,
+				OP_STORE_GLOBALS_NAME_NAME_NAME = 0x95,
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0x96,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0x97,
+				OP_LOAD_NAME_NAME_NAME = 0x98,
+				OP_STORE_NAME_NAME_NAME = 0x99,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0x9A,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0x9B,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0x9C,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0x9D,
+				OP_LOAD_CLASS_NAME_NAME_NAME = 0x9E,
+				OP_STORE_CLASS_NAME_NAME_NAME = 0x9F,
+				OP_LOAD_MODULE_NAME_NAME_NAME = 0xA0,
+				OP_STORE_MODULE_NAME_NAME_NAME = 0xA1,
+				OP_LOAD_BUILTIN_NAME_NAME_NAME = 0xA2,
+				OP_STORE_BUILTIN_NAME_NAME_NAME = 0xA3,
+				OP_LOAD_ITER_NAME_NAME_NAME = 0xA4,
+				OP_STORE_ITER_NAME_NAME_NAME = 0xA5,
+				OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0xA6,
+				OP_STORE_EXCEPTION_NAME_NAME_NAME = 0xA7,
+				OP_LOAD_CONTEXT_NAME_NAME_NAME = 0xA8,
+				OP_STORE_CONTEXT_NAME_NAME_NAME = 0xA9,
+				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0xAA,
+				OP_STORE_GLOBALS_NAME_NAME_NAME = 0xAB,
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0xAC,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0xAD,
+				OP_LOAD_NAME_NAME_NAME = 0xAE,
+				OP_STORE_NAME_NAME_NAME = 0xAF,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0xB0,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0xB1,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0xB2,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0xB3,
+				OP_LOAD_CLASS_NAME_NAME_NAME = 0xB4,
+				OP_STORE_CLASS_NAME_NAME_NAME = 0xB5,
+				OP_LOAD_MODULE_NAME_NAME_NAME = 0xB6,
+				OP_STORE_MODULE_NAME_NAME_NAME = 0xB7,
+				OP_LOAD_BUILTIN_NAME_NAME_NAME = 0xB8,
+				OP_STORE_BUILTIN_NAME_NAME_NAME = 0xB9,
+				OP_LOAD_ITER_NAME_NAME_NAME = 0xBA,
+				OP_STORE_ITER_NAME_NAME_NAME = 0xBB,
+				OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0xBC,
+				OP_STORE_EXCEPTION_NAME_NAME_NAME = 0xBD,
+				OP_LOAD_CONTEXT_NAME_NAME_NAME = 0xBE,
+				OP_STORE_CONTEXT_NAME_NAME_NAME = 0xBF,
+				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0xC0,
+				OP_STORE_GLOBALS_NAME_NAME_NAME = 0xC1,
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0xC2,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0xC3,
+				OP_LOAD_NAME_NAME_NAME = 0xC4,
+				OP_STORE_NAME_NAME_NAME = 0xC5,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0xC6,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0xC7,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0xC8,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0xC9,
+				OP_LOAD_CLASS_NAME_NAME_NAME = 0xCA,
+				OP_STORE_CLASS_NAME_NAME_NAME = 0xCB,
+				OP_LOAD_MODULE_NAME_NAME_NAME = 0xCC,
+				OP_STORE_MODULE_NAME_NAME_NAME = 0xCD,
+				OP_LOAD_BUILTIN_NAME_NAME_NAME = 0xCE,
+				OP_STORE_BUILTIN_NAME_NAME_NAME = 0xCF,
+				OP_LOAD_ITER_NAME_NAME_NAME = 0xD0,
+				OP_STORE_ITER_NAME_NAME_NAME = 0xD1,
+				OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0xD2,
+				OP_STORE_EXCEPTION_NAME_NAME_NAME = 0xD3,
+				OP_LOAD_CONTEXT_NAME_NAME_NAME = 0xD4,
+				OP_STORE_CONTEXT_NAME_NAME_NAME = 0xD5,
+				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0xD6,
+				OP_STORE_GLOBALS_NAME_NAME_NAME = 0xD7,
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0xD8,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0xD9,
+				OP_LOAD_NAME_NAME_NAME = 0xDA,
+				OP_STORE_NAME_NAME_NAME = 0xDB,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0xDC,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0xDD,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0xDE,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0xDF,
+				OP_LOAD_CLASS_NAME_NAME_NAME = 0xE0,
+				OP_STORE_CLASS_NAME_NAME_NAME = 0xE1,
+				OP_LOAD_MODULE_NAME_NAME_NAME = 0xE2,
+					OP_STORE_MODULE_NAME_NAME_NAME = 0xE3,
+					OP_LOAD_BUILTIN_NAME_NAME_NAME = 0xE4,
+					OP_STORE_BUILTIN_NAME_NAME_NAME = 0xE5,
+					OP_LOAD_ITER_NAME_NAME_NAME = 0xE6,
+					OP_STORE_ITER_NAME_NAME_NAME = 0xE7,
+					OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0xE8,
+					OP_STORE_EXCEPTION_NAME_NAME_NAME = 0xE9,
+					OP_LOAD_CONTEXT_NAME_NAME_NAME = 0xEA,
+					OP_STORE_CONTEXT_NAME_NAME_NAME = 0xEB,
+					OP_LOAD_GLOBALS_NAME_NAME_NAME = 0xEC,
+					OP_STORE_GLOBALS_NAME_NAME_NAME = 0xED,
+					OP_LOAD_LOCALS_NAME_NAME_NAME = 0xEE,
+					OP_STORE_LOCALS_NAME_NAME_NAME = 0xEF,
+					OP_LOAD_NAME_NAME_NAME = 0xF0,
+					OP_STORE_NAME_NAME_NAME = 0xF1,
+					OP_LOAD_ATTR_NAME_NAME_NAME = 0xF2,
+					OP_STORE_ATTR_NAME_NAME_NAME = 0xF3,
+					OP_LOAD_METHOD_NAME_NAME_NAME = 0xF4,
+					OP_STORE_METHOD_NAME_NAME_NAME = 0xF5,
+					OP_LOAD_CLASS_NAME_NAME_NAME = 0xF6,
+					OP_STORE_CLASS_NAME_NAME_NAME = 0xF7,
+					OP_LOAD_MODULE_NAME_NAME_NAME = 0xF8,
+					OP_STORE_MODULE_NAME_NAME_NAME = 0xF9,
+					OP_LOAD_BUILTIN_NAME_NAME_NAME = 0xFA,
+					OP_STORE_BUILTIN_NAME_NAME_NAME = 0xFB,
+					OP_LOAD_ITER_NAME_NAME_NAME = 0xFC,
+					OP_STORE_ITER_NAME_NAME_NAME = 0xFD,
+					OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0xFE,
+					OP_STORE_EXCEPTION_NAME_NAME_NAME = 0xFF
+                    };
+        struct Capsule {
+			CapsuleMeta meta;
+            std::vector<uint8_t> code; // Bytecode instructions
+            std::vector<std::string> constants; // Constants used in bytecode
+			std::map<std::string, std::any> globals; // Global variables
+            std::vector<ASTNode> ast; // Abstract Syntax Tree representation
+            Capsule() : meta({}), code(), constants(), globals(), ast() {}
+        };
+        class Inspector {
+        public:
+			void load_capsule(const Capsule& capsule) {
+                current_capsule = capsule;
+                std::cout << "[PLUGIN INSPECTOR] Capsule loaded: " << current_capsule.meta.name << "\n";
+			}
+            void inspect() {
+                if (current_capsule.meta.name.empty()) {
+					std::cerr << "[PLUGIN INSPECTOR] No capsule loaded.\n";
+					return;
+                    }
+                std::cout << "[PLUGIN INSPECTOR] Inspecting capsule: " << current_capsule.meta.name << "\n";
+                // Print metadata
+				std::cout << "  Name: " << current_capsule.meta.name << "\n";
+				std::cout << "  Version: " << current_capsule.meta.version << "\n";
+				std::cout << "  Entry: " << current_capsule.meta.entry << "\n";
+				std::cout << "  Hash: " << current_capsule.meta.hash << "\n";
+				// Print constants
+				std::cout << "[PLUGIN INSPECTOR] Constants:\n";
+                for (const auto& constant : current_capsule.constants) {
+                    std::cout << "  - " << constant << "\n";
+				}
+				// Print globals
+				std::cout << "[PLUGIN INSPECTOR] Globals:\n";
+                for (const auto& [name, value] : current_capsule.globals) {
+                    std::cout << "  - " << name << ": ";
+                    if (value.type() == typeid(int)) {
+                        std::cout << std::any_cast<int>(value) << "\n";
+                    } else if (value.type() == typeid(std::string)) {
+                        std::cout << std::any_cast<std::string>(value) << "\n";
+                    } else {
+                        std::cout << "Unknown type\n";
+                    }
+				}
+				// Print AST
+                std::cout << "[PLUGIN INSPECTOR] Abstract Syntax Tree:\n";
+                for (const auto& node : current_capsule.ast) {
+                    print_ast_node(node, 0);
+				}
+                }
+        private:
+            Capsule current_capsule;
+            void print_ast_node(const ASTNode& node, int depth) {
+                std::string indent(depth * 2, ' ');
+                std::cout << indent << node.type << ": " << node.value << "\n";
+                for (const auto& child : node.children) {
+                    print_ast_node(child, depth + 1);
+				}
+                }
+        };
+        } // namespace PluginInspector
+        int main() {
+            PluginInspector::Inspector inspector;
+            PluginInspector::Capsule capsule;
+            capsule.meta.name = "ExamplePlugin";
+            capsule.meta.version = "1.0.0";
+            capsule.meta.entry = "main_function";
+            capsule.meta.hash = "examplehash";
+            capsule.constants = { "const1", "const2", "const3" };
+            capsule.globals["global_var"] = 42;
+            capsule.globals["global_str"] = std::string("Hello, World!");
+            capsule.ast.push_back(PluginInspector::ASTNode("function", "main_function"));
+            capsule.ast.back().add_child("variable", "x");
+			capsule.ast.back().add_child("expression", "x + 1");
+            inspector.load_capsule(capsule);
+            inspector.inspect();
+            // Simulate symbolic execution
+            Symbolic::simulate_path({ "main_function", "x = 42", "return x" });
+            REPLDebugger::start_repl();
+            PluginSystem::register_plugin("ExamplePlugin", "1.0.0", "plugin_code_here");
+            PluginSystem::list_plugins();
+            MetaEncoder::encode_metadata("example_capsule.qtr");
+            return 0;
+		}
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
+        #include <vector>
+        #include <string>
+        #include <algorithm>
+        #include <iostream>
+        struct Node {
+            std::string name;
+            std::vector<std::string> deps;
+            float x, y;
+            float radius;
+            int color; // Color index for visualization
+            Node(const std::string& n, const std::vector<std::string>& d, float x_pos, float y_pos, float r, int c)
+                : name(n), deps(d), x(x_pos), y(y_pos), radius(r), color(c) {}
+        };
+        class PluginInspector {
+        private:
+            SDL_Window* window = nullptr;
+            SDL_Renderer* renderer = nullptr;
+            TTF_Font* font = nullptr;
+            std::vector<Node> nodes;
+            std::string selected;
+            bool theme_dark = true; // Dark theme by default
+            struct Camera {
+                float x = 0, y = 0, zoom = 1.0f;
+            } camera;
+        public:
+        void layout_graph() {
+            // Simple layout algorithm: arrange nodes in a circle
+            const float PI = 3.14159265358979323846f;
+            int n = nodes.size();
+            for (int i = 0; i < n; ++i) {
+                float angle = 2 * PI * i / n;
+                nodes[i].x = 400 + 200 * cos(angle); // Centered at (400, 300)
+                nodes[i].y = 300 + 200 * sin(angle);
+            }
+        }
+        std::pair<int, int> screen_xy(float x, float y) {
+            return { static_cast<int>(x * camera.zoom + camera.x + 400), static_cast<int>(y * camera.zoom + camera.y + 300) };
+        }
+        void draw_text(const std::string& text, int x, int y) {
+            SDL_Color color = theme_dark ? SDL_Color{255, 255, 255} : SDL_Color{0, 0, 0};
+            SDL_Surface* surface = TTF_RenderText_Solid(font, text.c_str(), color);
+            if (surface) {
+                SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+				if (texture) {
+                    int w, h;
+                    SDL_QueryTexture(texture, nullptr, nullptr, &w, &h);
+                    SDL_Rect dst = { x, y, w, h };
+                    SDL_RenderCopy(renderer, texture, nullptr, &dst);
+                    SDL_DestroyTexture(texture);
+                }
+				SDL_FreeSurface(surface);
+                } else {
+                std::cerr << "Failed to render text: " << TTF_GetError() << std::endl;
+            }
+        }
+        void clear_theme() {
+            SDL_SetRenderDrawColor(renderer, theme_dark ? 30 : 240, theme_dark ? 30 : 240, theme_dark ? 30 : 240, 255);
+            SDL_RenderClear(renderer);
+        }
+		void draw_circle(float x, float y, float radius, int color) {
+            SDL_SetRenderDrawColor(renderer, (color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF, 255);
+            for (float angle = 0; angle < 2 * 3.14159265358979323846f; angle += 0.01f) {
+                float dx = radius * cos(angle);
+                float dy = radius * sin(angle);
+                SDL_RenderDrawPoint(renderer, static_cast<int>(x + dx), static_cast<int>(y + dy));
+                // Draw points in a circle
+                for (float h = -radius; h <= radius; h += 1.0f) {
+					float dx = radius * camera.zoom * cos(angle);
+					float dy = radius * camera.zoom * sin(angle);
+					SDL_RenderDrawPoint(renderer, static_cast<int>(x + dx), static_cast<int>(y + dy + h));
+
+					SDL_RenderDrawPoint(renderer, static_cast<int>(x + dx + h), static_cast<int>(y + dy));
+					SDL_RenderDrawPoint(renderer, static_cast<int>(x + dx - h), static_cast<int>(y + dy));
+					SDL_RenderDrawPoint(renderer, static_cast<int>(x + dx), static_cast<int>(y + dy - h));
+                    }
+            }
+        }
+        bool handle_events() {
+            SDL_Event event;
+            while (SDL_PollEvent(&event)) {
+                if (event.type == SDL_QUIT) {
+                    return false; // Exit the application
+                } else if (event.type == SDL_KEYDOWN) {
+                    if (event.key.keysym.sym == SDLK_ESCAPE) {
+                        return false; // Exit on Escape key
+                    } else if (event.key.keysym.sym == SDLK_t) {
+                        theme_dark = !theme_dark; // Toggle theme
+                    }
+                } else if (event.type == SDL_MOUSEBUTTONDOWN) {
+                    if (event.button.button == SDL_BUTTON_LEFT) {
+                        int x, y;
+                        SDL_GetMouseState(&x, &y);
+                        for (auto& n : nodes) {
+                            auto [sx, sy] = screen_xy(n.x, n.y);
+                            float dx = x - sx;
+                            float dy = y - sy;
+                            if (dx * dx + dy * dy <= n.radius * n.radius) {
+                                selected = n.name; // Select node
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            return true; // Continue running
+        }
+        void draw() {
+            clear_theme();
+            for (const auto& n : nodes) {
+                auto [sx, sy] = screen_xy(n.x, n.y);
+                draw_circle(sx, sy, n.radius, 0xFF0000); // Draw node circle
+				draw_text(n.name, sx - 20, sy - 10); // Draw node name
+                if (n.name == selected) {
+                    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255); // Highlight selected node
+                    draw_circle(sx, sy, n.radius + 5, 0x00FF00);
+                }
+                for (const auto& dep : n.deps) {
+                    auto it = std::find_if(nodes.begin(), nodes.end(), [&dep](const Node& node) { return node.name == dep; });
+                    if (it != nodes.end()) {
+                        auto [dsx, dsy] = screen_xy(it->x, it->y);
+                        SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255); // Draw dependency line
+                        SDL_RenderDrawLine(renderer, sx, sy, dsx, dsy);
+                    }
+                }
+            }
+            SDL_RenderPresent(renderer); // Update the screen
+        }
+        PluginInspector() {
+            if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+                std::cerr << "SDL initialization failed: " << SDL_GetError() << std::endl;
+                return;
+            }
+            if (TTF_Init() < 0) {
+                std::cerr << "TTF initialization failed: " << TTF_GetError() << std::endl;
+                return;
+            }
+            window = SDL_CreateWindow("Plugin Inspector", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, SDL_WINDOW_SHOWN);
+            if (!window) {
+                std::cerr << "Window creation failed: " << SDL_GetError() << std::endl;
+                return;
+            }
+			renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+            if (!renderer) {
+                std::cerr << "Renderer creation failed: " << SDL_GetError() << std::endl;
+                return;
+            }
+            font = TTF_OpenFont("arial.ttf", 16);
+            if (!font) {
+                std::cerr << "Font loading failed: " << TTF_GetError() << std::endl;
+                return;
+            }
+            // Initialize nodes (example data)
+            nodes.emplace_back("PluginA", std::vector<std::string>{"PluginB", "PluginC"}, 0, 0, 30, 0xFF0000);
+            nodes.emplace_back("PluginB", std::vector<std::string>{"PluginC"}, 0, 0, 30, 0x00FF00);
+            nodes.emplace_back("PluginC", std::vector<std::string>{}, 0, 0, 30, 0x0000FF);
+            layout_graph();
+        }
+        ~PluginInspector() {
+            TTF_CloseFont(font);
+            SDL_DestroyRenderer(renderer);
+            SDL_DestroyWindow(window);
+            TTF_Quit();
+            SDL_Quit();
+        }
+        void run() {
+            while (handle_events()) {
+                draw();
+            }
+        }
+        };
+        int main(int argc, char* argv[]) {
+            PluginInspector inspector;
+            inspector.run();
+            return 0;
+		}
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <openssl/pem.h>
+#include <openssl/evp.h>
+        bool verify_signature(const std::vector<uint8_t>& data, const std::string& signature, const std::string& public_key_path) {
+            EVP_PKEY* pubkey = nullptr;
+            FILE* pubkey_file = fopen(public_key_path.c_str(), "r");
+            if (!pubkey_file) {
+                std::cerr << "[ERROR] Failed to open public key file: " << public_key_path << std::endl;
+                return false;
+            }
+            pubkey = PEM_read_PUBKEY(pubkey_file, nullptr, nullptr, nullptr);
+            fclose(pubkey_file);
+            if (!pubkey) {
+                std::cerr << "[ERROR] Failed to read public key." << std::endl;
+                return false;
+            }
+            EVP_MD_CTX* ctx = EVP_MD_CTX_new();
+            if (!ctx) {
+                EVP_PKEY_free(pubkey); std::cerr << "[ERROR] Failed to create digest context." << std::endl; return false;
+            } if (EVP_DigestVerifyInit(ctx, nullptr, EVP_sha256(), nullptr, pubkey) <= 0) {
+				EVP_MD_CTX_free(ctx); EVP_PKEY_free(pubkey); std::cerr << "[ERROR] Failed to initialize digest verify." << std::endl; return false;
+                }
+            if (EVP_DigestVerifyUpdate(ctx, data.data(), data.size()) <= 0) {
+                EVP_MD_CTX_free(ctx); EVP_PKEY_free(pubkey); std::cerr << "[ERROR] Failed to update digest verify." << std::endl; return false;
+            }
+            int result = EVP_DigestVerifyFinal(ctx, reinterpret_cast<const unsigned char*>(signature.data()), signature.size());
+            EVP_MD_CTX_free(ctx);
+            EVP_PKEY_free(pubkey);
+            return result == 1; // 1 means verification succeeded
+        }
+        struct CapsuleFooter {
+            std::string signature;
+        };
+        struct CapsuleMetadata {
+            std::string name;
+            std::string version;
+            std::string entry;
+            std::string hash;
+            CapsuleFooter footer;
+        };
+        CapsuleMetadata read_capsule_metadata(const std::string& capsule_path) {
+            CapsuleMetadata metadata;
+            std::ifstream capsule_file(capsule_path, std::ios::binary);
+            if (!capsule_file.is_open()) {
+                std::cerr << "[ERROR] Failed to open capsule file: " << capsule_path << std::endl;
+                return metadata; // Return empty metadata
+            }
+            // Read header (for simplicity, we assume fixed-size header)
+            capsule_file.seekg(0, std::ios::beg);
+            metadata.name = "ExampleCapsule";
+			metadata.version = "1.0.0";
+			metadata.entry = "main_function";
+            metadata.hash = "examplehash";
+            // Read footer
+            capsule_file.seekg(-sizeof(CapsuleFooter), std::ios::end);
+            capsule_file.read(reinterpret_cast<char*>(&metadata.footer), sizeof(CapsuleFooter));
+            capsule_file.close();
+            return metadata;
+        }
+        void verify_capsule(const std::string& capsule_path, const std::string& public_key_path) {
+            CapsuleMetadata metadata = read_capsule_metadata(capsule_path);
+            if (metadata.name.empty()) {
+                std::cerr << "[ERROR] Invalid capsule metadata." << std::endl;
+                return;
+            }
+            std::ifstream capsule_file(capsule_path, std::ios::binary);
+            if (!capsule_file.is_open()) {
+                std::cerr << "[ERROR] Failed to open capsule file: " << capsule_path << std::endl;
+                return;
+            }
+            // Read the entire capsule data
+            std::vector<uint8_t> data((std::istreambuf_iterator<char>(capsule_file)), std::istreambuf_iterator<char>());
+            capsule_file.close();
+            // Verify the signature
+            if (verify_signature(data, metadata.footer.signature, public_key_path)) {
+                std::cout << "[SUCCESS] Capsule verified successfully." << std::endl;
+            } else {
+                std::cerr << "[ERROR] Capsule verification failed." << std::endl;
+            }
+        }
+        int main(int argc, char* argv[]) {
+            if (argc < 3) {
+                std::cerr << "Usage: " << argv[0] << " <capsule_path> <public_key_path>" << std::endl;
+                return 1;
+            }
+            verify_capsule(argv[1], argv[2]);
+            return 0;
+		}
+#include <iostream>
+#include <string>
+#include <vector>
+        #include <map>
+        namespace Symbolic {
+            void simulate_path(const std::vector<std::string>& path) {
+                std::cout << "[SYMBOLIC EXECUTION] Simulating path:\n";
+                for (const auto& step : path) {
+                    std::cout << "  " << step << "\n";
+                }
+            }
+        }
+        // === REPL Debugger ===
+        namespace REPLDebugger {
+            void start_repl() {
+                std::cout << "[REPL DEBUGGER] Starting REPL...\n";
+                std::string command;
+                while (true) {
+                    std::cout << "> ";
+                    std::getline(std::cin, command);
+                    if (command == "exit") break;
+                    std::cout << "[REPL DEBUGGER] Executing command: " << command << "\n";
+                }
+            }
+        }
+        // === Plugin System ===
+        namespace PluginSystem {
+            struct PluginInfo {
+                std::string version;
+                std::string hash;
+            };
+            std::map<std::string, PluginInfo> registered_plugins;
+            void register_plugin(const std::string& name, const std::string& version, const std::string& code) {
+                registered_plugins[name] = { version, "examplehash" }; // Placeholder hash
+				std::cout << "[PLUGIN SYSTEM] Registered plugin: " << name << " v" << version << "\n";
+                }
+            void list_plugins() {
+                std::cout << "[PLUGIN SYSTEM] Registered plugins:\n";
+                for (const auto& [name, info] : registered_plugins) {
+                    std::cout << "  - " << name << " v" << info.version << " (hash: " << info.hash << ")\n";
+                }
+            }
+        }
+        // === Metadata Encoder ===
+        namespace MetaEncoder {
+            void encode_metadata(const std::string& capsule_path) {
+                std::cout << "[META ENCODER] Encoding metadata for capsule: " << capsule_path << "\n";
+				// Placeholder for actual encoding logic
+                std::cout << "[META ENCODER] Metadata encoded successfully.\n";
+            }
+        }
+        // === Plugin Inspector ===
+        namespace PluginInspector {
+            struct CapsuleMeta {
+                std::string name;
+                std::string version;
+                std::string entry;
+                std::string hash;
+            };
+            struct ASTNode {
+                std::string type;
+                std::string value;
+                std::vector<ASTNode> children;
+                ASTNode(const std::string& t, const std::string& v) : type(t), value(v) {}
+                void add_child(const std::string& t, const std::string& v) {
+                    children.emplace_back(t, v);
+                }
+            };
+            enum OpCode {
+            OP_LOAD_CONST = 0x00,
+			OP_LOAD_VAR = 0x01,
+            OP_STORE_VAR = 0x02,
+            OP_LOAD_GLOBAL = 0x03,
+            OP_STORE_GLOBAL = 0x04,
+            OP_LOAD_ATTR = 0x05,
+            OP_STORE_ATTR = 0x06,
+            OP_LOAD_METHOD = 0x07,
+            OP_STORE_METHOD = 0x08,
+            OP_CALL_FUNCTION = 0x09,
+			OP_RETURN_VALUE = 0x0A,
+            OP_JUMP_IF_TRUE = 0x0B,
+            OP_JUMP_IF_FALSE = 0x0C,
+            OP_JUMP = 0x0D,
+            OP_POP = 0x0E,
+            OP_PUSH = 0x0F,
+            OP_LOAD_CLASS = 0x10,
+            OP_STORE_CLASS = 0x11,
+			OP_LOAD_MODULE = 0x12,
+            OP_STORE_MODULE = 0x13,
+            OP_LOAD_BUILTIN = 0x14,
+            OP_STORE_BUILTIN = 0x15,
+            OP_LOAD_ITER = 0x16,
+            OP_STORE_ITER = 0x17,
+            OP_LOAD_EXCEPTION = 0x18,
+			OP_STORE_EXCEPTION = 0x19,
+            OP_LOAD_CONTEXT = 0x1A,
+            OP_STORE_CONTEXT = 0x1B,
+            OP_LOAD_GLOBALS = 0x1C,
+            OP_STORE_GLOBALS = 0x1D,
+			OP_LOAD_LOCALS = 0x1E,
+			OP_STORE_LOCALS = 0x1F,
+            OP_LOAD_NAME = 0x20,
+			OP_STORE_NAME = 0x21,
+            OP_LOAD_ATTR_NAME = 0x22,
+            OP_STORE_ATTR_NAME = 0x23,
+            OP_LOAD_METHOD_NAME = 0x24,
+            OP_STORE_METHOD_NAME = 0x25,
+			OP_LOAD_CLASS_NAME = 0x26,
+            OP_STORE_CLASS_NAME = 0x27,
+			OP_LOAD_MODULE_NAME = 0x28,
+            OP_STORE_MODULE_NAME = 0x29,
+			OP_LOAD_BUILTIN_NAME = 0x2A,
+            OP_STORE_BUILTIN_NAME = 0x2B,
+            OP_LOAD_ITER_NAME = 0x2C,
+            OP_STORE_ITER_NAME = 0x2D,
+			OP_LOAD_EXCEPTION_NAME = 0x2E,
+            OP_STORE_EXCEPTION_NAME = 0x2F,
+            OP_LOAD_CONTEXT_NAME = 0x30,
+            OP_STORE_CONTEXT_NAME = 0x31,
+			OP_LOAD_GLOBALS_NAME = 0x32,
+            OP_STORE_GLOBALS_NAME = 0x33,
+            OP_LOAD_LOCALS_NAME = 0x34,
+			OP_STORE_LOCALS_NAME = 0x35,
+			OP_LOAD_NAME_NAME = 0x36,
+            OP_STORE_NAME_NAME = 0x37,
+            OP_LOAD_ATTR_NAME_NAME = 0x38,
+			OP_STORE_ATTR_NAME_NAME = 0x39,
+            OP_LOAD_METHOD_NAME_NAME = 0x3A,
+			OP_STORE_METHOD_NAME_NAME = 0x3B,
+			OP_LOAD_CLASS_NAME_NAME = 0x3C,
+			OP_STORE_CLASS_NAME_NAME = 0x3D,
+			OP_LOAD_MODULE_NAME_NAME = 0x3E,
+			OP_STORE_MODULE_NAME_NAME = 0x3F,
+			OP_LOAD_BUILTIN_NAME_NAME = 0x40,
+			OP_STORE_BUILTIN_NAME_NAME = 0x41,
+			OP_LOAD_ITER_NAME_NAME = 0x42,
+			OP_STORE_ITER_NAME_NAME = 0x43,
+			OP_LOAD_EXCEPTION_NAME_NAME = 0x44,
+			OP_STORE_EXCEPTION_NAME_NAME = 0x45,
+			OP_LOAD_CONTEXT_NAME_NAME = 0x46,
+			OP_STORE_CONTEXT_NAME_NAME = 0x47,
+			OP_LOAD_GLOBALS_NAME_NAME = 0x48,
+			OP_STORE_GLOBALS_NAME_NAME = 0x49,
+			OP_LOAD_LOCALS_NAME_NAME = 0x4A,
+			OP_STORE_LOCALS_NAME_NAME = 0x4B,
+			OP_LOAD_NAME_NAME_NAME = 0x4C,
+			OP_STORE_NAME_NAME_NAME = 0x4D,
+			OP_LOAD_ATTR_NAME_NAME_NAME = 0x4E,
+			OP_STORE_ATTR_NAME_NAME_NAME = 0x4F,
+			OP_LOAD_METHOD_NAME_NAME_NAME = 0x50,
+			OP_STORE_METHOD_NAME_NAME_NAME = 0x51,
+			OP_LOAD_CLASS_NAME_NAME_NAME = 0x52,
+			OP_STORE_CLASS_NAME_NAME_NAME = 0x53,
+			OP_LOAD_MODULE_NAME_NAME_NAME = 0x54,
+			OP_STORE_MODULE_NAME_NAME_NAME = 0x55,
+			OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x56,
+			OP_STORE_BUILTIN_NAME_NAME_NAME = 0x57,
+			OP_LOAD_ITER_NAME_NAME_NAME = 0x58,
+			OP_STORE_ITER_NAME_NAME_NAME = 0x59,
+			OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x5A,
+			OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x5B,
+			OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x5C,
+			OP_STORE_CONTEXT_NAME_NAME_NAME = 0x5D,
+			OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x5E,
+			OP_STORE_GLOBALS_NAME_NAME_NAME = 0x5F,
+			OP_LOAD_LOCALS_NAME_NAME_NAME = 0x60,
+			OP_STORE_LOCALS_NAME_NAME_NAME = 0x61,
+			OP_LOAD_NAME_NAME_NAME = 0x62,
+			OP_STORE_NAME_NAME_NAME = 0x63,
+			OP_LOAD_ATTR_NAME_NAME_NAME = 0x64,
+			OP_STORE_ATTR_NAME_NAME_NAME = 0x65,
+			OP_LOAD_METHOD_NAME_NAME_NAME = 0x66,
+			OP_STORE_METHOD_NAME_NAME_NAME = 0x67,
+			OP_LOAD_CLASS_NAME_NAME_NAME = 0x68,
+			OP_STORE_CLASS_NAME_NAME_NAME = 0x69,
+			OP_LOAD_MODULE_NAME_NAME_NAME = 0x6A,
+			OP_STORE_MODULE_NAME_NAME_NAME = 0x6B,
+			OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x6C,
+			OP_STORE_BUILTIN_NAME_NAME_NAME = 0x6D,
+			OP_LOAD_ITER_NAME_NAME_NAME = 0x6E,
+			OP_STORE_ITER_NAME_NAME_NAME = 0x6F,
+			OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x70,
+			OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x71,
+			OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x72,
+			OP_STORE_CONTEXT_NAME_NAME_NAME = 0x73,
+			OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x74,
+			OP_STORE_GLOBALS_NAME_NAME_NAME = 0x75,
+			OP_LOAD_LOCALS_NAME_NAME_NAME = 0x76,
+			OP_STORE_LOCALS_NAME_NAME_NAME = 0x77,
+			OP_LOAD_NAME_NAME_NAME = 0x78,
+			OP_STORE_NAME_NAME_NAME = 0x79,
+			OP_LOAD_ATTR_NAME_NAME_NAME = 0x7A,
+			OP_STORE_ATTR_NAME_NAME_NAME = 0x7B,
+			OP_LOAD_METHOD_NAME_NAME_NAME = 0x7C,
+			OP_STORE_METHOD_NAME_NAME_NAME = 0x7D,
+			OP_LOAD_CLASS_NAME_NAME_NAME = 0x7E,
+			OP_STORE_CLASS_NAME_NAME_NAME = 0x7F,
+			OP_LOAD_MODULE_NAME_NAME_NAME = 0x80,
+			OP_STORE_MODULE_NAME_NAME_NAME = 0x81,
+			OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x82,
+			OP_STORE_BUILTIN_NAME_NAME_NAME = 0x83,
+			OP_LOAD_ITER_NAME_NAME_NAME = 0x84,
+			OP_STORE_ITER_NAME_NAME_NAME = 0x85,
+			OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x86,
+			OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x87,
+			OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x88,
+			OP_STORE_CONTEXT_NAME_NAME_NAME = 0x89,
+			OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x8A,
+			OP_STORE_GLOBALS_NAME_NAME_NAME = 0x8B,
+			OP_LOAD_LOCALS_NAME_NAME_NAME = 0x8C,
+            OP_STORE_LOCALS_NAME_NAME_NAME = 0x8D,
+                OP_LOAD_NAME_NAME_NAME = 0x8E,
+                OP_STORE_NAME_NAME_NAME = 0x8F,
+                OP_LOAD_ATTR_NAME_NAME_NAME = 0x90,
+                OP_STORE_ATTR_NAME_NAME_NAME = 0x91,
+                OP_LOAD_METHOD_NAME_NAME_NAME = 0x92,
+                OP_STORE_METHOD_NAME_NAME_NAME = 0x93,
+                OP_LOAD_CLASS_NAME_NAME_NAME = 0x94,
+                OP_STORE_CLASS_NAME_NAME_NAME = 0x95,
+                OP_LOAD_MODULE_NAME_NAME_NAME = 0x96,
+                OP_STORE_MODULE_NAME_NAME_NAME = 0x97,
+                OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x98,
+                OP_STORE_BUILTIN_NAME_NAME_NAME = 0x99,
+                OP_LOAD_ITER_NAME_NAME_NAME = 0x9A,
+                OP_STORE_ITER_NAME_NAME_NAME = 0x9B,
+				OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x9C,
+				OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x9D,
+				OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x9E,
+				OP_STORE_CONTEXT_NAME_NAME_NAME = 0x9F,
+				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0xA0,
+				OP_STORE_GLOBALS_NAME_NAME_NAME = 0xA1,
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0xA2,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0xA3,
+				OP_LOAD_NAME_NAME_NAME = 0xA4,
+				OP_STORE_NAME_NAME_NAME = 0xA5,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0xA6,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0xA7,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0xA8,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0xA9,
+				OP_LOAD_CLASS_NAME_NAME_NAME = 0xAA,
+				OP_STORE_CLASS_NAME_NAME_NAME = 0xAB,
+				OP_LOAD_MODULE_NAME_NAME_NAME = 0xAC,
+				OP_STORE_MODULE_NAME_NAME_NAME = 0xAD,
+				OP_LOAD_BUILTIN_NAME_NAME_NAME = 0xAE,
+				OP_STORE_BUILTIN_NAME_NAME_NAME = 0xAF,
+				OP_LOAD_ITER_NAME_NAME_NAME = 0xB0,
+				OP_STORE_ITER_NAME_NAME_NAME = 0xB1,
+				OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0xB2,
+				OP_STORE_EXCEPTION_NAME_NAME_NAME = 0xB3,
+				OP_LOAD_CONTEXT_NAME_NAME_NAME = 0xB4,
+				OP_STORE_CONTEXT_NAME_NAME_NAME = 0xB5,
+				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0xB6,
+				OP_STORE_GLOBALS_NAME_NAME_NAME = 0xB7,
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0xB8,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0xB9,
+				OP_LOAD_NAME_NAME_NAME = 0xBA,
+				OP_STORE_NAME_NAME_NAME = 0xBB,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0xBC,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0xBD,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0xBE,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0xBF,
+				OP_LOAD_CLASS_NAME_NAME_NAME = 0xC0,
+				OP_STORE_CLASS_NAME_NAME_NAME = 0xC1,
+				OP_LOAD_MODULE_NAME_NAME_NAME = 0xC2,
+				OP_STORE_MODULE_NAME_NAME_NAME = 0xC3,
+				OP_LOAD_BUILTIN_NAME_NAME_NAME = 0xC4,
+				OP_STORE_BUILTIN_NAME_NAME_NAME = 0xC5,
+				OP_LOAD_ITER_NAME_NAME_NAME = 0xC6,
+				OP_STORE_ITER_NAME_NAME_NAME = 0xC7,
+				OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0xC8,
+				OP_STORE_EXCEPTION_NAME_NAME_NAME = 0xC9,
+				OP_LOAD_CONTEXT_NAME_NAME_NAME = 0xCA,
+				OP_STORE_CONTEXT_NAME_NAME_NAME = 0xCB,
+				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0xCC,
+				OP_STORE_GLOBALS_NAME_NAME_NAME = 0xCD,
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0xCE,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0xCF,
+				OP_LOAD_NAME_NAME_NAME = 0xD0,
+				OP_STORE_NAME_NAME_NAME = 0xD1,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0xD2,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0xD3,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0xD4,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0xD5,
+				OP_LOAD_CLASS_NAME_NAME_NAME = 0xD6,
+				OP_STORE_CLASS_NAME_NAME_NAME = 0xD7,
+				OP_LOAD_MODULE_NAME_NAME_NAME = 0xD8,
+				OP_STORE_MODULE_NAME_NAME_NAME = 0xD9,
+				OP_LOAD_BUILTIN_NAME_NAME_NAME = 0xDA,
+				OP_STORE_BUILTIN_NAME_NAME_NAME = 0xDB,
+				OP_LOAD_ITER_NAME_NAME_NAME = 0xDC,
+				OP_STORE_ITER_NAME_NAME_NAME = 0xDD,
+				OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0xDE,
+                OP_STORE_EXCEPTION_NAME_NAME_NAME = 0xDF,
+                    OP_LOAD_CONTEXT_NAME_NAME_NAME = 0xE0,
+                    OP_STORE_CONTEXT_NAME_NAME_NAME = 0xE1,
+                    OP_LOAD_GLOBALS_NAME_NAME_NAME = 0xE2,
+                    OP_STORE_GLOBALS_NAME_NAME_NAME = 0xE3,
+                    OP_LOAD_LOCALS_NAME_NAME_NAME = 0xE4,
+                    OP_STORE_LOCALS_NAME_NAME_NAME = 0xE5,
+                    OP_LOAD_NAME_NAME_NAME = 0xE6,
+                    OP_STORE_NAME_NAME_NAME = 0xE7,
+                    OP_LOAD_ATTR_NAME_NAME_NAME = 0xE8,
+                    OP_STORE_ATTR_NAME_NAME_NAME = 0xE9,
+                    OP_LOAD_METHOD_NAME_NAME_NAME = 0xEA,
+                    OP_STORE_METHOD_NAME_NAME_NAME = 0xEB,
+					OP_LOAD_CLASS_NAME_NAME_NAME = 0xEC,
+					OP_STORE_CLASS_NAME_NAME_NAME = 0xED,
+					OP_LOAD_MODULE_NAME_NAME_NAME = 0xEE,
+					OP_STORE_MODULE_NAME_NAME_NAME = 0xEF,
+					OP_LOAD_BUILTIN_NAME_NAME_NAME = 0xF0,
+					OP_STORE_BUILTIN_NAME_NAME_NAME = 0xF1,
+					OP_LOAD_ITER_NAME_NAME_NAME = 0xF2,
+					OP_STORE_ITER_NAME_NAME_NAME = 0xF3,
+					OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0xF4,
+					OP_STORE_EXCEPTION_NAME_NAME_NAME = 0xF5,
+					OP_LOAD_CONTEXT_NAME_NAME_NAME = 0xF6,
+					OP_STORE_CONTEXT_NAME_NAME_NAME = 0xF7,
+					OP_LOAD_GLOBALS_NAME_NAME_NAME = 0xF8,
+					OP_STORE_GLOBALS_NAME_NAME_NAME = 0xF9,
+					OP_LOAD_LOCALS_NAME_NAME_NAME = 0xFA,
+					OP_STORE_LOCALS_NAME_NAME_NAME = 0xFB,
+					OP_LOAD_NAME_NAME_NAME = 0xFC,
+					OP_STORE_NAME_NAME_NAME = 0xFD,
+					OP_LOAD_ATTR_NAME_NAME_NAME = 0xFE,
+                    OP_STORE_ATTR_NAME_NAME_NAME = 0xFF
+            };
+            struct Capsule {
+                CapsuleMeta meta;
+                std::vector<std::string> constants;
+                std::map<std::string, std::any> globals;
+                std::vector<ASTNode> ast;
+            };
+            class Inspector {
+            public:
+                void load_capsule(const Capsule& capsule) {
+					current_capsule = capsule;
+					// Print metadata
+					std::cout << "[PLUGIN INSPECTOR] Capsule Metadata:\n";
+					std::cout << "  Name: " << current_capsule.meta.name << "\n";
+					std::cout << "  Version: " << current_capsule.meta.version << "\n";
+					std::cout << "  Entry: " << current_capsule.meta.entry << "\n";
+					std::cout << "  Hash: " << current_capsule.meta.hash << "\n";
+					// Print constants
+					std::cout << "[PLUGIN INSPECTOR] Constants:\n";
+                    for (const auto& constant : current_capsule.constants) {
+                        std::cout << "  - " << constant << "\n";
+					}
+					// Print globals
+					std::cout << "[PLUGIN INSPECTOR] Globals:\n";
+                    for (const auto& [key, value] : current_capsule.globals) {
+                        std::cout << "  - " << key << ": ";
+                    if (value.type() == typeid(int)) {
+                        std::cout << std::any_cast<int>(value) << "\n";
+					}
+					else if (value.type() == typeid(std::string)) {
+                        std::cout << std::any_cast<std::string>(value) << "\n";
+                    }
+                    else {
+                        std::cout << "Unknown type\n";
+					}
+					}
+					// Print AST
+					std::cout << "[PLUGIN INSPECTOR] AST:\n";
+                    for (const auto& node : current_capsule.ast) {
+                        print_ast_node(node, 0);
+					}
+                    }
+                void print_ast_node(const ASTNode& node, int depth) {
+                    std::string indent(depth * 2, ' ');
+                    std::cout << indent << node.type << ": " << node.value << "\n";
+                    for (const auto& child : node.children) {
+						print_ast_node(child, depth + 1);
+					}
+                    }
+                void inspect() {
+                    std::cout << "[PLUGIN INSPECTOR] Inspecting capsule...\n";
+                    // Here you can add more inspection logic if needed
+                }
+            private:
+                Capsule current_capsule;
+            };
+        }
+        int main() {
+            PluginInspector::Inspector inspector;
+            PluginInspector::Capsule capsule;
+            capsule.meta.name = "ExampleCapsule";
+            capsule.meta.version = "1.0.0";
+            capsule.meta.entry = "main_function";
+			capsule.meta.hash = "examplehash";
+            capsule.constants = { "PI", "E" };
+            capsule.globals["x"] = 42;
+            capsule.globals["y"] = std::string("Hello");
+            PluginInspector::ASTNode root("Module", "");
+            root.add_child("FunctionDef", "main_function");
+            root.add_child("Return", "x");
+            capsule.ast.push_back(root);
+            inspector.load_capsule(capsule);
+			inspector.inspect();
+            return 0;
+		}
+#include <iostream>
+#include <string>
+#include <vector>
+        #include <map>
+        #include <any>
+        #include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
+        class PluginInspector {
+        public:
+            struct Node {
+                std::string name;
+				std::vector<std::string> deps; // Dependencies
+                float x, y; // Position in the graph
+                float radius; // Radius for drawing
+                int color; // Color for drawing
+				Node(const std::string& n, const std::vector<std::string>& d, float x_pos, float y_pos, float r, int c)
+					: name(n), deps(d),
+                    x(x_pos), y(y_pos), radius(r), color(c) {}
+            };
+        private:
+			SDL_Window* window = nullptr;
+            SDL_Renderer* renderer = nullptr;
+            TTF_Font* font = nullptr;
+            std::vector<Node> nodes; // List of nodes in the graph
+            std::string selected; // Selected node name
+			// Theme settings
+            bool theme_dark = true; // Dark theme by default
+            struct Camera {
+                float x, y; // Camera position
+                float zoom; // Camera zoom level
+                Camera() : x(0), y(0), zoom(1.0f) {}
+            } camera;
+        public:
+			void layout_graph() {
+                // Simple layout algorithm to position nodes in a circle
+            int num_nodes = nodes.size();
+            for (int i = 0; i < num_nodes; ++i) {
+                float angle = 2 * 3.14159265358979323846f * i / num_nodes;
+				nodes[i].x = 400 + 200 * cos(angle);
+				nodes[i].y = 300 + 200 * sin(angle);
+				nodes[i].radius = 30; // Set a fixed radius for each node
+                nodes[i].color = 0xFF0000; // Default color (red)
+            }
+        }
+        std::pair<int, int> screen_xy(float x, float y) {
+            // Convert world coordinates to screen coordinates
+            return { static_cast<int>((x - camera.x) * camera.zoom), static_cast<int>((y - camera.y) * camera.zoom) };
+        }
+		void draw_text(const std::string& text, int x, int y) {
+            SDL_Color color = { theme_dark ? 255 : 0, theme_dark ? 255 : 0, theme_dark ? 255 : 0, 255 };
+            SDL_Surface* surface = TTF_RenderText_Solid(font, text.c_str(), color);
+            if (surface) {
+                SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+                if (texture) {
+                    int w, h;
+					SDL_QueryTexture(texture, nullptr, nullptr, &w, &h);
+                    SDL_Rect dstrect = { x, y, w, h };
+                    SDL_RenderCopy(renderer, texture, nullptr, &dstrect);
+                    SDL_DestroyTexture(texture);
+                }
+                SDL_FreeSurface(surface);
+            }
+		}
+        void clear_theme() {
+            if (theme_dark) {
+                SDL_SetRenderDrawColor(renderer, 30, 30, 30, 255); // Dark background
+            } else {
+                SDL_SetRenderDrawColor(renderer, 240, 240, 240, 255); // Light background
+            }
+            SDL_RenderClear(renderer);
+        }
+        void draw_circle(int x, int y, float radius, int color) {
+			SDL_SetRenderDrawColor(renderer, (color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF, 255);
+			int h = static_cast<int>(radius * camera.zoom);
+            for (float angle = 0; angle < 2 * 3.14159265358979323846f; angle += 0.1f) {
+				float dx = radius * camera.zoom * cos(angle);
+				float dy = radius * camera.zoom * sin(angle);
+				SDL_RenderDrawPoint(renderer, static_cast<int>(x + dx), static_cast<int>(y + dy));
+				SDL_RenderDrawPoint(renderer, static_cast<int>(x + dx), static_cast<int>(y + dy + h));
+				SDL_RenderDrawPoint(renderer, static_cast<int>(x + dx), static_cast<int>(y - dy));
+				SDL_RenderDrawPoint(renderer, static_cast<int>(x - dx), static_cast<int>(y + dy));
+				SDL_RenderDrawPoint(renderer, static_cast<int>(x - dx), static_cast<int>(y - dy));
+                }
+        }
+        bool handle_events() {
+            SDL_Event event;
+            while (SDL_PollEvent(&event)) {
+                if (event.type == SDL_QUIT) {
+                    return false; // Exit on quit event
+				}
+				else if (event.type == SDL_KEYDOWN) {
+                    if (event.key.keysym.sym == SDLK_ESCAPE) {
+                        return false; // Exit on Escape key
+                    }
+                    else if (event.key.keysym.sym == SDLK_t) {
+                        theme_dark = !theme_dark; // Toggle theme
+                    }
+                }
+				else if (event.type == SDL_MOUSEBUTTONDOWN) {
+                    if (event.button.button == SDL_BUTTON_LEFT) {
+                        int x, y;
+                        SDL_GetMouseState(&x, &y);
+                        // Convert mouse coordinates to world coordinates
+                        x = static_cast<int>((x / camera.zoom) + camera.x);
+                        y = static_cast<int>((y / camera.zoom) + camera.y);
+                        // Check if any node is clicked
+                        for (const auto& n : nodes) {
+                            auto [sx, sy] = screen_xy(n.x, n.y);
+							float dx = x - sx;
+							float dy = y - sy;
+                            if (dx * dx + dy * dy <= n.radius * n.radius) {
+                                selected = n.name; // Select the clicked node
+                                break;
+							}
+                            }
+                    }
+                }
+            }
+            return true; // Continue running
+        }
+        void draw() {
+            clear_theme(); // Clear the screen with the current theme
+            for (const auto& n : nodes) {
+                auto [sx, sy] = screen_xy(n.x, n.y);
+                draw_circle(sx, sy, n.radius, n.color); // Draw node circle
+                draw_text(n.name, sx - 20, sy - 10); // Draw node name
+                if (n.name == selected) { // Highlight selected node
+					SDL_SetRenderDrawColor(renderer, 0x00FF00, 255); // Highlight color (green)
+					SDL_RenderDrawCircle(renderer, sx, sy, n.radius + 5); // Draw highlight circle
+                    }
+                // Draw dependencies
+                for (const auto& dep : n.deps) {
+                    auto it = std::find_if(nodes.begin(), nodes.end(), [&dep](const Node& node) { return node.name == dep; });
+                    if (it != nodes.end()) {
+                        auto [dsx, dsy] = screen_xy(it->x, it->y);
+                        SDL_SetRenderDrawColor(renderer, 0xFFFFFF, 255); // Dependency line color (white)
+                        SDL_RenderDrawLine(renderer, sx, sy, dsx, dsy); // Draw line to dependency
+                    }
+                }
+            }
+			SDL_RenderPresent(renderer); // Present the rendered frame
+            }
+        PluginInspector() {
+            if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+                std::cerr << "SDL initialization failed: " << SDL_GetError() << std::endl;
+                return;
+            }
+            if (TTF_Init() < 0) {
+                std::cerr << "SDL_ttf initialization failed: " << TTF_GetError() << std::endl;
+                return;
+            }
+            window = SDL_CreateWindow("Plugin Inspector", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 800, 600, SDL_WINDOW_SHOWN);
+            if (!window) {
+				std::cerr << "Window creation failed: " << SDL_GetError() << std::endl;
+                return;
+            }
+            renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+            if (!renderer) {
+                std::cerr << "Renderer creation failed: " << SDL_GetError() << std::endl;
+                SDL_DestroyWindow(window);
+                return;
+            }
+            font = TTF_OpenFont("arial.ttf", 16); // Load a font
+            if (!font) {
+                std::cerr << "Font loading failed: " << TTF_GetError() << std::endl;
+                SDL_DestroyRenderer(renderer);
+                SDL_DestroyWindow(window);
+                return;
+            }
+            // Initialize nodes (example data)
+			nodes.emplace_back("PluginA", std::vector<std::string>{"PluginB"}, 0, 0, 30, 0xFF0000);
+			nodes.emplace_back("PluginB", std::vector<std::string>{"PluginC"}, 0, 0, 30, 0x00FF00);
+            nodes.emplace_back("PluginC", std::vector<std::string>{}, 0, 0, 30, 0x0000FF);
+            layout_graph(); // Layout the graph
+        }
+        ~PluginInspector() {
+            TTF_CloseFont(font);
+            SDL_DestroyRenderer(renderer);
+            SDL_DestroyWindow(window);
+            TTF_Quit();
+            SDL_Quit();
+        }
+        void run() {
+            while (handle_events()) {
+                draw(); // Draw the graph
+            }
+        }
+    };
+    int main(int argc, char* argv[]) {
+        PluginInspector inspector;
+        inspector.run();
+        return 0;
+	}
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <openssl/pem.h>
+#include <openssl/evp.h>
+    bool verify_signature(const std::vector<uint8_t>& data, const std::string& signature, const std::string& public_key_path) {
+            EVP_PKEY* pubkey = nullptr;
+            FILE* pubkey_file = fopen(public_key_path.c_str(), "r");
+            if (!pubkey_file) {
+                std::cerr << "[ERROR] Failed to open public key file: " << public_key_path << std::endl;
+                return false;
+            }
+            pubkey = PEM_read_PUBKEY(pubkey_file, nullptr, nullptr, nullptr);
+            fclose(pubkey_file);
+            if (!pubkey) {
+                std::cerr << "[ERROR] Failed to read public key." << std::endl;
+                return false;
+            }
+			EVP_MD_CTX* ctx = EVP_MD_CTX_new();
+            if (!ctx) {
+                std::cerr << "[ERROR] Failed to create EVP_MD_CTX." << std::endl;
+                EVP_PKEY_free(pubkey);
+                return false;
+            }
+            if (EVP_DigestVerifyInit(ctx, nullptr, EVP_sha256(), nullptr, pubkey) != 1) {
+                std::cerr << "[ERROR] Failed to initialize digest verify." << std::endl;
+                EVP_MD_CTX_free(ctx);
+                EVP_PKEY_free(pubkey);
+                return false;
+            }
+            if (EVP_DigestVerifyUpdate(ctx, data.data(), data.size()) != 1) {
+                std::cerr << "[ERROR] Failed to update digest verify." << std::endl;
+                EVP_MD_CTX_free(ctx);
+                EVP_PKEY_free(pubkey);
+                return false;
+			}
+            int result = EVP_DigestVerifyFinal(ctx, reinterpret_cast<const unsigned char*>(signature.data()), signature.size());
+            EVP_MD_CTX_free(ctx);
+            EVP_PKEY_free(pubkey);
+            if (result == 1) {
+                return true; // Signature is valid
+            } else {
+                std::cerr << "[ERROR] Signature verification failed." << std::endl;
+                return false; // Signature is invalid
+            }
+        }
+        struct CapsuleFooter {
+            std::string signature; // Placeholder for signature
+        };
+        struct CapsuleMetadata {
+			std::string name;
+            std::string version;
+            std::string entry;
+            CapsuleFooter footer;
+        };
+        CapsuleMetadata read_capsule_metadata(const std::string& capsule_path) {
+            CapsuleMetadata metadata;
+            std::ifstream capsule_file(capsule_path, std::ios::binary);
+            if (!capsule_file.is_open()) {
+                std::cerr << "[ERROR] Failed to open capsule file: " << capsule_path << std::endl;
+                return metadata;
+            }
+            // Read metadata (this is a simplified example, adjust as needed)
+            std::getline(capsule_file, metadata.name);
+            std::getline(capsule_file, metadata.version);
+            std::getline(capsule_file, metadata.entry);
+            // Read footer (signature)
+			std::getline(capsule_file, metadata.footer.signature);
+            capsule_file.close();
+            return metadata;
+        }
+        void verify_capsule(const std::string& capsule_path, const std::string& public_key_path) {
+            CapsuleMetadata metadata = read_capsule_metadata(capsule_path);
+            if (metadata.name.empty()) {
+                std::cerr << "[ERROR] Failed to read capsule metadata." << std::endl;
+                return;
+            }
+            std::cout << "[INFO] Capsule Name: " << metadata.name << std::endl;
+            std::cout << "[INFO] Capsule Version: " << metadata.version << std::endl;
+            std::cout << "[INFO] Capsule Entry: " << metadata.entry << std::endl;
+            // Read the capsule data
+            std::ifstream capsule_file(capsule_path, std::ios::binary);
+            if (!capsule_file.is_open()) {
+                std::cerr << "[ERROR] Failed to open capsule file: " << capsule_path << std::endl;
+                return;
+            }
+			std::vector<uint8_t> data((std::istreambuf_iterator<char>(capsule_file)), std::istreambuf_iterator<char>());
+            capsule_file.close();
+            // Verify the signature
+            if (verify_signature(data, metadata.footer.signature, public_key_path)) {
+                std::cout << "[INFO] Capsule signature is valid." << std::endl;
+            } else {
+                std::cerr << "[ERROR] Capsule signature is invalid." << std::endl;
+			}
+            }
+        int main(int argc, char* argv[]) {
+            if (argc < 3) {
+                std::cerr << "Usage: " << argv[0] << " <capsule_path> <public_key_path>" << std::endl;
+                return 1;
+            }
+            std::string capsule_path = argv[1];
+            std::string public_key_path = argv[2];
+            verify_capsule(capsule_path, public_key_path);
+            return 0;
+        }
+        // === REPL Debugger ===
+        namespace REPLDebugger {
+            void start_repl() {
+                std::string command;
+                while (true) {
+                    std::cout << "[REPL DEBUGGER] Enter command: ";
+					std::getline(std::cin, command);
+                    if (command == "exit" || command == "quit") {
+                        break; // Exit the REPL
+                    } else if (command == "help") {
+                        std::cout << "Available commands:\n";
+                        std::cout << "  - help: Show this help message\n";
+                        std::cout << "  - exit/quit: Exit the REPL\n";
+                        // Add more commands as needed
+                    } else {
+                        std::cout << "[REPL DEBUGGER] Executing command: " << command << "\n";
+                        // Placeholder for actual command execution logic
+                    }
+                }
+            }
+        }
+        // === Plugin System ===
+        namespace PluginSystem {
+            struct PluginInfo {
+                std::string version;
+                std::string hash;
+            };
+            std::map<std::string, PluginInfo> registered_plugins;
+            void register_plugin(const std::string& name, const PluginInfo& info) {
+                registered_plugins[name] = info;
+                std::cout << "[PLUGIN SYSTEM] Registered plugin: " << name << " v" << info.version << "\n";
+            }
+			void list_plugins() {
+                std::cout << "[PLUGIN SYSTEM] Registered Plugins:\n";
+                for (const auto& [name, info] : registered_plugins) {
+                    std::cout << "  - " << name << " (v" << info.version << ", hash: " << info.hash << ")\n";
+                }
+            }
+            void load_plugin(const std::string& name) {
+                if (registered_plugins.find(name) != registered_plugins.end()) {
+                    std::cout << "[PLUGIN SYSTEM] Loading plugin: " << name << "\n";
+                    // Placeholder for actual plugin loading logic
+                } else {
+                    std::cerr << "[PLUGIN SYSTEM] Plugin not found: " << name << "\n";
+                }
+            }
+        }
+	} // namespace PluginInspector
+    namespace PluginInspector {
+            enum CapsuleMeta {
+                OP_NOP = 0x00,
+            OP_LOAD_CONST = 0x01,
+            OP_STORE_CONST = 0x02,
+            OP_LOAD_VAR = 0x03,
+            OP_STORE_VAR = 0x04,
+            OP_LOAD_GLOBAL = 0x05,
+            OP_STORE_GLOBAL = 0x06,
+            OP_LOAD_LOCAL = 0x07,
+            OP_STORE_LOCAL = 0x08,
+            OP_CALL_FUNCTION = 0x09,
+			OP_RETURN_VALUE = 0x0A,
+            OP_LOAD_ATTR = 0x0B,
+            OP_STORE_ATTR = 0x0C,
+            OP_LOAD_METHOD = 0x0D,
+			OP_STORE_METHOD = 0x0E,
+            OP_LOAD_CLASS = 0x0F,
+            OP_STORE_CLASS = 0x10,
+            OP_LOAD_MODULE = 0x11,
+			OP_STORE_MODULE = 0x12,
+            OP_LOAD_BUILTIN = 0x13,
+            OP_STORE_BUILTIN = 0x14,
+            OP_LOAD_ITER = 0x15,
+			OP_STORE_ITER = 0x16,
+            OP_LOAD_EXCEPTION = 0x17,
+            OP_STORE_EXCEPTION = 0x18,
+            OP_LOAD_CONTEXT = 0x19,
+			OP_STORE_CONTEXT = 0x1A,
+            OP_LOAD_GLOBALS = 0x1B,
+			OP_STORE_GLOBALS = 0x1C,
+			OP_LOAD_LOCALS = 0x1D,
+			OP_STORE_LOCALS = 0x1E,
+            OP_LOAD_NAME = 0x1F,
+            OP_STORE_NAME = 0x20,
+			OP_LOAD_ATTR_NAME = 0x21,
+            OP_STORE_ATTR_NAME = 0x22,
+			OP_LOAD_METHOD_NAME = 0x23,
+			OP_STORE_METHOD_NAME = 0x24,
+			OP_LOAD_CLASS_NAME = 0x25,
+			OP_STORE_CLASS_NAME = 0x26,
+			OP_LOAD_MODULE_NAME = 0x27,
+			OP_STORE_MODULE_NAME = 0x28,
+			OP_LOAD_BUILTIN_NAME = 0x29,
+			OP_STORE_BUILTIN_NAME = 0x2A,
+			OP_LOAD_ITER_NAME = 0x2B,
+			OP_STORE_ITER_NAME = 0x2C,
+			OP_LOAD_EXCEPTION_NAME = 0x2D,
+			OP_STORE_EXCEPTION_NAME = 0x2E,
+			OP_LOAD_CONTEXT_NAME = 0x2F,
+			OP_STORE_CONTEXT_NAME = 0x30,
+			OP_LOAD_GLOBALS_NAME = 0x31,
+			OP_STORE_GLOBALS_NAME = 0x32,
+			OP_LOAD_LOCALS_NAME = 0x33,
+			OP_STORE_LOCALS_NAME = 0x34,
+			OP_LOAD_NAME_NAME = 0x35,
+			OP_STORE_NAME_NAME = 0x36,
+			OP_LOAD_ATTR_NAME_NAME = 0x37,
+			OP_STORE_ATTR_NAME_NAME = 0x38,
+			OP_LOAD_METHOD_NAME_NAME = 0x39,
+			OP_STORE_METHOD_NAME_NAME = 0x3A,
+			OP_LOAD_CLASS_NAME_NAME = 0x3B,
+			OP_STORE_CLASS_NAME_NAME = 0x3C,
+			OP_LOAD_MODULE_NAME_NAME = 0x3D,
+			OP_STORE_MODULE_NAME_NAME = 0x3E,
+			OP_LOAD_BUILTIN_NAME_NAME = 0x3F,
+			OP_STORE_BUILTIN_NAME_NAME = 0x40,
+			OP_LOAD_ITER_NAME_NAME = 0x41,
+			OP_STORE_ITER_NAME_NAME = 0x42,
+			OP_LOAD_EXCEPTION_NAME_NAME = 0x43,
+			OP_STORE_EXCEPTION_NAME_NAME = 0x44,
+			OP_LOAD_CONTEXT_NAME_NAME = 0x45,
+			OP_STORE_CONTEXT_NAME_NAME = 0x46,
+			OP_LOAD_GLOBALS_NAME_NAME = 0x47,
+			OP_STORE_GLOBALS_NAME_NAME = 0x48,
+			OP_LOAD_LOCALS_NAME_NAME = 0x49,
+			OP_STORE_LOCALS_NAME_NAME = 0x4A,
+			OP_LOAD_NAME_NAME_NAME = 0x4B,
+			OP_STORE_NAME_NAME_NAME = 0x4C,
+			OP_LOAD_ATTR_NAME_NAME_NAME = 0x4D,
+			OP_STORE_ATTR_NAME_NAME_NAME = 0x4E,
+			OP_LOAD_METHOD_NAME_NAME_NAME = 0x4F,
+			OP_STORE_METHOD_NAME_NAME_NAME = 0x50,
+			OP_LOAD_CLASS_NAME_NAME_NAME = 0x51,
+			OP_STORE_CLASS_NAME_NAME_NAME = 0x52,
+			OP_LOAD_MODULE_NAME_NAME_NAME = 0x53,
+			OP_STORE_MODULE_NAME_NAME_NAME = 0x54,
+			OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x55,
+			OP_STORE_BUILTIN_NAME_NAME_NAME = 0x56,
+			OP_LOAD_ITER_NAME_NAME_NAME = 0x57,
+			OP_STORE_ITER_NAME_NAME_NAME = 0x58,
+			OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x59,
+			OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x5A,
+			OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x5B,
+			OP_STORE_CONTEXT_NAME_NAME_NAME = 0x5C,
+			OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x5D,
+			OP_STORE_GLOBALS_NAME_NAME_NAME = 0x5E,
+			OP_LOAD_LOCALS_NAME_NAME_NAME = 0x5F,
+			OP_STORE_LOCALS_NAME_NAME_NAME = 0x60,
+			OP_LOAD_NAME_NAME_NAME = 0x61,
+			OP_STORE_NAME_NAME_NAME = 0x62,
+			OP_LOAD_ATTR_NAME_NAME_NAME = 0x63,
+			OP_STORE_ATTR_NAME_NAME_NAME = 0x64,
+			OP_LOAD_METHOD_NAME_NAME_NAME = 0x65,
+			OP_STORE_METHOD_NAME_NAME_NAME = 0x66,
+			OP_LOAD_CLASS_NAME_NAME_NAME = 0x67,
+			OP_STORE_CLASS_NAME_NAME_NAME = 0x68,
+			OP_LOAD_MODULE_NAME_NAME_NAME = 0x69,
+			OP_STORE_MODULE_NAME_NAME_NAME = 0x6A,
+			OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x6B,
+			OP_STORE_BUILTIN_NAME_NAME_NAME = 0x6C,
+			OP_LOAD_ITER_NAME_NAME_NAME = 0x6D,
+			OP_STORE_ITER_NAME_NAME_NAME = 0x6E,
+			OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x6F,
+			OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x70,
+			OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x71,
+			OP_STORE_CONTEXT_NAME_NAME_NAME = 0x72,
+			OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x73,
+			OP_STORE_GLOBALS_NAME_NAME_NAME = 0x74,
+			OP_LOAD_LOCALS_NAME_NAME_NAME = 0x75,
+			OP_STORE_LOCALS_NAME_NAME_NAME = 0x76,
+			OP_LOAD_NAME_NAME_NAME = 0x77,
+			OP_STORE_NAME_NAME_NAME = 0x78,
+			OP_LOAD_ATTR_NAME_NAME_NAME = 0x79,
+			OP_STORE_ATTR_NAME_NAME_NAME = 0x7A,
+			OP_LOAD_METHOD_NAME_NAME_NAME = 0x7B,
+			OP_STORE_METHOD_NAME_NAME_NAME = 0x7C,
+			OP_LOAD_CLASS_NAME_NAME_NAME = 0x7D,
+			OP_STORE_CLASS_NAME_NAME_NAME = 0x7E,
+			OP_LOAD_MODULE_NAME_NAME_NAME = 0x7F,
+			OP_STORE_MODULE_NAME_NAME_NAME = 0x80,
+			OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x81,
+			OP_STORE_BUILTIN_NAME_NAME_NAME = 0x82,
+			OP_LOAD_ITER_NAME_NAME_NAME = 0x83,
+			OP_STORE_ITER_NAME_NAME_NAME = 0x84,
+			OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x85,
+			OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x86,
+			OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x87,
+			OP_STORE_CONTEXT_NAME_NAME_NAME = 0x88,
+			OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x89,
+			OP_STORE_GLOBALS_NAME_NAME_NAME = 0x8A,
+			OP_LOAD_LOCALS_NAME_NAME_NAME = 0x8B,
+			OP_STORE_LOCALS_NAME_NAME_NAME = 0x8C,
+            OP_LOAD_NAME_NAME_NAME = 0x8D,
+                OP_STORE_NAME_NAME_NAME = 0x8E,
+                OP_LOAD_ATTR_NAME_NAME_NAME = 0x8F,
+                OP_STORE_ATTR_NAME_NAME_NAME = 0x90,
+                OP_LOAD_METHOD_NAME_NAME_NAME = 0x91,
+                OP_STORE_METHOD_NAME_NAME_NAME = 0x92,
+                OP_LOAD_CLASS_NAME_NAME_NAME = 0x93,
+                OP_STORE_CLASS_NAME_NAME_NAME = 0x94,
+                OP_LOAD_MODULE_NAME_NAME_NAME = 0x95,
+				OP_STORE_MODULE_NAME_NAME_NAME = 0x96,
+				OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x97,
+				OP_STORE_BUILTIN_NAME_NAME_NAME = 0x98,
+				OP_LOAD_ITER_NAME_NAME_NAME = 0x99,
+				OP_STORE_ITER_NAME_NAME_NAME = 0x9A,
+				OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x9B,
+				OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x9C,
+				OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x9D,
+				OP_STORE_CONTEXT_NAME_NAME_NAME = 0x9E,
+				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x9F,
+				OP_STORE_GLOBALS_NAME_NAME_NAME = 0xA0,
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0xA1,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0xA2,
+				OP_LOAD_NAME_NAME_NAME = 0xA3,
+				OP_STORE_NAME_NAME_NAME = 0xA4,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0xA5,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0xA6,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0xA7,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0xA8,
+				OP_LOAD_CLASS_NAME_NAME_NAME = 0xA9,
+				OP_STORE_CLASS_NAME_NAME_NAME = 0xAA,
+				OP_LOAD_MODULE_NAME_NAME_NAME = 0xAB,
+				OP_STORE_MODULE_NAME_NAME_NAME = 0xAC,
+				OP_LOAD_BUILTIN_NAME_NAME_NAME = 0xAD,
+				OP_STORE_BUILTIN_NAME_NAME_NAME = 0xAE,
+				OP_LOAD_ITER_NAME_NAME_NAME = 0xAF,
+				OP_STORE_ITER_NAME_NAME_NAME = 0xB0,
+				OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0xB1,
+				OP_STORE_EXCEPTION_NAME_NAME_NAME = 0xB2,
+				OP_LOAD_CONTEXT_NAME_NAME_NAME = 0xB3,
+				OP_STORE_CONTEXT_NAME_NAME_NAME = 0xB4,
+				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0xB5,
+				OP_STORE_GLOBALS_NAME_NAME_NAME = 0xB6,
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0xB7,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0xB8,
+				OP_LOAD_NAME_NAME_NAME = 0xB9,
+				OP_STORE_NAME_NAME_NAME = 0xBA,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0xBB,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0xBC,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0xBD,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0xBE,
+				OP_LOAD_CLASS_NAME_NAME_NAME = 0xBF,
+				OP_STORE_CLASS_NAME_NAME_NAME = 0xC0,
+				OP_LOAD_MODULE_NAME_NAME_NAME = 0xC1,
+				OP_STORE_MODULE_NAME_NAME_NAME = 0xC2,
+				OP_LOAD_BUILTIN_NAME_NAME_NAME = 0xC3,
+				OP_STORE_BUILTIN_NAME_NAME_NAME = 0xC4,
+				OP_LOAD_ITER_NAME_NAME_NAME = 0xC5,
+				OP_STORE_ITER_NAME_NAME_NAME = 0xC6,
+				OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0xC7,
+				OP_STORE_EXCEPTION_NAME_NAME_NAME = 0xC8,
+				OP_LOAD_CONTEXT_NAME_NAME_NAME = 0xC9,
+				OP_STORE_CONTEXT_NAME_NAME_NAME = 0xCA,
+				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0xCB,
+				OP_STORE_GLOBALS_NAME_NAME_NAME = 0xCC,
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0xCD,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0xCE,
+				OP_LOAD_NAME_NAME_NAME = 0xCF,
+				OP_STORE_NAME_NAME_NAME = 0xD0,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0xD1,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0xD2,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0xD3,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0xD4,
+                OP_LOAD_CLASS_NAME_NAME_NAME = 0xD5,
+                    OP_STORE_CLASS_NAME_NAME_NAME = 0xD6,
+                    OP_LOAD_MODULE_NAME_NAME_NAME = 0xD7,
+                    OP_STORE_MODULE_NAME_NAME_NAME = 0xD8,
+                    OP_LOAD_BUILTIN_NAME_NAME_NAME = 0xD9,
+                    OP_STORE_BUILTIN_NAME_NAME_NAME = 0xDA,
+                    OP_LOAD_ITER_NAME_NAME_NAME = 0xDB,
+                    OP_STORE_ITER_NAME_NAME_NAME = 0xDC,
+					OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0xDD,
+					OP_STORE_EXCEPTION_NAME_NAME_NAME = 0xDE,
+                    OP_LOAD_CONTEXT_NAME_NAME_NAME = 0xDF,
+                    OP_STORE_CONTEXT_NAME_NAME_NAME = 0xE0,
+                    OP_LOAD_GLOBALS_NAME_NAME_NAME = 0xE1,
+                    OP_STORE_GLOBALS_NAME_NAME_NAME = 0xE2,
+                    OP_LOAD_LOCALS_NAME_NAME_NAME = 0xE3,
+                    OP_STORE_LOCALS_NAME_NAME_NAME = 0xE4,
+                    OP_LOAD_NAME_NAME_NAME = 0xE5,
+                    OP_STORE_NAME_NAME_NAME = 0xE6,
+					OP_LOAD_ATTR_NAME_NAME_NAME = 0xE7,
+                    OP_STORE_ATTR_NAME_NAME_NAME = 0xE8,
+                    OP_LOAD_METHOD_NAME_NAME_NAME = 0xE9,
+                    OP_STORE_METHOD_NAME_NAME_NAME = 0xEA,
+                    OP_LOAD_CLASS_NAME_NAME_NAME = 0xEB,
+                    OP_STORE_CLASS_NAME_NAME_NAME = 0xEC,
+                    OP_LOAD_MODULE_NAME_NAME_NAME = 0xED,
+                    OP_STORE_MODULE_NAME_NAME_NAME = 0xEE,
+                    OP_LOAD_BUILTIN_NAME_NAME_NAME = 0xEF,
+					OP_STORE_BUILTIN_NAME_NAME_NAME = 0xF0,
+					OP_LOAD_ITER_NAME_NAME_NAME = 0xF1,
+					OP_STORE_ITER_NAME_NAME_NAME = 0xF2,
+					OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0xF3,
+					OP_STORE_EXCEPTION_NAME_NAME_NAME = 0xF4,
+					OP_LOAD_CONTEXT_NAME_NAME_NAME = 0xF5,
+					OP_STORE_CONTEXT_NAME_NAME_NAME = 0xF6,
+					OP_LOAD_GLOBALS_NAME_NAME_NAME = 0xF7,
+					OP_STORE_GLOBALS_NAME_NAME_NAME = 0xF8,
+					OP_LOAD_LOCALS_NAME_NAME_NAME = 0xF9,
+					OP_STORE_LOCALS_NAME_NAME_NAME = 0xFA,
+					OP_LOAD_NAME_NAME_NAME = 0xFB,
+					OP_STORE_NAME_NAME_NAME = 0xFC,
+					OP_LOAD_ATTR_NAME_NAME_NAME = 0xFD,
+					OP_STORE_ATTR_NAME_NAME_NAME = 0xFE,
+                    OP_LOAD_METHOD_NAME_NAME_NAME = 0xFF
+            };
+            struct ASTNode {
+                std::string type;
+                std::string value;
+                std::vector<ASTNode> children;
+                ASTNode(const std::string& t, const std::string& v) : type(t), value(v) {}
+                void add_child(const std::string& t, const std::string& v) {
+                    children.emplace_back(t, v);
+                }
+            };
+            struct CapsuleMetadata {
+				std::string name;
+                std::string version;
+				std::string entry;
+                std::string hash; // Hash for integrity check
+            };
+            struct Capsule {
+                CapsuleMetadata meta;
+                std::vector<std::string> constants; // List of constants
+                std::map<std::string, std::any> globals; // Global variables
+                std::vector<ASTNode> ast; // Abstract Syntax Tree
+            };
+            class Inspector {
+            public:
+                void load_capsule(const Capsule& capsule) {
+                    current_capsule = capsule;
+                    std::cout << "[PLUGIN INSPECTOR] Loaded capsule: " << current_capsule.meta.name << "\n";
+                    std::cout << "[PLUGIN INSPECTOR] Version: " << current_capsule.meta.version << "\n";
+                    std::cout << "[PLUGIN INSPECTOR] Entry point: " << current_capsule.meta.entry << "\n";
+                    std::cout << "[PLUGIN INSPECTOR] Hash: " << current_capsule.meta.hash << "\n";
+                    // Print constants
+                    std::cout << "[PLUGIN INSPECTOR] Constants:\n";
+                    for (const auto& constant : current_capsule.constants) {
+                        std::cout << "  - " << constant << "\n";
+                    }
+                    // Print globals
+					std::cout << "[PLUGIN INSPECTOR] Globals:\n";
+                    for (const auto& [key, value] : current_capsule.globals) {
+                        std::cout << "  - " << key << ": ";
+                        if (value.type() == typeid(int)) {
+                            std::cout << std::any_cast<int>(value) << "\n";
+                        } else if (value.type() == typeid(std::string)) {
+                            std::cout << std::any_cast<std::string>(value) << "\n";
+                        } else {
+                            std::cout << "Unknown type\n";
+                        }
+                    }
+                    // Print AST
+                    std::cout << "[PLUGIN INSPECTOR] AST:\n";
+                    for (const auto& node : current_capsule.ast) {
+                        std::cout << "  - " << node.type << ": " << node.value << "\n";
+                    }
+                }
+                void inspect() {
+					std::cout << "[PLUGIN INSPECTOR] Inspecting capsule...\n";
+                    if (current_capsule.meta.name.empty()) {
+                        std::cerr << "[PLUGIN INSPECTOR] No capsule loaded.\n";
+                        return;
+                    }
+                    // Placeholder for inspection logic
+                    std::cout << "[PLUGIN INSPECTOR] Capsule inspection complete.\n";
+                }
+            private:
+                Capsule current_capsule; // Currently loaded capsule
+            };
+		} // namespace PluginInspector
+        // === Plugin Inspector ===
+        class PluginInspector {
+        public:
+            struct Node {
+                std::string name; // Node name
+                std::vector<std::string> deps; // Dependencies
+				float x, y; // Position for drawing
+                float radius; // Radius for drawing
+                int color; // Color for drawing
+                Node(const std::string& n, const std::vector<std::string>& d, float x_pos, float y_pos, float r, int c)
+					: name(n), deps(d),
+                    x(x_pos), y(y_pos), radius(r), color(c) {}
+            };
+        private:
+            SDL_Window* window = nullptr;
+            SDL_Renderer* renderer = nullptr;
+            TTF_Font* font = nullptr; // Font for text rendering
+			std::vector<Node> nodes; // List of nodes in the graph
+            std::string selected; // Selected node
+            bool theme_dark = true; // Dark theme flag
+            struct Camera {
+                float x = 0, y = 0; // Camera position
+                float zoom = 1.0f; // Camera zoom level
+				// Placeholder for camera properties, can be extended later
+                } camera; // Camera for panning and zooming
+        public:
+            void layout_graph() {
+            // Simple layout algorithm to position nodes in a circular manner
+            int num_nodes = nodes.size();
+            for (int i = 0; i < num_nodes; ++i) {
+				float angle = 2 * 3.14159265358979323846f * i / num_nodes; // Evenly distribute nodes in a circle
+				nodes[i].x = 400 + 200 * cos(angle); // Centered at (400, 300) with radius 200
+				nodes[i].y = 300 + 200 * sin(angle); // Adjust y position based on angle
+				nodes[i].radius = 30; // Set a fixed radius for each node
+                nodes[i].color = 0xFF0000; // Default color (red)
+            }
+        }
+        std::pair<int, int> screen_xy(float x, float y) {
+            // Convert world coordinates to screen coordinates
+            int sx = static_cast<int>((x - camera.x) * camera.zoom);
+            int sy = static_cast<int>((y - camera.y) * camera.zoom);
+            return { sx, sy };
+        }
+		void draw_text(const std::string& text, int x, int y) {
+            SDL_Surface* surface = TTF_RenderText_Solid(font, text.c_str(), theme_dark ? SDL_Color{255, 255, 255, 255} : SDL_Color{0, 0, 0, 255});
+            if (surface) {
+                SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+                if (texture) {
+					SDL_Rect dstrect = { x, y, surface->w, surface->h };
+                    SDL_RenderCopy(renderer, texture, nullptr, &dstrect);
+                    SDL_DestroyTexture(texture);
+                }
+                SDL_FreeSurface(surface);
+            } else {
+				std::cerr << "Failed to render text: " << TTF_GetError() << std::endl; // Error handling
+                }
+        }
+        void clear_theme() {
+            // Clear the screen with the current theme color
+            SDL_SetRenderDrawColor(renderer, theme_dark ? 0x1A1A1A : 0xFFFFFF, 255); // Dark or light theme
+            SDL_RenderClear(renderer);
+        }
+        void draw_circle(int x, int y, float radius, int color) {
+			SDL_SetRenderDrawColor(renderer, (color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF, 255); // Set circle color
+            for (float angle = 0; angle < 2 * 3.14159265358979323846f; angle += 0.01f) {
+                float dx = radius * cos(angle);
+                float dy = radius * sin(angle);
+                SDL_RenderDrawPoint(renderer, static_cast<int>(x + dx), static_cast<int>(y + dy));
+				SDL_RenderDrawPoint(renderer, static_cast<int>(x - dx), static_cast<int>(y + dy));
+				SDL_RenderDrawPoint(renderer, static_cast<int>(x + dx), static_cast<int>(y - dy));
+                SDL_RenderDrawPoint(renderer, static_cast<int>(x - dx), static_cast<int>(y - dy));
+            }
+        }
+        bool handle_events() {
+            SDL_Event event;
+            while (SDL_PollEvent(&event)) {
+                if (event.type == SDL_QUIT) {
+					return false; // Exit on quit event
+                    } else if (event.type == SDL_KEYDOWN) {
+                    if (event.key.keysym.sym == SDLK_ESCAPE) {
+                        return false; // Exit on Escape key
+                    } else if (event.key.keysym.sym == SDLK_t) {
+                        theme_dark = !theme_dark; // Toggle theme
+                        clear_theme(); // Clear screen with new theme
+                    } else if (event.key.keysym.sym == SDLK_PLUS || event.key.keysym.sym == SDLK_KP_PLUS) {
+                        camera.zoom *= 1.1f; // Zoom in
+                    } else if (event.key.keysym.sym == SDLK_MINUS || event.key.keysym.sym == SDLK_KP_MINUS) {
+						camera.zoom /= 1.1f; // Zoom out
+                        } else if (event.key.keysym.sym == SDLK_LEFT) {
+                        camera.x -= 10 / camera.zoom; // Pan left
+                    } else if (event.key.keysym.sym == SDLK_RIGHT) {
+                        camera.x += 10 / camera.zoom; // Pan right
+                    } else if (event.key.keysym.sym == SDLK_UP) {
+                        camera.y -= 10 / camera.zoom; // Pan up
+                    } else if (event.key.keysym.sym == SDLK_DOWN) {
+                        camera.y += 10 / camera.zoom; // Pan down
+                    }
+                } else if (event.type == SDL_MOUSEBUTTONDOWN) {
+                    if (event.button.button == SDL_BUTTON_LEFT) {
+                        int mouse_x = event.button.x;
+                        int mouse_y = event.button.y;
+                        for (const auto& n : nodes) {
+                            auto [sx, sy] = screen_xy(n.x, n.y);
+                            float dx = mouse_x - sx;
+                            float dy = mouse_y - sy;
+							if (dx * dx + dy * dy <= n.radius * n.radius) { // Check if clicked inside node circle
+                                selected = n.name; // Select the node
+                                std::cout << "Selected node: " << selected << std::endl;
+                                break; // Exit loop after selecting a node
+                            }
+                        }
+                    }
+                }
+            }
+            return true; // Continue running
+        }
+        void draw() {
+            clear_theme(); // Clear the screen with the current theme color
+            for (const auto& n : nodes) {
+                auto [sx, sy] = screen_xy(n.x, n.y);
+                draw_circle(sx, sy, n.radius, n.color); // Draw node circle
+                draw_text(n.name, sx - 20, sy - 10); // Draw node name text
+                if (n.name == selected) {
+                    SDL_SetRenderDrawColor(renderer, 0xFFFF00, 255); // Highlight selected node (yellow)
+                    SDL_RenderDrawCircle(renderer, sx, sy, n.radius + 5); // Draw highlight circle
+                }
+                for (const auto& dep : n.deps) {
+					auto it = std::find_if(nodes.begin(), nodes.end(), [&dep](const Node& node) { return node.name == dep; });
+                    if (it != nodes.end()) {
+                        auto [dep_sx, dep_sy] = screen_xy(it->x, it->y);
+                        SDL_SetRenderDrawColor(renderer, 0xCCCCCC, 255); // Set dependency line color
+                        SDL_RenderDrawLine(renderer, sx, sy, dep_sx, dep_sy); // Draw line to dependency node
+                    }
+                }
+            }
+            SDL_RenderPresent(renderer); // Present the rendered frame
+        }
+        PluginInspector() {
+            if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+                std::cerr << "SDL initialization failed: " << SDL_GetError() << std::endl;
+                return;
+            }
+            if (TTF_Init() == -1) {
+                std::cerr << "SDL_ttf initialization failed: " << TTF_GetError() << std::endl;
+                SDL_Quit();
+                return;
+            }
+            window = SDL_CreateWindow("Plugin Inspector", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 800, 600, SDL_WINDOW_SHOWN);
+            if (!window) {
+				std::cerr << "Window creation failed: " << SDL_GetError() << std::endl;
+                TTF_Quit();
+                SDL_Quit();
+                return;
+            }
+            renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+            if (!renderer) {
+                std::cerr << "Renderer creation failed: " << SDL_GetError() << std::endl;
+                SDL_DestroyWindow(window);
+                TTF_Quit();
+                SDL_Quit();
+                return;
+            }
+            font = TTF_OpenFont("arial.ttf", 16); // Load a font for text rendering
+			if (!font) {
+                std::cerr << "Failed to load font: " << TTF_GetError() << std::endl;
+                SDL_DestroyRenderer(renderer);
+                SDL_DestroyWindow(window);
+                TTF_Quit();
+                SDL_Quit();
+                return;
+            }
+            clear_theme(); // Clear the screen with the initial theme color
+        }
+        ~PluginInspector() {
+            if (font) TTF_CloseFont(font); // Close the font
+            if (renderer) SDL_DestroyRenderer(renderer); // Destroy the renderer
+            if (window) SDL_DestroyWindow(window); // Destroy the window
+            TTF_Quit(); // Quit SDL_ttf
+            SDL_Quit(); // Quit SDL
+        }
+        void run() {
+            layout_graph(); // Layout the graph before running
+            while (handle_events()) {
+                draw(); // Draw the graph
+            }
+        }
+        void add_node(const Node& node) {
+            nodes.push_back(node); // Add a new node to the graph
+        }
+	};
+    bool verify_signature(const std::vector<uint8_t>& data, const std::string& signature, const std::string& public_key_path) {
+            EVP_PKEY* pubkey = nullptr;
+            FILE* pubkey_file = fopen(public_key_path.c_str(), "r");
+            if (!pubkey_file) {
+                std::cerr << "[ERROR] Failed to open public key file: " << public_key_path << std::endl;
+                return false;
+            }
+            pubkey = PEM_read_PUBKEY(pubkey_file, nullptr, nullptr, nullptr);
+            fclose(pubkey_file);
+            if (!pubkey) {
+                std::cerr << "[ERROR] Failed to read public key." << std::endl;
+                return false;
+            }
+            EVP_MD_CTX* ctx = EVP_MD_CTX_new();
+            if (!ctx) {
+                std::cerr << "[ERROR] Failed to create digest context." << std::endl;
+                EVP_PKEY_free(pubkey);
+				return false;
+                }
+            if (EVP_DigestVerifyInit(ctx, nullptr, EVP_sha256(), nullptr, pubkey) <= 0) {
+                std::cerr << "[ERROR] Failed to initialize digest verification." << std::endl;
+                EVP_MD_CTX_free(ctx);
+                EVP_PKEY_free(pubkey);
+                return false;
+            }
+            if (EVP_DigestVerifyUpdate(ctx, data.data(), data.size()) <= 0) {
+                std::cerr << "[ERROR] Failed to update digest verification." << std::endl;
+                EVP_MD_CTX_free(ctx);
+                EVP_PKEY_free(pubkey);
+                return false;
+            }
+            int result = EVP_DigestVerifyFinal(ctx, reinterpret_cast<const unsigned char*>(signature.data()), signature.size());
+            EVP_MD_CTX_free(ctx);
+            EVP_PKEY_free(pubkey);
+            if (result == 1) {
+                return true; // Signature is valid
+			}
+			else {
+                std::cerr << "[ERROR] Signature verification failed." << std::endl;
+                return false; // Signature is invalid
+            }
+        }
+        CapsuleMetadata read_capsule_metadata(const std::string& capsule_path) {
+            CapsuleMetadata metadata;
+            std::ifstream capsule_file(capsule_path);
+            if (!capsule_file.is_open()) {
+                std::cerr << "[ERROR] Failed to open capsule file: " << capsule_path << std::endl;
+                return metadata;
+			}
+            std::string line;
+            while (std::getline(capsule_file, line)) {
+                if (line.find("Name: ") == 0) {
+                    metadata.name = line.substr(6);
+                } else if (line.find("Version: ") == 0) {
+                    metadata.version = line.substr(9);
+                } else if (line.find("Entry: ") == 0) {
+                    metadata.entry = line.substr(7);
+                } else if (line.find("Signature: ") == 0) {
+                    metadata.footer.signature = line.substr(11);
+                }
+            }
+            capsule_file.close();
+            return metadata;
+        }
+        void verify_capsule(const std::string& capsule_path, const std::string& public_key_path) {
+            CapsuleMetadata metadata = read_capsule_metadata(capsule_path);
+            if (metadata.name.empty() || metadata.version.empty() || metadata.entry.empty()) {
+                std::cerr << "[ERROR] Invalid capsule metadata." << std::endl;
+				return;
+                }
+            std::ifstream capsule_file(capsule_path, std::ios::binary);
+            if (!capsule_file.is_open()) {
+				std::cerr << "[ERROR] Failed to open capsule file: " << capsule_path << std::endl;
+                return;
+            }
+            std::vector<uint8_t> data((std::istreambuf_iterator<char>(capsule_file)), std::istreambuf_iterator<char>());
+            capsule_file.close();
+            if (verify_signature(data, metadata.footer.signature, public_key_path)) {
+                std::cout << "[SUCCESS] Capsule verified successfully." << std::endl;
+				// Load the capsule into the PluginInspector
+				PluginInspector::Capsule capsule;
+				capsule.meta = metadata;
+				// Here you would typically parse the capsule file to fill in constants, globals, and AST
+				// For demonstration, we'll just add some dummy data
+				capsule.constants = { "constant1", "constant2" };
+				capsule.globals["global_var"] = 42; // Example global variable
+				PluginInspector::Inspector inspector;
+				inspector.load_capsule(capsule);
+				inspector.inspect(); // Inspect the loaded capsule
+                } else {
+                std::cerr << "[ERROR] Capsule verification failed." << std::endl;
+            }
+        }
+        // === REPL Debugger ===
+        namespace REPLDebugger {
+            void start() {
+                std::cout << "[REPL DEBUGGER] Starting REPL Debugger...\n";
+                std::string command;
+                while (true) {
+                    std::cout << ">>> ";
+                    std::getline(std::cin, command);
+                    if (command == "exit" || command == "quit") {
+                        break; // Exit the REPL
+                    } else if (command == "help") {
+                        std::cout << "Available commands:\n";
+                        std::cout << "  - help: Show this help message\n";
+						std::cout << "  - exit/quit: Exit the REPL\n";
+                        } else {
+                        std::cout << "[REPL DEBUGGER] Executing command: " << command << "\n";
+                        // Placeholder for actual command execution logic
+                        // In a real REPL, you would parse and execute the command here
+                    }
+                }
+                std::cout << "[REPL DEBUGGER] Exiting REPL Debugger.\n";
+            }
+		} // namespace REPLDebugger
+        // === Plugin System ===
+        namespace PluginSystem {
+            void load_plugin(const std::string& name) {
+                std::cout << "[PLUGIN SYSTEM] Loading plugin: " << name << "\n";
+                // Placeholder for actual plugin loading logic
+                if (name == "example_plugin") {
+                    std::cout << "[PLUGIN SYSTEM] Example plugin loaded successfully.\n";
+					// Here you would typically load the plugin's shared library and initialize it
+                    } else {
+                    std::cerr << "[PLUGIN SYSTEM] Plugin not found: " << name << "\n";
+                }
+            }
+            void unload_plugin(const std::string& name) {
+                std::cout << "[PLUGIN SYSTEM] Unloading plugin: " << name << "\n";
+                // Placeholder for actual plugin unloading logic
+                if (name == "example_plugin") {
+					std::cout << "[PLUGIN SYSTEM] Example plugin unloaded successfully.\n";
+				}
+				else {
+                    std::cerr << "[PLUGIN SYSTEM] Plugin not loaded: " << name << "\n";
+				}
+                }
+            void list_plugins() {
+                std::cout << "[PLUGIN SYSTEM] Available plugins:\n";
+                // Placeholder for actual plugin listing logic
+                std::cout << "  - example_plugin: An example plugin for demonstration purposes.\n";
+                // In a real system, you would list all loaded plugins here
+            }
+        } // namespace PluginSystem
+	} // namespace PluginInspector
+    namespace PluginInspector {
+        // === Plugin Inspector Constants ===
+        enum OpCode {
+            OP_LOAD_CONSTANT = 0x01,
+            OP_STORE_CONSTANT = 0x02,
+            OP_LOAD_GLOBAL = 0x03,
+            OP_STORE_GLOBAL = 0x04,
+            OP_LOAD_LOCAL = 0x05,
+            OP_STORE_LOCAL = 0x06,
+            OP_LOAD_NAME = 0x07,
+            OP_STORE_NAME = 0x08,
+            OP_LOAD_ATTR = 0x09,
+            OP_STORE_ATTR = 0x0A,
+            OP_LOAD_METHOD = 0x0B,
+            OP_STORE_METHOD = 0x0C,
+            OP_LOAD_CLASS = 0x0D,
+            OP_STORE_CLASS = 0x0E,
+            OP_LOAD_MODULE = 0x0F,
+            OP_STORE_MODULE = 0x10,
+            OP_LOAD_BUILTIN = 0x11,
+            OP_STORE_BUILTIN = 0x12,
+            OP_LOAD_ITER = 0x13,
+			OP_STORE_ITER = 0x14,
+			OP_LOAD_EXCEPTION = 0x15,
+			OP_STORE_EXCEPTION = 0x16,
+			OP_LOAD_CONTEXT = 0x17,
+			OP_STORE_CONTEXT = 0x18,
+			OP_LOAD_GLOBALS = 0x19,
+			OP_STORE_GLOBALS = 0x1A,
+			OP_LOAD_LOCALS = 0x1B,
+			OP_STORE_LOCALS = 0x1C,
+			OP_LOAD_NAME = 0x1D,
+			OP_STORE_NAME = 0x1E,
+			OP_LOAD_ATTR_NAME = 0x1F,
+			OP_STORE_ATTR_NAME = 0x20,
+			OP_LOAD_METHOD_NAME = 0x21,
+			OP_STORE_METHOD_NAME = 0x22,
+			OP_LOAD_CLASS_NAME = 0x23,
+			OP_STORE_CLASS_NAME = 0x24,
+			OP_LOAD_MODULE_NAME = 0x25,
+			OP_STORE_MODULE_NAME = 0x26,
+			OP_LOAD_BUILTIN_NAME = 0x27,
+			OP_STORE_BUILTIN_NAME = 0x28,
+			OP_LOAD_ITER_NAME = 0x29,
+			OP_STORE_ITER_NAME = 0x2A,
+			OP_LOAD_EXCEPTION_NAME = 0x2B,
+			OP_STORE_EXCEPTION_NAME = 0x2C,
+			OP_LOAD_CONTEXT_NAME = 0x2D,
+			OP_STORE_CONTEXT_NAME = 0x2E,
+			OP_LOAD_GLOBALS_NAME = 0x2F,
+			OP_STORE_GLOBALS_NAME = 0x30,
+			OP_LOAD_LOCALS_NAME = 0x31,
+			OP_STORE_LOCALS_NAME = 0x32,
+			OP_LOAD_NAME_NAME = 0x33,
+			OP_STORE_NAME_NAME = 0x34,
+			OP_LOAD_ATTR_NAME_NAME = 0x35,
+			OP_STORE_ATTR_NAME_NAME = 0x36,
+			OP_LOAD_METHOD_NAME_NAME = 0x37,
+			OP_STORE_METHOD_NAME_NAME = 0x38,
+			OP_LOAD_CLASS_NAME_NAME = 0x39,
+			OP_STORE_CLASS_NAME_NAME = 0x3A,
+			OP_LOAD_MODULE_NAME_NAME = 0x3B,
+			OP_STORE_MODULE_NAME_NAME = 0x3C,
+			OP_LOAD_BUILTIN_NAME_NAME = 0x3D,
+			OP_STORE_BUILTIN_NAME_NAME = 0x3E,
+			OP_LOAD_ITER_NAME_NAME = 0x3F,
+			OP_STORE_ITER_NAME_NAME = 0x40,
+			OP_LOAD_EXCEPTION_NAME_NAME = 0x41,
+			OP_STORE_EXCEPTION_NAME_NAME = 0x42,
+			OP_LOAD_CONTEXT_NAME_NAME = 0x43,
+			OP_STORE_CONTEXT_NAME_NAME = 0x44,
+			OP_LOAD_GLOBALS_NAME_NAME = 0x45,
+			OP_STORE_GLOBALS_NAME_NAME = 0x46,
+			OP_LOAD_LOCALS_NAME_NAME = 0x47,
+			OP_STORE_LOCALS_NAME_NAME = 0x48,
+			OP_LOAD_NAME_NAME_NAME = 0x49,
+			OP_STORE_NAME_NAME_NAME = 0x4A,
+			OP_LOAD_ATTR_NAME_NAME_NAME = 0x4B,
+			OP_STORE_ATTR_NAME_NAME_NAME = 0x4C,
+			OP_LOAD_METHOD_NAME_NAME_NAME = 0x4D,
+			OP_STORE_METHOD_NAME_NAME_NAME = 0x4E,
+			OP_LOAD_CLASS_NAME_NAME_NAME = 0x4F,
+			OP_STORE_CLASS_NAME_NAME_NAME = 0x50,
+			OP_LOAD_MODULE_NAME_NAME_NAME = 0x51,
+			OP_STORE_MODULE_NAME_NAME_NAME = 0x52,
+			OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x53,
+			OP_STORE_BUILTIN_NAME_NAME_NAME = 0x54,
+			OP_LOAD_ITER_NAME_NAME_NAME = 0x55,
+			OP_STORE_ITER_NAME_NAME_NAME = 0x56,
+			OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x57,
+			OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x58,
+			OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x59,
+			OP_STORE_CONTEXT_NAME_NAME_NAME = 0x5A,
+			OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x5B,
+			OP_STORE_GLOBALS_NAME_NAME_NAME = 0x5C,
+			OP_LOAD_LOCALS_NAME_NAME_NAME = 0x5D,
+			OP_STORE_LOCALS_NAME_NAME_NAME = 0x5E,
+			OP_LOAD_NAME_NAME_NAME = 0x5F,
+			OP_STORE_NAME_NAME_NAME = 0x60,
+			OP_LOAD_ATTR_NAME_NAME_NAME = 0x61,
+			OP_STORE_ATTR_NAME_NAME_NAME = 0x62,
+			OP_LOAD_METHOD_NAME_NAME_NAME = 0x63,
+			OP_STORE_METHOD_NAME_NAME_NAME = 0x64,
+			OP_LOAD_CLASS_NAME_NAME_NAME = 0x65,
+			OP_STORE_CLASS_NAME_NAME_NAME = 0x66,
+			OP_LOAD_MODULE_NAME_NAME_NAME = 0x67,
+			OP_STORE_MODULE_NAME_NAME_NAME = 0x68,
+			OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x69,
+			OP_STORE_BUILTIN_NAME_NAME_NAME = 0x6A,
+			OP_LOAD_ITER_NAME_NAME_NAME = 0x6B,
+			OP_STORE_ITER_NAME_NAME_NAME = 0x6C,
+			OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x6D,
+			OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x6E,
+			OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x6F,
+			OP_STORE_CONTEXT_NAME_NAME_NAME = 0x70,
+			OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x71,
+			OP_STORE_GLOBALS_NAME_NAME_NAME = 0x72,
+			OP_LOAD_LOCALS_NAME_NAME_NAME = 0x73,
+			OP_STORE_LOCALS_NAME_NAME_NAME = 0x74,
+			OP_LOAD_NAME_NAME_NAME = 0x75,
+			OP_STORE_NAME_NAME_NAME = 0x76,
+			OP_LOAD_ATTR_NAME_NAME_NAME = 0x77,
+			OP_STORE_ATTR_NAME_NAME_NAME = 0x78,
+			OP_LOAD_METHOD_NAME_NAME_NAME = 0x79,
+			OP_STORE_METHOD_NAME_NAME_NAME = 0x7A,
+            OP_LOAD_CLASS_NAME_NAME_NAME = 0x7B,
+            OP_STORE_CLASS_NAME_NAME_NAME = 0x7C,
+            OP_LOAD_MODULE_NAME_NAME_NAME = 0x7D,
+            OP_STORE_MODULE_NAME_NAME_NAME = 0x7E,
+            OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x7F,
+            OP_STORE_BUILTIN_NAME_NAME_NAME = 0x80,
+            OP_LOAD_ITER_NAME_NAME_NAME = 0x81,
+            OP_STORE_ITER_NAME_NAME_NAME = 0x82,
+            OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x83,
+            OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x84,
+            OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x85,
+            OP_STORE_CONTEXT_NAME_NAME_NAME = 0x86,
+            OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x87,
+			OP_STORE_GLOBALS_NAME_NAME_NAME = 0x88,
+			OP_LOAD_LOCALS_NAME_NAME_NAME = 0x89,
+			OP_STORE_LOCALS_NAME_NAME_NAME = 0x8A,
+			OP_LOAD_NAME_NAME_NAME = 0x8B,
+			OP_STORE_NAME_NAME_NAME = 0x8C,
+			OP_LOAD_ATTR_NAME_NAME_NAME = 0x8D,
+			OP_STORE_ATTR_NAME_NAME_NAME = 0x8E,
+			OP_LOAD_METHOD_NAME_NAME_NAME = 0x8F,
+			OP_STORE_METHOD_NAME_NAME_NAME = 0x90,
+			OP_LOAD_CLASS_NAME_NAME_NAME = 0x91,
+			OP_STORE_CLASS_NAME_NAME_NAME = 0x92,
+			OP_LOAD_MODULE_NAME_NAME_NAME = 0x93,
+			OP_STORE_MODULE_NAME_NAME_NAME = 0x94,
+			OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x95,
+			OP_STORE_BUILTIN_NAME_NAME_NAME = 0x96,
+			OP_LOAD_ITER_NAME_NAME_NAME = 0x97,
+			OP_STORE_ITER_NAME_NAME_NAME = 0x98,
+			OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x99,
+			OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x9A,
+			OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x9B,
+			OP_STORE_CONTEXT_NAME_NAME_NAME = 0x9C,
+			OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x9D,
+			OP_STORE_GLOBALS_NAME_NAME_NAME = 0x9E,
+			OP_LOAD_LOCALS_NAME_NAME_NAME = 0x9F,
+			OP_STORE_LOCALS_NAME_NAME_NAME = 0xA0,
+			OP_LOAD_NAME_NAME_NAME = 0xA1,
+			OP_STORE_NAME_NAME_NAME = 0xA2,
+			OP_LOAD_ATTR_NAME_NAME_NAME = 0xA3,
+			OP_STORE_ATTR_NAME_NAME_NAME = 0xA4,
+			OP_LOAD_METHOD_NAME_NAME_NAME = 0xA5,
+			OP_STORE_METHOD_NAME_NAME_NAME = 0xA6,
+			OP_LOAD_CLASS_NAME_NAME_NAME = 0xA7,
+			OP_STORE_CLASS_NAME_NAME_NAME = 0xA8,
+			OP_LOAD_MODULE_NAME_NAME_NAME = 0xA9,
+			OP_STORE_MODULE_NAME_NAME_NAME = 0xAA,
+			OP_LOAD_BUILTIN_NAME_NAME_NAME = 0xAB,
+			OP_STORE_BUILTIN_NAME_NAME_NAME = 0xAC,
+			OP_LOAD_ITER_NAME_NAME_NAME = 0xAD,
+			OP_STORE_ITER_NAME_NAME_NAME = 0xAE,
+			OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0xAF,
+			OP_STORE_EXCEPTION_NAME_NAME_NAME = 0xB0,
+			OP_LOAD_CONTEXT_NAME_NAME_NAME = 0xB1,
+			OP_STORE_CONTEXT_NAME_NAME_NAME = 0xB2,
+			OP_LOAD_GLOBALS_NAME_NAME_NAME = 0xB3,
+			OP_STORE_GLOBALS_NAME_NAME_NAME = 0xB4,
+			OP_LOAD_LOCALS_NAME_NAME_NAME = 0xB5,
+			OP_STORE_LOCALS_NAME_NAME_NAME = 0xB6,
+			OP_LOAD_NAME_NAME_NAME = 0xB7,
+			OP_STORE_NAME_NAME_NAME = 0xB8,
+			OP_LOAD_ATTR_NAME_NAME_NAME = 0xB9,
+			OP_STORE_ATTR_NAME_NAME_NAME = 0xBA,
+			OP_LOAD_METHOD_NAME_NAME_NAME = 0xBB,
+            OP_STORE_METHOD_NAME_NAME_NAME = 0xBC,
+                OP_LOAD_CLASS_NAME_NAME_NAME = 0xBD,
+                OP_STORE_CLASS_NAME_NAME_NAME = 0xBE,
+                OP_LOAD_MODULE_NAME_NAME_NAME = 0xBF,
+                OP_STORE_MODULE_NAME_NAME_NAME = 0xC0,
+                OP_LOAD_BUILTIN_NAME_NAME_NAME = 0xC1,
+                OP_STORE_BUILTIN_NAME_NAME_NAME = 0xC2,
+                OP_LOAD_ITER_NAME_NAME_NAME = 0xC3,
+                OP_STORE_ITER_NAME_NAME_NAME = 0xC4,
+                OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0xC5,
+                OP_STORE_EXCEPTION_NAME_NAME_NAME = 0xC6,
+                OP_LOAD_CONTEXT_NAME_NAME_NAME = 0xC7,
+                OP_STORE_CONTEXT_NAME_NAME_NAME = 0xC8,
+                OP_LOAD_GLOBALS_NAME_NAME_NAME = 0xC9,
+				OP_STORE_GLOBALS_NAME_NAME_NAME = 0xCA,
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0xCB,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0xCC,
+				OP_LOAD_NAME_NAME_NAME = 0xCD,
+				OP_STORE_NAME_NAME_NAME = 0xCE,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0xCF,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0xD0,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0xD1,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0xD2,
+				OP_LOAD_CLASS_NAME_NAME_NAME = 0xD3,
+				OP_STORE_CLASS_NAME_NAME_NAME = 0xD4,
+				OP_LOAD_MODULE_NAME_NAME_NAME = 0xD5,
+				OP_STORE_MODULE_NAME_NAME_NAME = 0xD6,
+				OP_LOAD_BUILTIN_NAME_NAME_NAME = 0xD7,
+				OP_STORE_BUILTIN_NAME_NAME_NAME = 0xD8,
+				OP_LOAD_ITER_NAME_NAME_NAME = 0xD9,
+				OP_STORE_ITER_NAME_NAME_NAME = 0xDA,
+				OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0xDB,
+				OP_STORE_EXCEPTION_NAME_NAME_NAME = 0xDC,
+				OP_LOAD_CONTEXT_NAME_NAME_NAME = 0xDD,
+				OP_STORE_CONTEXT_NAME_NAME_NAME = 0xDE,
+				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0xDF,
+				OP_STORE_GLOBALS_NAME_NAME_NAME = 0xE0,
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0xE1,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0xE2,
+				OP_LOAD_NAME_NAME_NAME = 0xE3,
+				OP_STORE_NAME_NAME_NAME = 0xE4,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0xE5,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0xE6,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0xE7,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0xE8,
+				OP_LOAD_CLASS_NAME_NAME_NAME = 0xE9,
+				OP_STORE_CLASS_NAME_NAME_NAME = 0xEA,
+				OP_LOAD_MODULE_NAME_NAME_NAME = 0xEB,
+				OP_STORE_MODULE_NAME_NAME_NAME = 0xEC,
+				OP_LOAD_BUILTIN_NAME_NAME_NAME = 0xED,
+				OP_STORE_BUILTIN_NAME_NAME_NAME = 0xEE,
+				OP_LOAD_ITER_NAME_NAME_NAME = 0xEF,
+				OP_STORE_ITER_NAME_NAME_NAME = 0xF0,
+				OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0xF1,
+				OP_STORE_EXCEPTION_NAME_NAME_NAME = 0xF2,
+				OP_LOAD_CONTEXT_NAME_NAME_NAME = 0xF3,
+				OP_STORE_CONTEXT_NAME_NAME_NAME = 0xF4,
+				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0xF5,
+				OP_STORE_GLOBALS_NAME_NAME_NAME = 0xF6,
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0xF7,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0xF8,
+				OP_LOAD_NAME_NAME_NAME = 0xF9,
+				OP_STORE_NAME_NAME_NAME = 0xFA,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0xFB,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0xFC,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0xFD,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0xFE,
+				OP_LOAD_CLASS_NAME_NAME_NAME = 0xFF,
+                OP_STORE_CLASS_NAME_NAME_NAME = 0x100,
+                OP_LOAD_MODULE_NAME_NAME_NAME = 0x101,
+                OP_STORE_MODULE_NAME_NAME_NAME = 0x102,
+                OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x103,
+                OP_STORE_BUILTIN_NAME_NAME_NAME = 0x104,
+                OP_LOAD_ITER_NAME_NAME_NAME = 0x105,
+                OP_STORE_ITER_NAME_NAME_NAME = 0x106,
+                OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x107,
+                OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x108,
+                OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x109,
+                OP_STORE_CONTEXT_NAME_NAME_NAME = 0x10A,
+				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x10B,
+				OP_STORE_GLOBALS_NAME_NAME_NAME = 0x10C,
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0x10D,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0x10E,
+				OP_LOAD_NAME_NAME_NAME = 0x10F,
+				OP_STORE_NAME_NAME_NAME = 0x110,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0x111,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0x112,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0x113,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0x114,
+				OP_LOAD_CLASS_NAME_NAME_NAME = 0x115,
+				OP_STORE_CLASS_NAME_NAME_NAME = 0x116,
+				OP_LOAD_MODULE_NAME_NAME_NAME = 0x117,
+				OP_STORE_MODULE_NAME_NAME_NAME = 0x118,
+				OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x119,
+				OP_STORE_BUILTIN_NAME_NAME_NAME = 0x11A,
+				OP_LOAD_ITER_NAME_NAME_NAME = 0x11B,
+				OP_STORE_ITER_NAME_NAME_NAME = 0x11C,
+				OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x11D,
+				OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x11E,
+				OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x11F,
+				OP_STORE_CONTEXT_NAME_NAME_NAME = 0x120,
+				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x121,
+				OP_STORE_GLOBALS_NAME_NAME_NAME = 0x122,
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0x123,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0x124,
+				OP_LOAD_NAME_NAME_NAME = 0x125,
+				OP_STORE_NAME_NAME_NAME = 0x126,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0x127,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0x128,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0x129,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0x12A,
+				OP_LOAD_CLASS_NAME_NAME_NAME = 0x12B,
+				OP_STORE_CLASS_NAME_NAME_NAME = 0x12C,
+				OP_LOAD_MODULE_NAME_NAME_NAME = 0x12D,
+				OP_STORE_MODULE_NAME_NAME_NAME = 0x12E,
+				OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x12F,
+				OP_STORE_BUILTIN_NAME_NAME_NAME = 0x130,
+				OP_LOAD_ITER_NAME_NAME_NAME = 0x131,
+				OP_STORE_ITER_NAME_NAME_NAME = 0x132,
+				OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x133,
+				OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x134,
+				OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x135,
+				OP_STORE_CONTEXT_NAME_NAME_NAME = 0x136,
+				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x137,
+				OP_STORE_GLOBALS_NAME_NAME_NAME = 0x138,
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0x139,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0x13A,
+				OP_LOAD_NAME_NAME_NAME = 0x13B,
+				OP_STORE_NAME_NAME_NAME = 0x13C,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0x13D,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0x13E,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0x13F,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0x140,
+				OP_LOAD_CLASS_NAME_NAME_NAME = 0x141,
+				OP_STORE_CLASS_NAME_NAME_NAME = 0x142,
+				OP_LOAD_MODULE_NAME_NAME_NAME = 0x143,
+				OP_STORE_MODULE_NAME_NAME_NAME = 0x144,
+				OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x145,
+				OP_STORE_BUILTIN_NAME_NAME_NAME = 0x146,
+				OP_LOAD_ITER_NAME_NAME_NAME = 0x147,
+				OP_STORE_ITER_NAME_NAME_NAME = 0x148,
+				OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x149,
+				OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x14A,
+				OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x14B,
+				OP_STORE_CONTEXT_NAME_NAME_NAME = 0x14C,
+				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x14D,
+				OP_STORE_GLOBALS_NAME_NAME_NAME = 0x14E,
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0x14F,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0x150,
+				OP_LOAD_NAME_NAME_NAME = 0x151,
+				OP_STORE_NAME_NAME_NAME = 0x152,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0x153,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0x154,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0x155,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0x156,
+				OP_LOAD_CLASS_NAME_NAME_NAME = 0x157,
+				OP_STORE_CLASS_NAME_NAME_NAME = 0x158,
+				OP_LOAD_MODULE_NAME_NAME_NAME = 0x159,
+				OP_STORE_MODULE_NAME_NAME_NAME = 0x15A,
+				OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x15B,
+				OP_STORE_BUILTIN_NAME_NAME_NAME = 0x15C,
+				OP_LOAD_ITER_NAME_NAME_NAME = 0x15D,
+				OP_STORE_ITER_NAME_NAME_NAME = 0x15E,
+				OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x15F,
+				OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x160,
+				OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x161,
+				OP_STORE_CONTEXT_NAME_NAME_NAME = 0x162,
+				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x163,
+				OP_STORE_GLOBALS_NAME_NAME_NAME = 0x164,
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0x165,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0x166,
+				OP_LOAD_NAME_NAME_NAME = 0x167,
+				OP_STORE_NAME_NAME_NAME = 0x168,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0x169,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0x16A,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0x16B,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0x16C,
+				OP_LOAD_CLASS_NAME_NAME_NAME = 0x16D,
+				OP_STORE_CLASS_NAME_NAME_NAME = 0x16E,
+				OP_LOAD_MODULE_NAME_NAME_NAME = 0x16F,
+				OP_STORE_MODULE_NAME_NAME_NAME = 0x170,
+				OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x171,
+				OP_STORE_BUILTIN_NAME_NAME_NAME = 0x172,
+				OP_LOAD_ITER_NAME_NAME_NAME = 0x173,
+				OP_STORE_ITER_NAME_NAME_NAME = 0x174,
+				OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x175,
+				OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x176,
+				OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x177,
+				OP_STORE_CONTEXT_NAME_NAME_NAME = 0x178,
+				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x179,
+				OP_STORE_GLOBALS_NAME_NAME_NAME = 0x17A,
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0x17B,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0x17C,
+				OP_LOAD_NAME_NAME_NAME = 0x17D,
+				OP_STORE_NAME_NAME_NAME = 0x17E,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0x17F,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0x180,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0x181,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0x182,
+				OP_LOAD_CLASS_NAME_NAME_NAME = 0x183,
+				OP_STORE_CLASS_NAME_NAME_NAME = 0x184,
+				OP_LOAD_MODULE_NAME_NAME_NAME = 0x185,
+				OP_STORE_MODULE_NAME_NAME_NAME = 0x186,
+				OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x187,
+				OP_STORE_BUILTIN_NAME_NAME_NAME = 0x188,
+				OP_LOAD_ITER_NAME_NAME_NAME = 0x189,
+				OP_STORE_ITER_NAME_NAME_NAME = 0x18A,
+				OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x18B,
+				OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x18C,
+				OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x18D,
+				OP_STORE_CONTEXT_NAME_NAME_NAME = 0x18E,
+				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x18F,
+				OP_STORE_GLOBALS_NAME_NAME_NAME = 0x190,
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0x191,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0x192,
+				OP_LOAD_NAME_NAME_NAME = 0x193,
+				OP_STORE_NAME_NAME_NAME = 0x194,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0x195,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0x196,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0x197,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0x198,
+				OP_LOAD_CLASS_NAME_NAME_NAME = 0x199,
+				OP_STORE_CLASS_NAME_NAME_NAME = 0x19A,
+				OP_LOAD_MODULE_NAME_NAME_NAME = 0x19B,
+				OP_STORE_MODULE_NAME_NAME_NAME = 0x19C,
+				OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x19D,
+				OP_STORE_BUILTIN_NAME_NAME_NAME = 0x19E,
+				OP_LOAD_ITER_NAME_NAME_NAME = 0x19F,
+				OP_STORE_ITER_NAME_NAME_NAME = 0x1A0,
+				OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x1A1,
+				OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x1A2,
+				OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x1A3,
+				OP_STORE_CONTEXT_NAME_NAME_NAME = 0x1A4,
+				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x1A5,
+				OP_STORE_GLOBALS_NAME_NAME_NAME = 0x1A6,
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0x1A7,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0x1A8,
+				OP_LOAD_NAME_NAME_NAME = 0x1A9,
+				OP_STORE_NAME_NAME_NAME = 0x1AA,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0x1AB,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0x1AC,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0x1AD,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0x1AE,
+				OP_LOAD_CLASS_NAME_NAME_NAME = 0x1AF,
+				OP_STORE_CLASS_NAME_NAME_NAME = 0x1B0,
+				OP_LOAD_MODULE_NAME_NAME_NAME = 0x1B1,
+				OP_STORE_MODULE_NAME_NAME_NAME = 0x1B2,
+				OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x1B3,
+				OP_STORE_BUILTIN_NAME_NAME_NAME = 0x1B4,
+				OP_LOAD_ITER_NAME_NAME_NAME = 0x1B5,
+				OP_STORE_ITER_NAME_NAME_NAME = 0x1B6,
+				OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x1B7,
+				OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x1B8,
+				OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x1B9,
+				OP_STORE_CONTEXT_NAME_NAME_NAME = 0x1BA,
+				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x1BB,
+				OP_STORE_GLOBALS_NAME_NAME_NAME = 0x1BC,
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0x1BD,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0x1BE,
+				OP_LOAD_NAME_NAME_NAME = 0x1BF,
+				OP_STORE_NAME_NAME_NAME = 0x1C0,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0x1C1,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0x1C2,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0x1C3,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0x1C4,
+				OP_LOAD_CLASS_NAME_NAME_NAME = 0x1C5,
+				OP_STORE_CLASS_NAME_NAME_NAME = 0x1C6,
+				OP_LOAD_MODULE_NAME_NAME_NAME = 0x1C7,
+				OP_STORE_MODULE_NAME_NAME_NAME = 0x1C8,
+				OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x1C9,
+				OP_STORE_BUILTIN_NAME_NAME_NAME = 0x1CA,
+				OP_LOAD_ITER_NAME_NAME_NAME = 0x1CB,
+				OP_STORE_ITER_NAME_NAME_NAME = 0x1CC,
+				OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x1CD,
+				OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x1CE,
+				OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x1CF,
+				OP_STORE_CONTEXT_NAME_NAME_NAME = 0x1D0,
+				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x1D1,
+				OP_STORE_GLOBALS_NAME_NAME_NAME = 0x1D2,
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0x1D3,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0x1D4,
+				OP_LOAD_NAME_NAME_NAME = 0x1D5,
+				OP_STORE_NAME_NAME_NAME = 0x1D6,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0x1D7,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0x1D8,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0x1D9,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0x1DA,
+				OP_LOAD_CLASS_NAME_NAME_NAME = 0x1DB,
+				OP_STORE_CLASS_NAME_NAME_NAME = 0x1DC,
+				OP_LOAD_MODULE_NAME_NAME_NAME = 0x1DD,
+				OP_STORE_MODULE_NAME_NAME_NAME = 0x1DE,
+				OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x1DF,
+				OP_STORE_BUILTIN_NAME_NAME_NAME = 0x1E0,
+				OP_LOAD_ITER_NAME_NAME_NAME = 0x1E1,
+				OP_STORE_ITER_NAME_NAME_NAME = 0x1E2,
+				OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x1E3,
+				OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x1E4,
+				OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x1E5,
+				OP_STORE_CONTEXT_NAME_NAME_NAME = 0x1E6,
+				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x1E7,
+				OP_STORE_GLOBALS_NAME_NAME_NAME = 0x1E8,
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0x1E9,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0x1EA,
+				OP_LOAD_NAME_NAME_NAME = 0x1EB,
+				OP_STORE_NAME_NAME_NAME = 0x1EC,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0x1ED,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0x1EE,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0x1EF,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0x1F0,
+				OP_LOAD_CLASS_NAME_NAME_NAME = 0x1F1,
+				OP_STORE_CLASS_NAME_NAME_NAME = 0x1F2,
+				OP_LOAD_MODULE_NAME_NAME_NAME = 0x1F3,
+				OP_STORE_MODULE_NAME_NAME_NAME = 0x1F4,
+				OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x1F5,
+				OP_STORE_BUILTIN_NAME_NAME_NAME = 0x1F6,
+				OP_LOAD_ITER_NAME_NAME_NAME = 0x1F7,
+				OP_STORE_ITER_NAME_NAME_NAME = 0x1F8,
+				OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x1F9,
+				OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x1FA,
+				OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x1FB,
+				OP_STORE_CONTEXT_NAME_NAME_NAME = 0x1FC,
+				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x1FD,
+				OP_STORE_GLOBALS_NAME_NAME_NAME = 0x1FE,
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0x1FF,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0x200,
+				OP_LOAD_NAME_NAME_NAME = 0x201,
+				OP_STORE_NAME_NAME_NAME = 0x202,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0x203,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0x204,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0x205,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0x206,
+				OP_LOAD_CLASS_NAME_NAME_NAME = 0x207,
+				OP_STORE_CLASS_NAME_NAME_NAME = 0x208,
+				OP_LOAD_MODULE_NAME_NAME_NAME = 0x209,
+				OP_STORE_MODULE_NAME_NAME_NAME = 0x20A,
+				OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x20B,
+				OP_STORE_BUILTIN_NAME_NAME_NAME = 0x20C,
+				OP_LOAD_ITER_NAME_NAME_NAME = 0x20D,
+				OP_STORE_ITER_NAME_NAME_NAME = 0x20E,
+				OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x20F,
+				OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x210,
+				OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x211,
+				OP_STORE_CONTEXT_NAME_NAME_NAME = 0x212,
+				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x213,
+				OP_STORE_GLOBALS_NAME_NAME_NAME = 0x214,
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0x215,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0x216,
+				OP_LOAD_NAME_NAME_NAME = 0x217,
+				OP_STORE_NAME_NAME_NAME = 0x218,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0x219,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0x21A,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0x21B,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0x21C,
+				OP_LOAD_CLASS_NAME_NAME_NAME = 0x21D,
+				OP_STORE_CLASS_NAME_NAME_NAME = 0x21E,
+				OP_LOAD_MODULE_NAME_NAME_NAME = 0x21F,
+				OP_STORE_MODULE_NAME_NAME_NAME = 0x220,
+				OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x221,
+				OP_STORE_BUILTIN_NAME_NAME_NAME = 0x222,
+				OP_LOAD_ITER_NAME_NAME_NAME = 0x223,
+				OP_STORE_ITER_NAME_NAME_NAME = 0x224,
+				OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x225,
+				OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x226,
+				OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x227,
+				OP_STORE_CONTEXT_NAME_NAME_NAME = 0x228,
+				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x229,
+				OP_STORE_GLOBALS_NAME_NAME_NAME = 0x22A,
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0x22B,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0x22C,
+				OP_LOAD_NAME_NAME_NAME = 0x22D,
+				OP_STORE_NAME_NAME_NAME = 0x22E,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0x22F,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0x230,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0x231,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0x232,
+				OP_LOAD_CLASS_NAME_NAME_NAME = 0x233,
+				OP_STORE_CLASS_NAME_NAME_NAME = 0x234,
+				OP_LOAD_MODULE_NAME_NAME_NAME = 0x235,
+				OP_STORE_MODULE_NAME_NAME_NAME = 0x236,
+				OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x237,
+				OP_STORE_BUILTIN_NAME_NAME_NAME = 0x238,
+				OP_LOAD_ITER_NAME_NAME_NAME = 0x239,
+				OP_STORE_ITER_NAME_NAME_NAME = 0x23A,
+				OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x23B,
+				OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x23C,
+				OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x23D,
+				OP_STORE_CONTEXT_NAME_NAME_NAME = 0x23E,
+				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x23F,
+				OP_STORE_GLOBALS_NAME_NAME_NAME = 0x240,
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0x241,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0x242,
+				OP_LOAD_NAME_NAME_NAME = 0x243,
+				OP_STORE_NAME_NAME_NAME = 0x244,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0x245,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0x246,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0x247,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0x248,
+				OP_LOAD_CLASS_NAME_NAME_NAME = 0x249,
+				OP_STORE_CLASS_NAME_NAME_NAME = 0x24A,
+				OP_LOAD_MODULE_NAME_NAME_NAME = 0x24B,
+				OP_STORE_MODULE_NAME_NAME_NAME = 0x24C,
+				OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x24D,
+				OP_STORE_BUILTIN_NAME_NAME_NAME = 0x24E,
+				OP_LOAD_ITER_NAME_NAME_NAME = 0x24F,
+				OP_STORE_ITER_NAME_NAME_NAME = 0x250,
+				OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x251,
+				OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x252,
+				OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x253,
+				OP_STORE_CONTEXT_NAME_NAME_NAME = 0x254,
+				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x255,
+				OP_STORE_GLOBALS_NAME_NAME_NAME = 0x256,
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0x257,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0x258,
+				OP_LOAD_NAME_NAME_NAME = 0x259,
+				OP_STORE_NAME_NAME_NAME = 0x25A,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0x25B,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0x25C,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0x25D,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0x25E,
+				OP_LOAD_CLASS_NAME_NAME_NAME = 0x25F,
+				OP_STORE_CLASS_NAME_NAME_NAME = 0x260,
+				OP_LOAD_MODULE_NAME_NAME_NAME = 0x261,
+				OP_STORE_MODULE_NAME_NAME_NAME = 0x262,
+				OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x263,
+				OP_STORE_BUILTIN_NAME_NAME_NAME = 0x264,
+				OP_LOAD_ITER_NAME_NAME_NAME = 0x265,
+				OP_STORE_ITER_NAME_NAME_NAME = 0x266,
+				OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x267,
+				OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x268,
+				OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x269,
+				OP_STORE_CONTEXT_NAME_NAME_NAME = 0x26A,
+				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x26B,
+				OP_STORE_GLOBALS_NAME_NAME_NAME = 0x26C,
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0x26D,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0x26E,
+				OP_LOAD_NAME_NAME_NAME = 0x26F,
+				OP_STORE_NAME_NAME_NAME = 0x270,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0x271,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0x272,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0x273,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0x274,
+				OP_LOAD_CLASS_NAME_NAME_NAME = 0x275,
+				OP_STORE_CLASS_NAME_NAME_NAME = 0x276,
+				OP_LOAD_MODULE_NAME_NAME_NAME = 0x277,
+				OP_STORE_MODULE_NAME_NAME_NAME = 0x278,
+				OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x279,
+				OP_STORE_BUILTIN_NAME_NAME_NAME = 0x27A,
+				OP_LOAD_ITER_NAME_NAME_NAME = 0x27B,
+				OP_STORE_ITER_NAME_NAME_NAME = 0x27C,
+				OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x27D,
+				OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x27E,
+				OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x27F,
+				OP_STORE_CONTEXT_NAME_NAME_NAME = 0x280,
+				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x281,
+				OP_STORE_GLOBALS_NAME_NAME_NAME = 0x282,
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0x283,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0x284,
+				OP_LOAD_NAME_NAME_NAME = 0x285,
+				OP_STORE_NAME_NAME_NAME = 0x286,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0x287,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0x288,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0x289,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0x28A,
+				OP_LOAD_CLASS_NAME_NAME_NAME = 0x28B,
+				OP_STORE_CLASS_NAME_NAME_NAME = 0x28C,
+				OP_LOAD_MODULE_NAME_NAME_NAME = 0x28D,
+				OP_STORE_MODULE_NAME_NAME_NAME = 0x28E,
+				OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x28F,
+				OP_STORE_BUILTIN_NAME_NAME_NAME = 0x290,
+				OP_LOAD_ITER_NAME_NAME_NAME = 0x291,
+				OP_STORE_ITER_NAME_NAME_NAME = 0x292,
+				OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x293,
+				OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x294,
+				OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x295,
+				OP_STORE_CONTEXT_NAME_NAME_NAME = 0x296,
+				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x297,
+				OP_STORE_GLOBALS_NAME_NAME_NAME = 0x298,
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0x299,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0x29A,
+				OP_LOAD_NAME_NAME_NAME = 0x29B,
+				OP_STORE_NAME_NAME_NAME = 0x29C,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0x29D,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0x29E,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0x29F,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0x2A0,
+				OP_LOAD_CLASS_NAME_NAME_NAME = 0x2A1,
+				OP_STORE_CLASS_NAME_NAME_NAME = 0x2A2,
+				OP_LOAD_MODULE_NAME_NAME_NAME = 0x2A3,
+				OP_STORE_MODULE_NAME_NAME_NAME = 0x2A4,
+				OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x2A5,
+				OP_STORE_BUILTIN_NAME_NAME_NAME = 0x2A6,
+				OP_LOAD_ITER_NAME_NAME_NAME = 0x2A7,
+				OP_STORE_ITER_NAME_NAME_NAME = 0x2A8,
+				OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x2A9,
+				OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x2AA,
+				OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x2AB,
+				OP_STORE_CONTEXT_NAME_NAME_NAME = 0x2AC,
+				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x2AD,
+				OP_STORE_GLOBALS_NAME_NAME_NAME = 0x2AE,
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0x2AF,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0x2B0,
+				OP_LOAD_NAME_NAME_NAME = 0x2B1,
+				OP_STORE_NAME_NAME_NAME = 0x2B2,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0x2B3,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0x2B4,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0x2B5,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0x2B6,
+				OP_LOAD_CLASS_NAME_NAME_NAME = 0x2B7,
+				OP_STORE_CLASS_NAME_NAME_NAME = 0x2B8,
+				OP_LOAD_MODULE_NAME_NAME_NAME = 0x2B9,
+				OP_STORE_MODULE_NAME_NAME_NAME = 0x2BA,
+				OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x2BB,
+				OP_STORE_BUILTIN_NAME_NAME_NAME = 0x2BC,
+				OP_LOAD_ITER_NAME_NAME_NAME = 0x2BD,
+				OP_STORE_ITER_NAME_NAME_NAME = 0x2BE,
+				OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x2BF,
+				OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x2C0,
+				OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x2C1,
+				OP_STORE_CONTEXT_NAME_NAME_NAME = 0x2C2,
+				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x2C3,
+				OP_STORE_GLOBALS_NAME_NAME_NAME = 0x2C4,
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0x2C5,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0x2C6,
+				OP_LOAD_NAME_NAME_NAME = 0x2C7,
+				OP_STORE_NAME_NAME_NAME = 0x2C8,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0x2C9,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0x2CA,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0x2CB,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0x2CC,
+				OP_LOAD_CLASS_NAME_NAME_NAME = 0x2CD,
+				OP_STORE_CLASS_NAME_NAME_NAME = 0x2CE,
+				OP_LOAD_MODULE_NAME_NAME_NAME = 0x2CF,
+				OP_STORE_MODULE_NAME_NAME_NAME = 0x2D0,
+				OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x2D1,
+				OP_STORE_BUILTIN_NAME_NAME_NAME = 0x2D2,
+				OP_LOAD_ITER_NAME_NAME_NAME = 0x2D3,
+				OP_STORE_ITER_NAME_NAME_NAME = 0x2D4,
+				OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x2D5,
+				OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x2D6,
+				OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x2D7,
+				OP_STORE_CONTEXT_NAME_NAME_NAME = 0x2D8,
+				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x2D9,
+				OP_STORE_GLOBALS_NAME_NAME_NAME = 0x2DA,
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0x2DB,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0x2DC,
+				OP_LOAD_NAME_NAME_NAME = 0x2DD,
+				OP_STORE_NAME_NAME_NAME = 0x2DE,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0x2DF,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0x2E0,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0x2E1,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0x2E2,
+				OP_LOAD_CLASS_NAME_NAME_NAME = 0x2E3,
+				OP_STORE_CLASS_NAME_NAME_NAME = 0x2E4,
+				OP_LOAD_MODULE_NAME_NAME_NAME = 0x2E5,
+				OP_STORE_MODULE_NAME_NAME_NAME = 0x2E6,
+				OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x2E7,
+				OP_STORE_BUILTIN_NAME_NAME_NAME = 0x2E8,
+				OP_LOAD_ITER_NAME_NAME_NAME = 0x2E9,
+				OP_STORE_ITER_NAME_NAME_NAME = 0x2EA,
+				OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x2EB,
+				OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x2EC,
+				OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x2ED,
+				OP_STORE_CONTEXT_NAME_NAME_NAME = 0x2EE,
+				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x2EF,
+				OP_STORE_GLOBALS_NAME_NAME_NAME = 0x2F0,
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0x2F1,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0x2F2,
+				OP_LOAD_NAME_NAME_NAME = 0x2F3,
+				OP_STORE_NAME_NAME_NAME = 0x2F4,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0x2F5,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0x2F6,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0x2F7,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0x2F8,
+				OP_LOAD_CLASS_NAME_NAME_NAME = 0x2F9,
+				OP_STORE_CLASS_NAME_NAME_NAME = 0x2FA,
+				OP_LOAD_MODULE_NAME_NAME_NAME = 0x2FB,
+				OP_STORE_MODULE_NAME_NAME_NAME = 0x2FC,
+				OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x2FD,
+				OP_STORE_BUILTIN_NAME_NAME_NAME = 0x2FE,
+				OP_LOAD_ITER_NAME_NAME_NAME = 0x2FF,
+				OP_STORE_ITER_NAME_NAME_NAME = 0x300,
+				OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x301,
+				OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x302,
+				OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x303,
+				OP_STORE_CONTEXT_NAME_NAME_NAME = 0x304,
+				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x305,
+				OP_STORE_GLOBALS_NAME_NAME_NAME = 0x306,
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0x307,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0x308,
+				OP_LOAD_NAME_NAME_NAME = 0x309,
+				OP_STORE_NAME_NAME_NAME = 0x30A,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0x30B,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0x30C,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0x30D,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0x30E,
+				OP_LOAD_CLASS_NAME_NAME_NAME = 0x30F,
+				OP_STORE_CLASS_NAME_NAME_NAME = 0x310,
+				OP_LOAD_MODULE_NAME_NAME_NAME = 0x311,
+				OP_STORE_MODULE_NAME_NAME_NAME = 0x312,
+				OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x313,
+				OP_STORE_BUILTIN_NAME_NAME_NAME = 0x314,
+				OP_LOAD_ITER_NAME_NAME_NAME = 0x315,
+				OP_STORE_ITER_NAME_NAME_NAME = 0x316,
+				OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x317,
+				OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x318,
+				OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x319,
+				OP_STORE_CONTEXT_NAME_NAME_NAME = 0x31A,
+				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x31B,
+				OP_STORE_GLOBALS_NAME_NAME_NAME = 0x31C,
+				OP_LOAD_LOCALS_NAME_NAME_NAME = 0x31D,
+				OP_STORE_LOCALS_NAME_NAME_NAME = 0x31E,
+				OP_LOAD_NAME_NAME_NAME = 0x31F,
+				OP_STORE_NAME_NAME_NAME = 0x320,
+				OP_LOAD_ATTR_NAME_NAME_NAME = 0x321,
+				OP_STORE_ATTR_NAME_NAME_NAME = 0x322,
+				OP_LOAD_METHOD_NAME_NAME_NAME = 0x323,
+				OP_STORE_METHOD_NAME_NAME_NAME = 0x324,
+				OP_LOAD_CLASS_NAME_NAME_NAME = 0x325,
+				OP_STORE_CLASS_NAME_NAME_NAME = 0x326,
+				OP_LOAD_MODULE_NAME_NAME_NAME = 0x327,
+				OP_STORE_MODULE_NAME_NAME_NAME = 0x328,
+				OP_LOAD_BUILTIN_NAME_NAME_NAME = 0x329,
+				OP_STORE_BUILTIN_NAME_NAME_NAME = 0x32A,
+				OP_LOAD_ITER_NAME_NAME_NAME = 0x32B,
+				OP_STORE_ITER_NAME_NAME_NAME = 0x32C,
+				OP_LOAD_EXCEPTION_NAME_NAME_NAME = 0x32D,
+				OP_STORE_EXCEPTION_NAME_NAME_NAME = 0x32E,
+				OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x32F,
+				OP_STORE_CONTEXT_NAME_NAME_NAME = 0x330,
+				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x331,
