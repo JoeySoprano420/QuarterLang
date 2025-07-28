@@ -445,8 +445,10 @@ QuarterLang excels in domains requiring symbolic execution, recursive logic, or 
 | **Logic Trainer Engine**      | Teaching recursion via visual capsule flow and result feedback            |
 
 
+---
 
-ALTERNATE REPORT:
+
+## ALTERNATE REPORT:
 
 ⚙️ QuarterLang Performance Comparison
 
