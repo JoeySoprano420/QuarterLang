@@ -303,6 +303,8 @@ end
 
 ---
 
+## Language Report
+
 🧪 Estimated Execution Speed vs Other Languages
 
 | Language        | ⚡ Speed Tier | ⚙️ Notes                                             |
