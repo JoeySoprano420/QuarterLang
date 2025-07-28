@@ -303,3 +303,12 @@ end
 
 ---
 
+🧪 Estimated Execution Speed vs Other Languages
+
+| Language        | ⚡ Execution Speed (Est.) | ⚙️ Notes                                                                |
+| --------------- | ------------------------ | ----------------------------------------------------------------------- |
+| **C**           | 🟢 **Fastest**           | Native compilation, no abstraction overhead                             |
+| **Rust**        | 🟢 **Very Fast**         | LLVM-backed, zero-cost abstractions                                     |
+| **QuarterLang** | 🟡 **Fast-ish**          | Capsule folding is efficient, symbolic execution boosts mid-level speed |
+| **Python**      | 🔴 **Slower**            | Interpreted, high abstraction cost                                      |
+| **JavaScript**  | 🔴 **Slower**            | JIT-dependent, variable performance                                     |
