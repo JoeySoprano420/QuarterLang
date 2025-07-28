@@ -32333,3 +32333,436 @@ namespace CapsuleViz {
 // REPL command chaining: :inject_stream → :trace_capsule → :throw_alert
 // Enables automated symbolic tests and alert triggers
 
+std::map<std::string, std::string> macroAliases = {
+  {":inject_stream", "⟁ stream_in"},
+  {":define_capsule", "Ξ def"},
+  {":trace_capsule", "🔍 trace"},
+  {":throw_alert", "🜈 alert"},
+};
+
+{ "⟁", { "SYN" } } -> { "Ξ", { "flag", "SYN" } } -> { "Δ", { "size", "512" } }
+
+if (condition) { execute capsule A }
+else { skip or fold alternate }
+
+if (symbolGuardViolated) {
+    UICLOp alert = { "🜈", {"Symbolic fold failure"} };
+    capsuleLog.push_back(alert);
+}
+
+enum class OpCode : uint8_t {
+    CALL = 0x01,
+    Ξ_LOGIC = 0x02,
+    Δ_MATH = 0x03,
+    Ψ_RECURSE = 0x04,
+    🜈_ALERT = 0xFF
+};
+
+registerCapsule("anomaly_detect", [](auto args) {
+    return args.size() > 2 && args[1] == "SYN";
+    });
+
+if (Ξ_val != "expected") throw CapsuleGuardViolation(🜈);
+
+struct CapsuleMutation {
+    std::string origin;
+    std::string patchedBy;
+    std::vector<std::string> changes;
+    Timestamp mutatedAt;
+};
+std::map<std::string, CapsuleMutation> mutationLog;
+
+:patch Ξ_auth_check by Ξ_override_check
+
+    : inspect_capsule Ξ_auth_check
+    // Output: DOT graph of mutation lineage
+
+    Ξ_auth_check → Ξ_override_check[label = "patched by :repl_macro"]
+
+    CapsuleSimResult simulateCapsuleFold(const std::vector<UICLOp>& chain, CapsuleContext& ctx);
+
+struct CapsuleSimResult {
+    int accFinal;
+    float entropyScore;
+    bool threwSymbolicAlert;
+    std::vector<std::string> triggeredCapsules;
+};
+
+:simulate_chain[Ξ_auth_check, Δ_size_check, 🜈_anomaly_alert]
+
+ACC ← Ξ_eval → Δ_math → 🜈_alert
+
+class CapsuleNode {
+    std::string symbol;
+    std::vector<std::string> parents;
+    std::vector<std::string> children;
+    Metadata meta;
+};
+
+struct CapsuleNode {
+    std::string symbol;
+    std::vector<std::string> parents;
+    std::vector<std::string> children;
+    std::string mutatedByMacro;
+    std::string timestamp;
+};
+
+std::string renderCapsuleAncestryDOT(const std::map<std::string, CapsuleNode>& graph);
+
+digraph CapsuleLineage{
+  Ξ_baseAuth->Ξ_auth_check;
+  Ξ_auth_check->Ξ_override_check[label = "macro patch"];
+  🜈_inputError->Ξ_override_check[label = "merge"];
+}
+
+    :trace_ancestry Ξ_override_check > capsule_graph.dot
+
+    struct FoldState {
+    int acc;
+    float entropy;
+    std::vector<std::string> visited;
+    bool threwError;
+};
+
+FoldState simulateFoldChain(std::vector<std::string> capsuleChain, CapsuleContext& ctx);
+
+struct MacroMutationLog {
+    std::string macroName;
+    std::string targetSymbol;
+    std::vector<std::string> effects;
+    std::string timestamp;
+};
+
+:watch_macro:patch_Ξ_auth_check
+
+// === Capsule Ancestry Renderer (Scaffold) ===
+#include <map>
+#include <string>
+#include <vector>
+#include <fstream>
+
+struct CapsuleNode {
+    std::string symbol;
+    std::vector<std::string> parents;
+    std::vector<std::string> children;
+    std::string mutatedByMacro;
+    std::string timestamp;
+};
+
+std::map<std::string, CapsuleNode> capsuleGraph;
+
+std::string renderCapsuleAncestryDOT(const std::map<std::string, CapsuleNode>& graph) {
+    std::string dot = "digraph CapsuleLineage {\n";
+    for (const auto& [symbol, node] : graph) {
+        for (const auto& parent : node.parents) {
+            dot += "  \"" + parent + "\" -> \"" + symbol + "\";\n";
+        }
+        if (!node.mutatedByMacro.empty()) {
+            dot += "  \"" + symbol + "\" [label=\"" + symbol + " (macro: " + node.mutatedByMacro + ")\"];\n";
+        }
+    }
+    dot += "}\n";
+    return dot;
+}
+
+void exportAncestryDOT(const std::string& targetSymbol, const std::string& filename) {
+    if (capsuleGraph.find(targetSymbol) == capsuleGraph.end()) return;
+    std::ofstream out(filename);
+    out << renderCapsuleAncestryDOT(capsuleGraph);
+    out.close();
+}
+
+else if (cmd == ":trace_ancestry" && args.size() == 2) {
+    exportAncestryDOT(args[0], args[1]);
+    std::cout << "[+] Lineage map exported to " << args[1] << std::endl;
+    }
+
+    struct CapsuleNode {
+        std::string symbol;
+        std::vector<std::string> parents;
+        std::vector<std::string> children;
+        std::string mutatedByMacro;
+        std::string timestamp;
+    };
+
+    std::map<std::string, CapsuleNode> capsuleGraph;
+
+    std::string renderCapsuleAncestryDOT(const std::map<std::string, CapsuleNode>& graph) {
+        std::string dot = "digraph CapsuleLineage {\n";
+        for (const auto& [symbol, node] : graph) {
+            for (const auto& parent : node.parents) {
+                dot += "  \"" + parent + "\" -> \"" + symbol + "\";\n";
+            }
+            if (!node.mutatedByMacro.empty()) {
+                dot += "  \"" + symbol + "\" [label=\"" + symbol + " (macro: " + node.mutatedByMacro + ")\"];\n";
+            }
+        }
+        dot += "}\n";
+        return dot;
+    }
+
+    void exportAncestryDOT(const std::string& targetSymbol, const std::string& filename) {
+        std::ofstream out(filename);
+        out << renderCapsuleAncestryDOT(capsuleGraph);
+        out.close();
+    }
+
+    struct FoldState {
+        int acc = 0;
+        float entropy = 0.0f;
+        std::vector<std::string> visited;
+        bool threwError = false;
+    };
+
+    FoldState simulateFoldChain(std::vector<std::string> chain, CapsuleContext& ctx) {
+        FoldState state;
+        for (const auto& symbol : chain) {
+            state.visited.push_back(symbol);
+            state.acc += ctx.getCapsuleWeight(symbol);  // Hypothetical weight function
+            if (ctx.isErrorSymbol(symbol)) {
+                state.threwError = true;
+                state.entropy += 0.3f;
+                break;
+            }
+            state.entropy += ctx.getSymbolEntropy(symbol);
+        }
+        return state;
+    }
+
+    struct MacroMutationLog {
+        std::string macroName;
+        std::string targetSymbol;
+        std::vector<std::string> effects;
+        std::string timestamp;
+    };
+
+    std::vector<MacroMutationLog> macroLog;
+
+    void logMacroMutation(const std::string& macro, const std::string& symbol, const std::vector<std::string>& effects) {
+        macroLog.push_back({ macro, symbol, effects, getCurrentTimestamp() });
+    }
+
+else if (cmd == ":trace_ancestry" && args.size() == 2) {
+    exportAncestryDOT(args[0], args[1]);
+    std::cout << "[Ancestry] Exported to " << args[1] << std::endl;
+}
+else if (cmd == ":simulate_fold" && args.size() >= 1) {
+    FoldState result = simulateFoldChain(args, capsuleCtx);
+    std::cout << "[Fold] ACC=" << result.acc << ", Entropy=" << result.entropy;
+    if (result.threwError) std::cout << " [Symbolic Error triggered]";
+    std::cout << std::endl;
+    }
+else if (cmd == ":watch_macro" && args.size() == 1) {
+        for (const auto& log : macroLog) {
+            if (log.macroName == args[0]) {
+                std::cout << "[" << log.timestamp << "] Macro: " << log.macroName << " on " << log.targetSymbol << "\n→ Effects: ";
+                for (const auto& e : log.effects) std::cout << e << ", ";
+                std::cout << std::endl;
+            }
+        }
+        }
+
+        else if (cmd == ":trace_ancestry" && args.size() == 2) {
+    exportAncestryDOT(args[0], args[1]);
+    std::cout << "[Ancestry] Exported to " << args[1] << std::endl;
+}
+else if (cmd == ":simulate_fold" && args.size() >= 1) {
+    FoldState result = simulateFoldChain(args, capsuleCtx);
+    std::cout << "[Fold] ACC=" << result.acc << ", Entropy=" << result.entropy;
+    if (result.threwError) std::cout << " [Symbolic Error triggered]";
+    std::cout << std::endl;
+}
+else if (cmd == ":watch_macro" && args.size() == 1) {
+    for (const auto& log : macroLog) {
+        if (log.macroName == args[0]) {
+            std::cout << "[" << log.timestamp << "] Macro: " << log.macroName << " on " << log.targetSymbol << "\n→ Effects: ";
+            for (const auto& e : log.effects) std::cout << e << ", ";
+            std::cout << std::endl;
+        }
+    }
+}
+
+else if (cmd == ":trace_ancestry" && args.size() == 2) {
+    exportAncestryDOT(args[0], args[1]);
+    std::cout << "[Ancestry] Exported to " << args[1] << std::endl;
+    }
+else if (cmd == ":simulate_fold" && args.size() >= 1) {
+        FoldState result = simulateFoldChain(args, capsuleCtx);
+        std::cout << "[Fold] ACC=" << result.acc << ", Entropy=" << result.entropy;
+        if (result.threwError) std::cout << " [Symbolic Error triggered]";
+        std::cout << std::endl;
+        }
+else if (cmd == ":watch_macro" && args.size() == 1) {
+            for (const auto& log : macroLog) {
+                if (log.macroName == args[0]) {
+                    std::cout << "[" << log.timestamp << "] Macro: " << log.macroName << " on " << log.targetSymbol << "\n→ Effects: ";
+                    for (const auto& e : log.effects) std::cout << e << ", ";
+                    std::cout << std::endl;
+                }
+            }
+            }
+
+            struct CapsuleMeta {
+                std::string symbol;
+                std::string semanticRole;   // e.g. "validation", "accumulator", "branch condition"
+                std::vector<std::string> parents;
+                std::string createdByMacro;
+                std::string lineageTag;
+                int foldCost;
+                float entropyValue;
+                bool isBranchable;
+                bool isErrorTrigger;
+            };
+            std::map<std::string, CapsuleMeta> capsuleMetaMap;
+
+            struct CFGEdge {
+                std::string from;
+                std::string to;
+                std::string conditionLabel;  // e.g. "ACC > 0"
+            };
+
+            std::vector<CFGEdge> controlFlowEdges;
+
+            void buildCapsuleCFG(const std::vector<std::string>& foldChain, const CapsuleContext& ctx) {
+                for (size_t i = 0; i < foldChain.size(); ++i) {
+                    std::string current = foldChain[i];
+                    if (capsuleMetaMap[current].isBranchable) {
+                        std::string trueBranch = ctx.getBranchTarget(current, true);
+                        std::string falseBranch = ctx.getBranchTarget(current, false);
+                        controlFlowEdges.push_back({ current, trueBranch, "True" });
+                        controlFlowEdges.push_back({ current, falseBranch, "False" });
+                    }
+                    else if (i + 1 < foldChain.size()) {
+                        controlFlowEdges.push_back({ current, foldChain[i + 1], "" });
+                    }
+                }
+            }
+
+            if (capsuleMetaMap[symbol].semanticRole == "terminator") {
+                emitOpcode("HALT");
+            }
+
+CapsuleMeta meta = capsuleMetaMap["Ξ_enemyEvaluate"];
+if (meta.semanticRole == "branch condition" && meta.lineageTag == "aggressive") {
+    emitOpcode("BRANCH_ATTACK");
+} else {
+    emitOpcode("BRANCH_RETREAT");
+}
+
+if (capsuleMetaMap["🜈_intrusionAlert"].isErrorTrigger) {
+    emitOpcode("HALT");
+} else {
+    emitOpcode("NOP");
+}
+
+if (capsuleMetaMap["Δ_entropyFold"].foldCost > 30) {
+    emitOpcode("FOLD_SUM", /*strength=*/meta.foldCost);
+}
+
+if (capsuleMetaMap["Ξ_dialogueChoice"].parents.contains("Ψ_charMorality")) {
+    emitOpcode("BRANCH_NOBLE");
+} else {
+    emitOpcode("BRANCH_GREED");
+}
+
+if (capsuleMetaMap["Δ_controlCapsule"].semanticRole == "peripheral toggle") {
+    emitOpcode("WRITE_REG", /*address=*/0xA003, /*value=*/0xFF);
+}
+
+// === ⚙️ Micro-op Fusion Cache ===
+// Cache collapsed opcode combos per capsule ancestry for AOT injection.
+
+#include <unordered_map>
+#include <vector>
+#include <string>
+
+struct OpcodeCombo {
+    std::vector<std::string> ops;
+    int combinedCost;
+};
+
+class MicroOpFusionCache {
+public:
+    // Key: Capsule ancestry path as concatenated string
+    void storeCombo(const std::string& ancestryKey, const OpcodeCombo& combo) {
+        fusionCache[ancestryKey].push_back(combo);
+    }
+
+    const std::vector<OpcodeCombo>* getCombos(const std::string& ancestryKey) const {
+        auto it = fusionCache.find(ancestryKey);
+        if (it != fusionCache.end()) return &it->second;
+        return nullptr;
+    }
+
+private:
+    std::unordered_map<std::string, std::vector<OpcodeCombo>> fusionCache;
+};
+
+// === 🌿 Symbolic Branching Tree ===
+// Precompute plausible opcode pathways based on capsule meta.parents graph.
+
+#include <unordered_set>
+
+class SymbolicBranchingTree {
+public:
+    void addEdge(const std::string& parent, const std::string& child) {
+        adjacency[parent].insert(child);
+    }
+
+    // Returns plausible opcode paths from given start capsule
+    void computePaths(const std::string& start, std::vector<std::vector<std::string>>& outPaths, std::vector<std::string> currentPath = {}) {
+        currentPath.push_back(start);
+        if (adjacency.find(start) == adjacency.end() || adjacency[start].empty()) {
+            outPaths.push_back(currentPath);
+            return;
+        }
+        for (const auto& next : adjacency[start]) {
+            computePaths(next, outPaths, currentPath);
+        }
+    }
+
+private:
+    std::unordered_map<std::string, std::unordered_set<std::string>> adjacency;
+};
+
+// === 🧬 Entropy-Aware Folding ===
+// Fold expressions to emit composite opcodes when foldCost exceeds threshold.
+
+class Expression {
+public:
+    int foldCost;
+    std::vector<std::string> ops; // opcodes or subexpressions
+
+    Expression(int cost = 0) : foldCost(cost) {}
+};
+
+class EntropyAwareOptimizer {
+public:
+    static constexpr int FOLD_THRESHOLD = 50;
+
+    void foldExpression(Expression& expr) {
+        if (expr.foldCost > FOLD_THRESHOLD) {
+            // Combine ops into composite opcode
+            expr.ops = {combineOps(expr.ops)};
+            expr.foldCost = estimateCompositeCost(expr.ops[0]);
+        }
+    }
+
+private:
+    std::string combineOps(const std::vector<std::string>& ops) {
+        // Simple fusion: concatenate with +
+        std::string composite = "COMPOSITE(";
+        for (size_t i = 0; i < ops.size(); ++i) {
+            composite += ops[i];
+            if (i + 1 < ops.size()) composite += "+";
+        }
+        composite += ")";
+        return composite;
+    }
+
+    int estimateCompositeCost(const std::string& compositeOp) {
+        // Simplified fixed cost
+        return 20;
+    }
+};
+
