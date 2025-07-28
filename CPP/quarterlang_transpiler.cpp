@@ -32766,3 +32766,250 @@ private:
     }
 };
 
+// === 🔄 Side-Effects Tracking ===
+#include <unordered_map>
+#include <unordered_set>
+#include <string>
+
+class SideEffectsTracker {
+public:
+    // Record side-effects keyed by capsule id and variable/memory location
+    void recordEffect(const std::string& capsuleId, const std::string& memLocation) {
+        capsuleEffects[capsuleId].insert(memLocation);
+    }
+
+    // Query side-effects for capsule
+    const std::unordered_set<std::string>& getEffects(const std::string& capsuleId) const {
+        static std::unordered_set<std::string> empty;
+        auto it = capsuleEffects.find(capsuleId);
+        return (it != capsuleEffects.end()) ? it->second : empty;
+    }
+
+    // Clear effects after commit or rollback
+    void clearEffects(const std::string& capsuleId) {
+        capsuleEffects.erase(capsuleId);
+    }
+
+private:
+    std::unordered_map<std::string, std::unordered_set<std::string>> capsuleEffects;
+};
+
+// === 🛡️ Scoped Memory Mutability ===
+
+class ScopedMemory {
+public:
+    ScopedMemory(const std::string& capsuleId)
+        : currentCapsule(capsuleId) {}
+
+    bool isMutable(const std::string& memLocation) const {
+        // Only allow mutation if within capsule scope or trusted mutation hooks
+        return mutableScopes.count(memLocation) > 0 && mutableScopes.at(memLocation) == currentCapsule;
+    }
+
+    void allowMutation(const std::string& memLocation) {
+        mutableScopes[memLocation] = currentCapsule;
+    }
+
+    void revokeMutation(const std::string& memLocation) {
+        mutableScopes.erase(memLocation);
+    }
+
+private:
+    std::string currentCapsule;
+    static std::unordered_map<std::string, std::string> mutableScopes; // memLocation -> capsuleId
+};
+
+std::unordered_map<std::string, std::string> ScopedMemory::mutableScopes;
+
+// === 🧠 Symbolic Gradient Propagation ===
+
+#include <vector>
+#include <functional>
+
+class SymbolicValue {
+public:
+    double value;
+    double grad; // gradient accumulator
+
+    SymbolicValue(double v = 0.0) : value(v), grad(0.0) {}
+
+    void backward(double upstreamGrad) {
+        grad += upstreamGrad;
+    }
+};
+
+class SymbolicNode {
+public:
+    SymbolicValue val;
+    std::vector<SymbolicNode*> parents;
+    std::function<void()> backwardFn;
+
+    SymbolicNode(double value) : val(value) {}
+
+    void backward() {
+        if (backwardFn) backwardFn();
+        for (auto* p : parents) {
+            p->backward(val.grad);
+        }
+    }
+};
+
+// Sample usage: build computational graph, propagate gradients
+// Forward pass builds graph, backward call propagates gradients
+
+class SymbolicPipeline {
+public:
+    SymbolicNode* add(SymbolicNode* a, SymbolicNode* b) {
+        SymbolicNode* node = new SymbolicNode(a->val.value + b->val.value);
+        node->parents = {a, b};
+        node->backwardFn = [node, a, b]() {
+            a->val.backward(node->val.grad);
+            b->val.backward(node->val.grad);
+        };
+        return node;
+    }
+
+    // Additional ops (mul, sub, etc.) can be similarly implemented
+};
+
+#include <iostream>
+#include <unordered_map>
+#include <vector>
+#include <string>
+
+// --- Capsule Representation ---
+struct Capsule {
+    std::string id;
+    std::string opcode;
+    std::vector<std::string> operands;
+    std::string next;
+};
+
+// --- AOT Register Environment ---
+enum Register { ACC, TMP, MEM };
+std::unordered_map<std::string, int> registerMap;
+
+// --- Capsule Table (static IR) ---
+std::unordered_map<std::string, Capsule> capsuleTable;
+
+// --- Symbolic Folding Engine ---
+int foldCapsule(const Capsule& c) {
+    int result = 0;
+    if (c.opcode == "Δ") {
+        result = std::stoi(c.operands[0]) + std::stoi(c.operands[1]);
+    } else if (c.opcode == "Ψ") {
+        result = 1;
+        int n = std::stoi(c.operands[0]);
+        for (int i = 2; i <= n; ++i) result *= i;
+    }
+    // Add more ops: Ξ, ⟁, Ω...
+    registerMap["ACC"] = result;
+    return result;
+}
+
+// --- AOT Pipeline ---
+void compileAndExecute(std::string entryId) {
+    std::string current = entryId;
+    while (!current.empty()) {
+        Capsule capsule = capsuleTable[current];
+        int result = foldCapsule(capsule);
+        std::cout << "Capsule [" << capsule.id << "] result: " << result << std::endl;
+        current = capsule.next;
+    }
+}
+
+// --- Sample Capsule Entry ---
+void initCapsules() {
+    capsuleTable["caps1"] = {"caps1", "Δ", {"12", "34"}, "caps2"};
+    capsuleTable["caps2"] = {"caps2", "Ψ", {"5"}, ""};
+}
+
+// --- Main ---
+int main() {
+    initCapsules();
+    compileAndExecute("caps1");
+    return 0;
+}
+
+std::unordered_map<std::string, Capsule> loadDCILCapsules(const std::string& filepath) {
+    std::ifstream file(filepath);
+    std::unordered_map<std::string, Capsule> capsuleTable;
+    std::string line;
+    while (std::getline(file, line)) {
+        if (line.empty() || line[0] == '#') continue;
+        std::istringstream iss(line);
+        Capsule cap;
+        iss >> cap.id >> cap.opcode;
+        std::string operand;
+        while (iss >> operand && operand != "->") {
+            cap.operands.push_back(operand);
+        }
+        if (operand == "->") iss >> cap.next;
+        capsuleTable[cap.id] = cap;
+    }
+    return capsuleTable;
+}
+
+std::unordered_set<std::string> findReachableCapsules(
+    const std::unordered_map<std::string, Capsule>& capsuleTable,
+    const std::string& entryId
+) {
+    std::unordered_set<std::string> reachable;
+    std::queue<std::string> q;
+    q.push(entryId);
+    while (!q.empty()) {
+        auto cid = q.front(); q.pop();
+        if (reachable.count(cid)) continue;
+        reachable.insert(cid);
+        const Capsule& c = capsuleTable.at(cid);
+        if (!c.next.empty()) q.push(c.next);
+    }
+    return reachable;
+}
+
+void emitLLVMIR(const std::unordered_map<std::string, Capsule>& capsuleTable, const std::string& outputPath) {
+    std::ofstream out(outputPath);
+    out << "define i32 @main() {\n";
+    for (const auto& [id, cap] : capsuleTable) {
+        out << "  ; Capsule " << id << "\n";
+        if (cap.opcode == "Δ") {
+            out << "  %" << id << " = add i32 " << cap.operands[0] << ", " << cap.operands[1] << "\n";
+        } else if (cap.opcode == "Ψ") {
+            out << "  %" << id << " = call i32 @factorial(i32 " << cap.operands[0] << ")\n";
+        }
+        // Add more symbolic op handling...
+    }
+    out << "  ret i32 0\n}\n";
+    out << "declare i32 @factorial(i32)\n";
+}
+
+struct ScopedMemory {
+    static std::unordered_map<std::string, int> memorySlots;
+    static void allocate(const std::string& capsuleId, int size) {
+        memorySlots[capsuleId] = size;
+    }
+    static void revoke(const std::string& capsuleId) {
+        memorySlots.erase(capsuleId);
+    }
+};
+std::unordered_map<std::string, int> ScopedMemory::memorySlots;
+
+void emitNASMAssembly(const std::unordered_map<std::string, Capsule>& capsuleTable, const std::string& asmPath) {
+    std::ofstream out(asmPath);
+    out << "section .text\n";
+    out << "global _start\n";
+    out << "_start:\n";
+    for (const auto& [id, cap] : capsuleTable) {
+        if (cap.opcode == "Δ") {
+            out << "  mov eax, " << cap.operands[0] << "\n";
+            out << "  add eax, " << cap.operands[1] << "\n";
+        } else if (cap.opcode == "Ψ") {
+            out << "  mov ecx, " << cap.operands[0] << "\n";
+            out << "  mov eax, 1\n";
+            out << "factorial_loop_" << id << ":\n";
+            out << "  mul ecx\n  loop factorial_loop_" << id << "\n";
+        }
+    }
+    out << "  mov ebx, 0\n  mov eax, 1\n  int 0x80\n"; // exit syscall
+}
+
