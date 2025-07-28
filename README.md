@@ -305,10 +305,35 @@ end
 
 🧪 Estimated Execution Speed vs Other Languages
 
-| Language        | ⚡ Execution Speed (Est.) | ⚙️ Notes                                                                |
-| --------------- | ------------------------ | ----------------------------------------------------------------------- |
-| **C**           | 🟢 **Fastest**           | Native compilation, no abstraction overhead                             |
-| **Rust**        | 🟢 **Very Fast**         | LLVM-backed, zero-cost abstractions                                     |
-| **QuarterLang** | 🟡 **Fast-ish**          | Capsule folding is efficient, symbolic execution boosts mid-level speed |
-| **Python**      | 🔴 **Slower**            | Interpreted, high abstraction cost                                      |
-| **JavaScript**  | 🔴 **Slower**            | JIT-dependent, variable performance                                     |
+| Language        | ⚡ Speed Tier | ⚙️ Notes                                             |
+| --------------- | ------------ | ---------------------------------------------------- |
+| **C**           | 🟢 Fastest   | Native compilation, zero abstraction overhead        |
+| **Rust**        | 🟢 Very Fast | LLVM-backed, zero-cost abstractions                  |
+| **C# (.NET 9)** | 🟢 Fast      | JIT-optimized, SIMD support, profile-guided inlining |
+| **QuarterLang** | 🟡 Mid-Fast  | Capsule folding boosts symbolic ops, lacks JIT/SIMD  |
+| **Python**      | 🔴 Slower    | Interpreted, high abstraction overhead               |
+| **JavaScript**  | 🔴 Slower    | JIT-dependent, runtime variability                   |
+
+
+🧠 Key Differences: QuarterLang vs C#
+
+| 🔍 Feature               | **C# (.NET 9)**                        | **QuarterLang**                                                  |
+| ------------------------ | -------------------------------------- | ---------------------------------------------------------------- |
+| **Execution Model**      | JIT Compilation + Tiered Optimizations | Capsule Folding + Symbolic Execution                             |
+| **Performance Boosters** | SIMD intrinsics, aggressive inlining   | Precomputed symbolic chains, accumulator register                |
+| **Runtime Footprint**    | Heavier, GC-managed                    | Lightweight, low bytecode overhead (1 byte/opcode)               |
+| **Math Throughput**      | High (SIMD 4× faster for numeric ops)  | Efficient for symbolic logic, arithmetic via base-12 accumulator |
+| **Best Use Case**        | High-performance, general-purpose apps | Recursive logic, symbolic computation, embedded DSLs             |
+
+
+📊 Realistic Benchmarking Projection
+
+| Task Type               | Likely Winner   | Reason                                                       |
+| ----------------------- | --------------- | ------------------------------------------------------------ |
+| **Numeric throughput**  | **C#**          | SIMD, JIT, optimized arithmetic pipelines                    |
+| **Symbolic recursion**  | **QuarterLang** | Capsule folding reduces depth cost, favors symbolic chains   |
+| **Intent-driven logic** | **QuarterLang** | Designed for expressive, low-cost symbolic pattern execution |
+| **Memory management**   | **C#**          | Mature GC, memory layout tuning                              |
+| **Bytecode density**    | **QuarterLang** | Single-byte opcodes, minimal overhead                        |
+
+
