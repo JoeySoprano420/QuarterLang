@@ -1,4 +1,5 @@
-* Oficial name is QUARTER  
+* QuarterLang → DCIL → AST → UICL → Portable Bytecode → .exe
+ 
 
 ## QuarterLang: ##
 
