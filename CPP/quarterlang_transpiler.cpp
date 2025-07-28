@@ -31492,3 +31492,844 @@ SECTIONS {
 				OP_LOAD_CONTEXT_NAME_NAME_NAME = 0x32F,
 				OP_STORE_CONTEXT_NAME_NAME_NAME = 0x330,
 				OP_LOAD_GLOBALS_NAME_NAME_NAME = 0x331,
+
+                enum class Opcode {
+                    LOAD_CONST,
+                    STORE,
+                    CALL,
+                    RETURN,
+                    BRANCH,
+                    JUMP,
+                    NOP,
+                    HALT
+                };
+
+                struct Instruction {
+                    Opcode opcode;
+                    std::vector<std::string> operands;
+                };
+
+                struct CapsuleMeta {
+                    std::string name;
+                    std::string version;
+                    std::vector<std::string> capabilities;
+                    std::map<std::string, std::string> env_vars;
+                    std::string signature;
+                };
+
+                bool serializeToCBOR(const CapsuleMeta&, std::vector<uint8_t>& out);
+                bool deserializeFromCBOR(const std::vector<uint8_t>& in, CapsuleMeta& meta);
+
+                struct CFGNode {
+    int id;
+    std::string label;
+    std::vector<CFGNode*> successors;
+};
+
+class CFGBuilder {
+public:
+    CFGBuilder(ASTNode* root);
+    std::vector<CFGNode*> build();
+private:
+    ASTNode* root;
+    std::map<int, CFGNode*> idToNode;
+};
+/* capsule.ld */
+SECTIONS{
+  . = 0x10000;
+  .capsule_meta : { KEEP(*(.capsule_meta)) }
+  .sig : { KEEP(*(.sig)) }
+  .bytecode : { KEEP(*(.bytecode)) }
+}
+
+struct CFGNode {
+    int id;
+    std::string label;
+    std::vector<CFGNode*> successors;
+};
+
+class CFGBuilder {
+public:
+    CFGBuilder(ASTNode* root);
+    std::vector<CFGNode*> build();
+private:
+    ASTNode* root;
+    std::map<int, CFGNode*> idToNode;
+};
+
+class SymbolicSimulator {
+public:
+    void simulate(const std::vector<Instruction>& code);
+    void injectSymbol(const std::string& symbol, int value);
+    std::map<std::string, int> getSymbolTable() const;
+
+private:
+    std::map<std::string, int> symbolTable;
+    std::vector<std::string> pathTrace;
+};
+
+struct PatchEdit {
+    std::string capsuleID;
+    std::string symbol;
+    std::string newValue;
+};
+
+class PatchInspector {
+public:
+    void applyPatch(const PatchEdit& patch);
+    void viewDiff(const std::string& capsuleID);
+};
+
+struct CapsuleMetrics {
+    int loopDepth;
+    int maxMemoryUsed;
+    double entropy;
+};
+
+class MetricsCollector {
+public:
+    void recordLoop();
+    void updateMemory(int bytes);
+    double calculateEntropy(const std::string& symbolTrace);
+    CapsuleMetrics exportMetrics() const;
+};
+
+struct Frame {
+    std::string capsuleID;
+    std::string callerSymbol;
+    std::vector<std::string> locals;
+};
+
+class BacktraceInspector {
+    std::vector<Frame> callStack;
+public:
+    void pushFrame(const Frame&);
+    void popFrame();
+    void dumpTrace() const;
+};
+
+class UICLREPL {
+public:
+    void launch();
+    void step();
+    void patchSymbol(const std::string& sym, const std::string& value);
+    void viewSymbolTable();
+private:
+    SymbolicSimulator sim;
+    PatchInspector inspector;
+    Debugger debugger;
+};
+
+struct AlchemicalTag {
+    std::string symbol;      // e.g., "🜁"
+    std::string meaning;     // e.g., "Air - Async"
+    int dg12_priority;       // Calculated from symbolic health
+};
+
+struct DG12Stats {
+    float entropyScore;     // variability or randomness in runtime state
+    int loopDepth;
+    int memPressure;
+    float healthMetric;     // 0.0 (unstable) to 1.0 (stable)
+    int dispatchPriority;   // derived from above
+};
+
+int computeDispatchPriority(const DG12Stats& stats) {
+    float base = stats.entropyScore * 0.3f + stats.memPressure * 0.4f;
+    float stability = stats.healthMetric * 0.5f;
+    return static_cast<int>((base + (1.0f - stability)) * 100);
+}
+
+class InliningOptimizer {
+public:
+    void fold(ASTNode* root);
+    void collapseBranches(ASTNode* loop);
+    void applySymbolicFolding(ASTNode* node);
+};
+
+struct FailureCapsule {
+    std::string errorType;
+    std::string originCapsule;
+    std::vector<std::string> trace;
+    AlchemicalTag symbolicFrame;
+    bool autoRecover;
+};
+
+void patchCapsule(FailureCapsule& fail) {
+    if (fail.autoRecover) {
+        injectRecovery(fail.symbolicFrame);
+        logTrace(fail.trace);
+    }
+}
+
+class CapsuleREPL {
+    void inspectCapsule(std::string id);
+    void livePatch(std::string id, std::string symbolicDelta);
+    void viewBacktrace(std::string id);
+    void simulatePath(std::string mnemonicSigil);
+};
+
+struct CapsuleMetrics {
+    std::string capsuleId;
+    float execEntropy;
+    int memoryUse;
+    int dispatchTier;
+    std::string sigil;
+};
+
+CBORMap meta = {
+    {"name", "transmute_loop"},
+    {"sigil", "🜔"},
+    {"dg12", {
+        {"entropy", 0.42},
+        {"mem", 68},
+        {"health", 0.8},
+        {"dispatch", 36}
+    }},
+    {"tags",["async", "volatile", "alchemy:fire"]}
+};
+
+struct CapsuleError {
+    std::string message;
+    std::string capsuleSymbol;
+    int lineNumber;
+};
+
+if (pos == std::string::npos) {
+    std::cerr << "[DG12] Invalid character: " << c << " in " << dg << std::endl;
+    continue;
+}
+
+#pragma once
+
+#include <memory>
+#include "../ast/CFGBuilder.hpp"
+
+class SymbolicOptimizer {
+public:
+    void inlineASTNodes(ASTNode* root);
+    void foldRedundantCapsules(ASTNode* root);
+};
+
+#pragma once
+
+#include <vector>
+#include <string>
+
+struct CapsuleMeta {
+    std::string name;
+    int dispatchPriority;
+    float healthFactor;
+    std::vector<std::string> tags;
+
+    std::vector<uint8_t> encodeCBOR() const;
+    static CapsuleMeta decodeCBOR(const std::vector<uint8_t>&);
+};
+
+#pragma once
+
+#include <string>
+#include "../capsule/CapsuleMeta.hpp"
+
+class CapsuleREPL {
+public:
+    void patchCapsule(std::string capsuleName, const std::string& bytecode);
+    std::string inspectCapsule(const std::string& capsuleName);
+    void enterInteractive();
+};
+
+#pragma once
+
+#include "../ast/CFGBuilder.hpp"
+
+class SymbolicSimulator {
+public:
+    void simulatePath(ASTNode* root);
+    void traceSymbolFlow(const std::string& symbol);
+    void analyzeAlchemicalDispatch(const std::string& mnemonic);
+};
+
+#pragma once
+
+#include <vector>
+#include <string>
+#include <unordered_map>
+
+struct ASTNode {
+    std::string opcode;
+    std::vector<ASTNode*> children;
+};
+
+class CFGBuilder {
+public:
+    ASTNode* parseToAST(const std::string& source);
+    void constructControlFlow(ASTNode* root);
+};
+
+#pragma once
+
+#include <string>
+
+class CapsuleRegistry {
+public:
+    void registerCapsule(const std::string& name, const CapsuleMeta& meta);
+    CapsuleMeta getCapsuleMeta(const std::string& name);
+    void auditCapsuleMutation(const std::string& capsuleName, const std::string& action);
+};
+
+# ===============================
+# Makefile - Modular Build Rules
+# ===============================
+
+CXX = g++
+CXXFLAGS = -std = c++20 - O2 - Wall - Wextra - Iinclude - g
+LDFLAGS =
+SRC_DIR = src
+OBJ_DIR = build
+BIN = bin / repl
+
+MODULES = Optimizer MetaCBOR CapsuleREPL SymbolicSim REPL Main
+OBJS = $(addprefix $(OBJ_DIR) / , $(addsuffix.o, $(MODULES)))
+
+all: $(BIN)
+
+$(BIN) : $(OBJS)
+$(CXX) $(CXXFLAGS) - o $@ $ ^ $(LDFLAGS)
+
+$(OBJ_DIR) / % .o: $(SRC_DIR) / % .cpp include / % .hpp
+mkdir - p $(OBJ_DIR)
+$(CXX) $(CXXFLAGS) - c $ < -o $@
+
+    clean :
+    rm - rf $(OBJ_DIR) $(BIN)
+
+    .PHONY : all clean
+
+# ===============================
+    # Directory Structure :
+# ===============================
+# include/
+# ├── Optimizer.hpp
+# ├── MetaCBOR.hpp
+# ├── CapsuleREPL.hpp
+# ├── SymbolicSim.hpp
+# └── REPL.hpp
+# src /
+# ├── Optimizer.cpp
+# ├── MetaCBOR.cpp
+# ├── CapsuleREPL.cpp
+# ├── SymbolicSim.cpp
+# ├── REPL.cpp
+# └── Main.cpp
+
+// === include/Optimizer.hpp ===
+#pragma once
+
+namespace Optimizer {
+    void foldAST();
+    void inlineCapsules();
+}
+
+// === include/MetaCBOR.hpp ===
+#pragma once
+#include <string>
+
+namespace MetaCBOR {
+    std::string encodeCapsuleMeta();
+    void decodeCapsuleMeta(const std::string& data);
+}
+
+// === include/CapsuleREPL.hpp ===
+#pragma once
+#include <string>
+
+namespace CapsuleREPL {
+    void startREPL();
+    void injectCapsule(const std::string& capsuleCode);
+    void patchSymbol(const std::string& symbol, const std::string& value);
+}
+
+// === include/SymbolicSim.hpp ===
+#pragma once
+#include <string>
+
+namespace SymbolicSim {
+    void simulatePath();
+    void traceCapsule();
+}
+
+// === include/REPL.hpp ===
+#pragma once
+
+namespace REPL {
+    void run();
+}
+
+// === src/Optimizer.cpp ===
+#include "Optimizer.hpp"
+#include <iostream>
+
+void Optimizer::foldAST() {
+    std::cout << "[INFO] Folding redundant AST nodes\n";
+}
+
+void Optimizer::inlineCapsules() {
+    std::cout << "[INFO] Inlining capsules\n";
+}
+
+// === src/MetaCBOR.cpp ===
+#include "MetaCBOR.hpp"
+#include <iostream>
+
+std::string MetaCBOR::encodeCapsuleMeta() {
+    std::cout << "[INFO] Encoding capsule metadata (CBOR)\n";
+    return "{}";
+}
+
+void MetaCBOR::decodeCapsuleMeta(const std::string& data) {
+    std::cout << "[INFO] Decoding capsule metadata: " << data << "\n";
+}
+
+// === src/CapsuleREPL.cpp ===
+#include "CapsuleREPL.hpp"
+#include <iostream>
+
+void CapsuleREPL::startREPL() {
+    std::cout << "[INFO] Capsule REPL started\n";
+}
+
+void CapsuleREPL::injectCapsule(const std::string& capsuleCode) {
+    std::cout << "[INFO] Injecting capsule: " << capsuleCode << "\n";
+}
+
+void CapsuleREPL::patchSymbol(const std::string& symbol, const std::string& value) {
+    std::cout << "[WARN] Patching symbol " << symbol << " with value: " << value << "\n";
+}
+
+// === src/SymbolicSim.cpp ===
+#include "SymbolicSim.hpp"
+#include <iostream>
+
+void SymbolicSim::simulatePath() {
+    std::cout << "[INFO] Symbolic path simulation running\n";
+}
+
+void SymbolicSim::traceCapsule() {
+    std::cout << "[INFO] Tracing capsule execution\n";
+}
+
+// === src/REPL.cpp ===
+#include "REPL.hpp"
+#include "CapsuleREPL.hpp"
+#include "SymbolicSim.hpp"
+#include "MetaCBOR.hpp"
+#include "Optimizer.hpp"
+#include <iostream>
+#include <string>
+
+void REPL::run() {
+    std::string line;
+    CapsuleREPL::startREPL();
+    while (true) {
+        std::cout << ">> ";
+        std::getline(std::cin, line);
+        if (line == ":quit") break;
+        if (line == ":fold") Optimizer::foldAST();
+        else if (line == ":inline") Optimizer::inlineCapsules();
+        else if (line == ":simulate") SymbolicSim::simulatePath();
+        else if (line.starts_with(":inject ")) CapsuleREPL::injectCapsule(line.substr(8));
+        else if (line.starts_with(":patch ")) CapsuleREPL::patchSymbol("sym", line.substr(7));
+        else std::cout << "[WARN] Unknown REPL command: " << line << "\n";
+    }
+    std::cout << "[INFO] REPL terminated\n";
+}
+
+// === src/Main.cpp ===
+#include "REPL.hpp"
+
+int main() {
+    REPL::run();
+    return 0;
+}
+
+Symbolic Optimizer	Optimizer.hpp / .cpp
+CBOR Meta Format	MetaCBOR.hpp / .cpp
+Live REPL Patch + View	CapsuleREPL.hpp / .cpp
+Symbolic Path Simulator	SymbolicSim.hpp / .cpp
+
+Makefile :
+# Modular Capsule System Makefile
+CXX = g++
+CXXFLAGS = -std = c++20 - Wall - Wextra - g
+
+SRC = main.cpp Optimizer.cpp MetaCBOR.cpp CapsuleREPL.cpp SymbolicSim.cpp
+OBJ = $(SRC:.cpp = .o)
+
+TARGET = capsule_repl
+
+all : $(TARGET)
+
+$(TARGET) : $(OBJ)
+$(CXX) $(CXXFLAGS) - o $@ $ ^
+
+clean:
+rm - f $(OBJ) $(TARGET)
+
+main.cpp :
+#include "CapsuleREPL.hpp"
+    int main() {
+    CapsuleREPL repl;
+    repl.run();
+    return 0;
+}
+
+Optimizer.cpp:
+#include "Optimizer.hpp"
+void Optimizer::foldEntropyPatterns(const std::vector<Capsule>& capsules, UserHistory& history) {
+    // Fold based on user access frequency, symbolic weight
+}
+
+MetaCBOR.cpp:
+#include "MetaCBOR.hpp"
+#include <cbor.h> // Assuming CBOR C lib bound
+void MetaCBOR::loadCapsuleMeta(const std::string& filename) {
+    // Read .capsule_meta file, parse CBOR fields into capsule registry
+}
+
+CapsuleREPL.cpp:
+#include "CapsuleREPL.hpp"
+#include "MetaCBOR.hpp"
+#include "SymbolicSim.hpp"
+#include "Optimizer.hpp"
+#include <iostream>
+
+void CapsuleREPL::run() {
+    while (true) {
+        std::string input;
+        std::cout << "> ";
+        std::getline(std::cin, input);
+        if (input == ":exit") break;
+        interpret(input);
+    }
+}
+
+void CapsuleREPL::interpret(const std::string& line) {
+    // Validate symbol table
+    // Run UICL integrity check
+    // Tag output with INFO/WARN/ERROR
+    // Log .log and .dot if debug enabled
+    std::cout << "[INFO] Interpreting: " << line << "\n";
+    // Placeholder for dispatch
+}
+
+SymbolicSim.cpp:
+#include "SymbolicSim.hpp"
+void SymbolicSim::simulatePaths(const Capsule& capsule, CoverageMap& coverage) {
+    // Walk operand paths
+    // Log branch coverage, dangling operand warnings
+}
+
+// Diagnostic Export System
+// Runtime logs to capsule_diag.log
+// Capsule lineage visualized via capsule_trace.dot
+
+// Capsule Exception System
+// 🜈 (SymbolicThrow) throws an exception when required operand missing:
+// [ERROR] 🜈: Missing operand for Δ in capsule X
+
+// Visualize lineage and parent stacks
+// Graph parentage through Capsule::traceLineage() → outputs .dot subgraph
+
+enum CapsuleType { Ξ_COND, Δ_STAT, ↻_FOLD, 🜈_ALERT };
+
+// === Step 2: Simulate and Trace ===
+// SymbolicSim.cpp
+
+#include "SymbolicSim.hpp"
+#include <iostream>
+#include <fstream>
+#include <unordered_map>
+#include <nlohmann/json.hpp>
+
+void SymbolicSimulator::acceptPacket(const PacketSymbol& packet) {
+    packetStream.push_back(packet);
+    if (simulate(packet)) {
+        logInfo("Packet accepted: " + packet.name);
+    }
+    else {
+        emitAlert("Symbolic divergence detected in: " + packet.name);
+    }
+}
+
+bool SymbolicSimulator::simulate(const PacketSymbol& packet) {
+    if (packet.name.find("diverge") != std::string::npos) {
+        alerts.push_back("[ALERT] Divergence on: " + packet.name);
+        return false;
+    }
+    symbolicHistory.push_back(packet);
+    return true;
+}
+
+void SymbolicSimulator::emitAlert(const std::string& msg) {
+    std::cerr << msg << std::endl;
+}
+
+void SymbolicSimulator::logInfo(const std::string& msg) {
+    std::cout << "[INFO] " << msg << std::endl;
+}
+
+void SymbolicSimulator::exportTrace(const std::string& jsonOut, const std::string& dotOut) {
+    std::ofstream json(jsonOut);
+    nlohmann::json j;
+    for (const auto& p : symbolicHistory) j["trace"].push_back(p.name);
+    json << j.dump(4);
+    json.close();
+
+    std::ofstream dot(dotOut);
+    dot << "digraph Trace {\n";
+    for (size_t i = 1; i < symbolicHistory.size(); ++i) {
+        dot << "  \"" << symbolicHistory[i - 1].name << "\" -> \"" << symbolicHistory[i].name << "\";\n";
+    }
+    dot << "}\n";
+    dot.close();
+}
+
+// === Step 3: Capsule Injection ===
+// CapsuleREPL.cpp
+
+#include "CapsuleREPL.hpp"
+#include "SymbolicSim.hpp"
+#include <iostream>
+#include <sstream>
+
+SymbolicSimulator globalSimulator;
+
+void CapsuleREPL::injectCapsule(const std::string& capsuleName) {
+    PacketSymbol capsule;
+    capsule.name = capsuleName;
+    globalSimulator.acceptPacket(capsule);
+    history.push_back(capsuleName);
+    std::cout << "[INFO] Injected capsule: " << capsuleName << std::endl;
+}
+
+void CapsuleREPL::patchCommand(const std::string& mutation) {
+    std::cout << "[WARN] Patching state with mutation: " << mutation << std::endl;
+    patchLog.push_back(mutation);
+}
+
+void CapsuleREPL::handleCommand(const std::string& cmd) {
+    if (cmd.rfind(":inject", 0) == 0) {
+        injectCapsule(cmd.substr(8));
+    }
+    else if (cmd.rfind(":patch", 0) == 0) {
+        patchCommand(cmd.substr(7));
+    }
+    else if (cmd == ":fold") {
+        std::cout << "[INFO] Folding symbolic lineage...\n";
+        globalSimulator.exportTrace("trace.json", "trace.dot");
+    }
+    else if (cmd == ":trace") {
+        std::cout << "[INFO] Trace exported to trace.json and trace.dot\n";
+    }
+    else {
+        std::cerr << "[ERROR] Unknown command: " << cmd << std::endl;
+    }
+}
+
+// === Capsule Lineage Visualization ===
+// file: CapsuleREPL.cpp
+
+/*
+Graph Capsule Ancestry:
+Each capsule maintains a parent stack.
+Nodes = Capsule IDs
+Edges = injection or mutation lineage
+Export with :trace --dot to visualize:
+
+Example DOT output:
+
+digraph CapsuleLineage {
+    CapsuleRoot -> Ξ_check_protocol;
+    Ξ_check_protocol -> Ξ_mutated;
+    Ξ_check_protocol -> Ξ_observed_divergence;
+}
+*/
+
+void CapsuleREPL::visualizeLineage(const Capsule& capsule) {
+    std::ostringstream dot;
+    dot << "digraph CapsuleLineage {\n";
+    for (const auto& parent : capsule.parentStack) {
+        dot << "    " << parent << " -> " << capsule.id << ";\n";
+    }
+    dot << "}\n";
+    saveToFile("lineage.dot", dot.str());
+}
+
+
+// === Entropy Signature Folding ===
+// file: Optimizer.cpp
+
+/*
+During folding, entropy signatures are tracked and compressed.
+Entropy maps track signature entropy over symbolic paths.
+*/
+
+EntropyMap Optimizer::computeEntropy(const SymbolicStream& stream) {
+    EntropyMap map;
+    for (const auto& step : stream.steps) {
+        float entropy = calculateStepEntropy(step);
+        map[step.id] = entropy;
+    }
+    return map;
+}
+
+void Optimizer::foldByEntropy(SymbolicStream& stream, const EntropyMap& map) {
+    for (auto& step : stream.steps) {
+        if (map.at(step.id) < ENTROPY_THRESHOLD) {
+            foldStep(step);
+        }
+    }
+    logEntropyFolding(map);
+}
+
+void Optimizer::logEntropyFolding(const EntropyMap& map) {
+    std::ofstream log("entropy_folding.json");
+    log << "{\n";
+    for (auto it = map.begin(); it != map.end(); ++it) {
+        log << "  \"" << it->first << "\": " << it->second;
+        if (std::next(it) != map.end()) log << ",";
+        log << "\n";
+    }
+    log << "}\n";
+    log.close();
+}
+
+:inject_stream[
+{"src":"192.168.1.5", "dest" : "192.168.1.7", "flag" : "SYN", "size" : 512},
+{ "src":"192.168.1.5", "dest" : "192.168.1.7", "flag" : "ACK", "size" : 32 }
+]
+
+for packet in stream :
+fold ← Ξ(flag == "SYN") ← Δ(size > 256)
+
+    : define_capsule Ξ_auth_check{
+        eval: "user.role == 'admin' && access == true"
+}
+
+    : attach_filter Ξ_auth_check to stream_id : session42
+
+    :throw_alert 🜈("Anomaly detected in SYN flood pattern")
+
+    bool REPL::evaluate_macro(const std::string & cmd) {
+    if (cmd.starts_with(":inject_stream")) { ... }
+    else if (cmd.starts_with(":define_capsule")) { ... }
+    ...
+}
+
+// === Capsule Runtime Infrastructure ===
+#include "SymbolicSim.hpp"
+#include "CapsuleREPL.hpp"
+#include "Optimizer.hpp"
+#include "MetaCBOR.hpp"
+#include "CapsuleLineage.hpp"
+#include "EntropyFolding.hpp"
+
+// === 🧪 Step 2: Simulate and Trace ===
+// Accept PacketSymbol structs
+// Simulate streams with behavioral folding
+// Emit alerts on symbolic divergence
+
+// === 🧬 Step 3: Capsule Injection ===
+// injectCapsule("Ξ:check_protocol")
+// Add patch commands for runtime mutation
+
+// === 🔄 Step 4: Runtime Folding & Logging ===
+// Use :fold and :trace REPL commands to:
+// Monitor symbolic lineage
+// Export trace logs to JSON/DOT for analysis
+
+// === 🧠 Capsule Lineage and Entropy Folding Visualization ===
+// - CapsuleLineage module traces ancestry
+// - EntropyFolding analyzes folding patterns
+// - Visualization hooks emit renderable trace graphs
+
+// === 🔥 .macro.qtr File Support ===
+// Allow preloading diagnostic sequences
+// Autoload and step-through macro-defined instruction chains
+
+// === 🧬 Capsule Metrics Dashboard ===
+// REPL command: :status_capsules or :entropy_map
+// Shows heatmaps, entropy levels, mutation counts, inheritance depth
+
+// === ⛓️ Macro Chaining ===
+// REPL command chaining: :inject_stream → :trace_capsule → :throw_alert
+// Enables automated symbolic tests and alert triggers
+
+// === Capsule Runtime Infrastructure ===
+#include "SymbolicSim.hpp"
+#include "CapsuleREPL.hpp"
+#include "Optimizer.hpp"
+#include "MetaCBOR.hpp"
+#include "CapsuleLineage.hpp"
+#include "EntropyFolding.hpp"
+#include "CapsuleViz.hpp"
+
+// === 🧪 Step 2: Simulate and Trace ===
+// Accept PacketSymbol structs
+// Simulate streams with behavioral folding
+// Emit alerts on symbolic divergence
+
+// === 🧬 Step 3: Capsule Injection ===
+// injectCapsule("Ξ:check_protocol")
+// Add patch commands for runtime mutation
+
+// === 🔄 Step 4: Runtime Folding & Logging ===
+// Use :fold and :trace REPL commands to:
+// Monitor symbolic lineage
+// Export trace logs to JSON/DOT for analysis
+
+// === 🧠 Capsule Lineage and Entropy Folding Visualization ===
+// - CapsuleLineage module traces ancestry
+// - EntropyFolding analyzes folding patterns
+// - Visualization hooks emit renderable trace graphs
+
+namespace CapsuleViz {
+    struct VizNode {
+        std::string capsuleId;
+        float entropyScore;
+        std::vector<std::string> parents;
+        std::vector<std::string> children;
+    };
+
+    class LineageGraph {
+    public:
+        void addNode(const VizNode& node);
+        void addEdge(const std::string& parent, const std::string& child);
+        void renderGraph(const std::string& outputFile);
+    private:
+        std::map<std::string, VizNode> nodes;
+        std::vector<std::pair<std::string, std::string>> edges;
+    };
+
+    class EntropyVisualizer {
+    public:
+        void loadCapsuleFoldData(const std::vector<FoldSignature>& folds);
+        void generateHeatmap(const std::string& outputPath);
+        void exportToDot(const std::string& outputPath);
+    private:
+        std::vector<FoldSignature> foldSignatures;
+    };
+}
+
+// === 🔥 .macro.qtr File Support ===
+// Allow preloading diagnostic sequences
+// Autoload and step-through macro-defined instruction chains
+
+// === 🧬 Capsule Metrics Dashboard ===
+// REPL command: :status_capsules or :entropy_map
+// Shows heatmaps, entropy levels, mutation counts, inheritance depth
+
+// === ⛓️ Macro Chaining ===
+// REPL command chaining: :inject_stream → :trace_capsule → :throw_alert
+// Enables automated symbolic tests and alert triggers
+
