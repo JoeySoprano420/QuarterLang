@@ -357,3 +357,92 @@ end
 QuarterLang excels in domains requiring symbolic execution, recursive logic, or portable minimalist bytecode—especially when clarity, introspection, and cross-platform expression are critical.
 
 
+🧠 QuarterLang Transpilation Pipeline
+
+| **Stage**               | **Description**                                                 |
+| ----------------------- | --------------------------------------------------------------- |
+| **QuarterLang**         | Source code in human-readable symbolic syntax                   |
+| **→ DCIL**              | Tokenized into *capsules* (Ω, Ψ, Δ, etc.) with symbolic meaning |
+| **→ AST**               | Tree structure of nodes representing flow and scope             |
+| **→ UICL**              | Intermediate form with opcodes + operands, capsules preserved   |
+| **→ Bytecode**          | Encoded into minimal, 1-byte opcodes with 8-bit operands        |
+| **→ Executable (.exe)** | Wrapped in raw binary (MZ/ELF headers) for native execution     |
+
+
+
+🔍 Core Component Overview
+
+| **Component**           | **Functionality**                                                                                     |
+| ----------------------- | ----------------------------------------------------------------------------------------------------- |
+| `tokenizeQuarterLang()` | Lexes tokens using regex; supports base-12 literals                                                   |
+| **DCIL Capsules**       | Symbolic tags: Ω (Meta-call), Δ (Arithmetic), Ψ (Recursion), Ξ (Logic), ⟁ (Signal), 🧪 (Experimental) |
+| `buildAST()`            | Constructs symbol-aware tree; exportable via Graphviz                                                 |
+| `emitUICL()`            | Generates compact IR from AST; preserves capsule logic                                                |
+| `compileBytecode()`     | Converts to single-byte opcode format; compact and portable                                           |
+| `wrapExecutable()`      | Creates binary wrappers (MZ for Windows, ELF for Unix)                                                |
+
+
+
+🚀 QuarterLang Performance Snapshot
+
+| **Language**    | ⚡ **Execution Speed Tier** | **Notes**                                                |
+| --------------- | -------------------------- | -------------------------------------------------------- |
+| **C**           | 🟢 Fastest                 | Native code, no abstraction                              |
+| **Rust**        | 🟢 Very Fast               | LLVM optimization, zero-cost abstractions                |
+| **C# (.NET 9)** | 🟢 Fast                    | JIT + SIMD, aggressive runtime optimization              |
+| **QuarterLang** | 🟡 Mid-Fast                | Capsule folding reduces runtime eval; no JIT or SIMD yet |
+| **Python**      | 🔴 Slower                  | Interpreted, high-level abstractions                     |
+| **JavaScript**  | 🔴 Slower                  | JIT-dependent, inconsistent performance                  |
+
+
+
+🧠 QuarterLang vs C# — Performance & Philosophy
+
+| **Feature**             | **C# (.NET 9)**                      | **QuarterLang**                                           |
+| ----------------------- | ------------------------------------ | --------------------------------------------------------- |
+| Execution Model         | Tiered JIT + profile-guided inlining | Precomputed capsule folding + symbolic execution          |
+| SIMD Support            | ✅ (4× numeric speedup)               | ❌ Not yet supported                                       |
+| Runtime Size            | Heavier, GC-managed                  | Minimal, compact bytecode (\~1B/opcode)                   |
+| Symbolic Logic Handling | Limited, manual                      | Native—supports recursion, intent-driven flow via Ψ, Δ, Ξ |
+| Use Case Fit            | Enterprise, high-throughput          | Symbolic reasoning, recursion, compact engines            |
+
+
+
+🌐 QuarterLang — Real-World Applications (Now)
+
+| **Sector**                | **Application Type**                               | **Status**      |
+| ------------------------- | -------------------------------------------------- | --------------- |
+| **Desktop Apps**          | GTK tools, REPL shells, symbolic debuggers         | ✅ Usable        |
+| **Web Applications**      | WebGL calculators, AST visualizers                 | ✅ Usable        |
+| **Symbolic Math & Logic** | Expression evaluators, recursive trainers          | ✅ Usable        |
+| **Game Development**      | Procedural generation, AI states (Godot adapter)   | 🔄 In Progress  |
+| **System Debug Tools**    | Memory visualizers, stack viewers, capsule tracing | ✅ Usable        |
+| **UI Frameworks**         | REPL-driven symbolic interfaces                    | 🔄 Prototype    |
+| **Embedded Systems**      | Bytecode-driven minimal VM targets                 | 🧪 Experimental |
+| **Cross-Platform IR**     | x86-64 / WebGL / RISC-V IR target emission         | 🔄 In Progress  |
+| **Philosophical Systems** | Recursive scripting, language metaphors            | ✅ Active Use    |
+
+
+
+✅ What Works Right Now (Examples)
+
+| 🧰 **App Type**    | 💡 **Real Example**                                       | 🚦 **Status**    |
+| ------------------ | --------------------------------------------------------- | ---------------- |
+| GUI Tools          | Capsule visualizers, REPL panels (GTK/SDL)                | ✅ Live           |
+| Web UI             | Symbolic calculator, AST explorer in browser via WebGL    | ✅ Usable         |
+| Logic Engines      | Recursive math trainers, folding visualizers              | ✅ Teaching ready |
+| Runtime Demos      | Interactive REPL with Δ, Ψ, Ξ tracing                     | ✅ Demonstrated   |
+| Game Systems (WIP) | Recursive AI via capsule chains, terrain folding in Godot | 🔄 In Dev Build  |
+
+
+
+🧪 Prototype Recommendations
+
+| 🚀 **Prototype Idea**         | 🧠 **Why It Works**                                                       |
+| ----------------------------- | ------------------------------------------------------------------------- |
+| **Capsule Debugger Panel**    | Shows real-time execution of Δ, Ψ, and memory; perfect for dev & teaching |
+| **WebGL Symbolic Calculator** | Runs live folding with base-12 I/O; browser deployable                    |
+| **Logic Trainer Engine**      | Teaching recursion via visual capsule flow and result feedback            |
+
+
+
